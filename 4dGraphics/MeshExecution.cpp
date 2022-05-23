@@ -34,6 +34,7 @@ static glm::mat3 ToGLM( const aiMatrix3x3 &m ) {
 	);
 }
 
+/*
 void FontRenderer::RenderText( GLProgram *fontFrag, const char *str, glm::vec2 pos, glm::vec4 col, float scale )
 {
 	OPTICK_EVENT();
@@ -110,26 +111,6 @@ bool FontRenderer::Load( FT_Library ftLib, const char *fontPath, int _CharHeight
 {
 	OPTICK_EVENT();
 	clear();
-	/*
-	if( !GetFileString( fontData, fontPath.str(), ios_base::in | ios_base::binary ) )
-	{
-		TRACE( DebugLevel::Error, "Cannot read file '%s' to load font\n", fontPath.str().c_str() );
-		return false;
-	};
-
-	int FontOffset = stbtt_GetFontOffsetForIndex( (const unsigned char *)fontData.data(), IndexInCollection );
-	if( FontOffset == -1 )
-	{
-		TRACE( DebugLevel::Error, "Font index %d is out of range for '%s'\n", IndexInCollection, fontPath.str().c_str() );
-		return false;
-	}
-
-	if( !stbtt_InitFont( &fontInfo, (const unsigned char *)fontData.data(), FontOffset ) )
-	{
-		TRACE( DebugLevel::Error, "Couldn't init font for '%s'\n", fontPath.str().c_str() );
-		return false;
-	}
-	*/
 
 	FT_Face face;
 	if( FT_Error err = FT_New_Face( ftLib, fontPath, 0, &face ) )
@@ -165,22 +146,6 @@ bool FontRenderer::Load( FT_Library ftLib, const char *fontPath, int _CharHeight
 
 			ch = FT_Get_Next_Char( face, ch, &idx );
 		}
-
-		/*
-		std::unordered_map<unsigned int, unsigned int> q;
-		for( unsigned int c = 0; c < numOfCharsToLoad; c++ )
-		{
-			GlyphId[c] = FT_Get_Char_Index( face, c );
-
-			if( q.find( GlyphId[c]) == q.end() )
-			{
-				q[GlyphId[c]] = ( unsigned int)What.size();
-				What.push_back( GlyphId[c] );
-			}
-
-			CharToGlyph[c] = q[GlyphId[c]];
-		}
-		*/
 	}
 
 	for( unsigned int it : What )
@@ -353,6 +318,7 @@ void FontRenderer::clear()
 	//memset( &fontInfo, 0, sizeof( fontInfo ) );
 	//fontData.clear();
 }
+*/
 
 void Model::clear()
 {

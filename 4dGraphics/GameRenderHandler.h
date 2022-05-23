@@ -25,7 +25,7 @@ public:
 	GLTexId ImGuiFontAtlas;
 
 	float MSPF;
-	FontRenderer fontArial;
+	//FontRenderer fontArial;
 	glm::uvec2 LastWndSize = glm::vec2( -1, -1 );
 	glm::vec2 InvWndSize;
 	bool LastVSync = 0;
@@ -43,7 +43,7 @@ public:
 
 	int ShadowMapSize = 1;
 
-	FT_Library FreeTypeLib;
+	//FT_Library FreeTypeLib;
 
 	//void SetUpShadowPipeline( bool firstTime = false );
 	void CreateAndInitFBO( glm::ivec2 size );

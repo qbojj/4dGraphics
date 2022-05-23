@@ -318,12 +318,93 @@ inline void GameTickHandler::Move( glm::vec3 v )
 	CamPos += CamRot * v;
 }
 
-int modulo( int v, int m )
+int modulo(int v, int m)
 {
 	v = v % m;
-	if( v < 0 ) v = (v + m) % m;
+	if (v < 0) v = (v + m) % m;
 	return v;
 }
+
+/*
+	ImGuiKey_Tab = 512,             // == ImGuiKey_NamedKey_BEGIN
+	ImGuiKey_LeftArrow,
+	ImGuiKey_RightArrow,
+	ImGuiKey_UpArrow,
+	ImGuiKey_DownArrow,
+	ImGuiKey_PageUp,
+	ImGuiKey_PageDown,
+	ImGuiKey_Home,
+	ImGuiKey_End,
+	ImGuiKey_Insert,
+	ImGuiKey_Delete,
+	ImGuiKey_Backspace,
+	ImGuiKey_Space,
+	ImGuiKey_Enter,
+	ImGuiKey_Escape,
+	ImGuiKey_LeftCtrl, ImGuiKey_LeftShift, ImGuiKey_LeftAlt, ImGuiKey_LeftSuper,
+	ImGuiKey_RightCtrl, ImGuiKey_RightShift, ImGuiKey_RightAlt, ImGuiKey_RightSuper,
+	ImGuiKey_Menu,
+	ImGuiKey_0, ImGuiKey_1, ImGuiKey_2, ImGuiKey_3, ImGuiKey_4, ImGuiKey_5, ImGuiKey_6, ImGuiKey_7, ImGuiKey_8, ImGuiKey_9,
+	ImGuiKey_A, ImGuiKey_B, ImGuiKey_C, ImGuiKey_D, ImGuiKey_E, ImGuiKey_F, ImGuiKey_G, ImGuiKey_H, ImGuiKey_I, ImGuiKey_J,
+	ImGuiKey_K, ImGuiKey_L, ImGuiKey_M, ImGuiKey_N, ImGuiKey_O, ImGuiKey_P, ImGuiKey_Q, ImGuiKey_R, ImGuiKey_S, ImGuiKey_T,
+	ImGuiKey_U, ImGuiKey_V, ImGuiKey_W, ImGuiKey_X, ImGuiKey_Y, ImGuiKey_Z,
+	ImGuiKey_F1, ImGuiKey_F2, ImGuiKey_F3, ImGuiKey_F4, ImGuiKey_F5, ImGuiKey_F6,
+	ImGuiKey_F7, ImGuiKey_F8, ImGuiKey_F9, ImGuiKey_F10, ImGuiKey_F11, ImGuiKey_F12,
+	ImGuiKey_Apostrophe,        // '
+	ImGuiKey_Comma,             // ,
+	ImGuiKey_Minus,             // -
+	ImGuiKey_Period,            // .
+	ImGuiKey_Slash,             // /
+	ImGuiKey_Semicolon,         // ;
+	ImGuiKey_Equal,             // =
+	ImGuiKey_LeftBracket,       // [
+	ImGuiKey_Backslash,         // \ (this text inhibit multiline comment caused by backslash)
+	ImGuiKey_RightBracket,      // ]
+	ImGuiKey_GraveAccent,       // `
+	ImGuiKey_CapsLock,
+	ImGuiKey_ScrollLock,
+	ImGuiKey_NumLock,
+	ImGuiKey_PrintScreen,
+	ImGuiKey_Pause,
+	ImGuiKey_Keypad0, ImGuiKey_Keypad1, ImGuiKey_Keypad2, ImGuiKey_Keypad3, ImGuiKey_Keypad4,
+	ImGuiKey_Keypad5, ImGuiKey_Keypad6, ImGuiKey_Keypad7, ImGuiKey_Keypad8, ImGuiKey_Keypad9,
+	ImGuiKey_KeypadDecimal,
+	ImGuiKey_KeypadDivide,
+	ImGuiKey_KeypadMultiply,
+	ImGuiKey_KeypadSubtract,
+	ImGuiKey_KeypadAdd,
+	ImGuiKey_KeypadEnter,
+	ImGuiKey_KeypadEqual,
+*/
+
+constexpr ImGuiKey ImGuiASCIIidx(char c)
+{
+	if (c >= '0' && c <= '9') return ImGuiKey_0 + (c - '0');
+	if (c >= 'a' && c <= 'z') return ImGuiKey_A + (c - 'a');
+	if (c >= 'A' && c <= 'Z') return ImGuiKey_A + (c - 'A');
+
+	switch (c)
+	{
+	case '\t':return ImGuiKey_Tab;
+	case ' ': return ImGuiKey_Space;
+	case '\n':return ImGuiKey_Enter;
+	 
+	case '\'':return ImGuiKey_Apostrophe;
+	case ',': return ImGuiKey_Comma;
+	case '-': return ImGuiKey_Minus;
+	case '.': return ImGuiKey_Period;
+	case '/': return ImGuiKey_Slash;
+	case ';': return ImGuiKey_Semicolon;
+	case '=': return ImGuiKey_Equal;
+	case '[': return ImGuiKey_LeftBracket;
+	case '\\':return ImGuiKey_Backslash;
+	case ']': return ImGuiKey_RightBracket;
+	case '`': return ImGuiKey_GraveAccent;
+	}
+
+	assert(0 && "Character given to ImGuiASCIIidx doesn't correspond to a key");
+	return 0;
+};
 
 void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 {
@@ -342,8 +423,9 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 
 	//*FData = {}; // default construct
 
-	const auto KeyDown = [&io]( char c ) { return io.KeysDown[c]; };
-	const auto KeyPressed = [&io]( char c ) { return io.KeysDown[c] && io.KeysDownDuration[c] == 0.f; };
+
+	const auto KeyDown = []( char c ) { return ImGui::IsKeyDown(ImGuiASCIIidx(c) ); };
+	const auto KeyPressed = []( char c ) { return ImGui::IsKeyPressed(ImGuiASCIIidx(c),false); };
 
 
 	dt = glm::clamp( dt, 0.00000001f, 1.0f );
@@ -399,12 +481,12 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 		}
 	}
 
-	if( io.KeysDown['Q'] ) CamRot *= glm::angleAxis( -dt * 2, vFront );
-	if( io.KeysDown['E'] ) CamRot *= glm::angleAxis( dt * 2, vFront );
+	if( KeyDown('Q') ) CamRot *= glm::angleAxis( -dt * 2, vFront );
+	if( KeyDown('E') ) CamRot *= glm::angleAxis( dt * 2, vFront );
 
 
-	if( io.KeysDown['Q'] ) CamRot *= glm::angleAxis( -dt * 2, vFront );
-	if( io.KeysDown['E'] ) CamRot *= glm::angleAxis( dt * 2, vFront );
+	if( KeyDown('Q') ) CamRot *= glm::angleAxis( -dt * 2, vFront );
+	if( KeyDown('E') ) CamRot *= glm::angleAxis( dt * 2, vFront );
 
 	//bTextureView ^= pressed['T'];
 	bVSync ^= KeyPressed( 'V' );
@@ -452,8 +534,6 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 		camera.Create( View, fovy, aspect, Near, Far );
 	}
 
-	ImGui::CaptureMouseFromApp();
-	ImGui::CaptureKeyboardFromApp();
 	//ImGui::ShowMetricsWindow();
 
 	static bool ShowLightsWindow = false, ShowDebugWindow = false;
