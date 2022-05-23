@@ -1,0 +1,12 @@
+#
+#
+#
+
+newmtl CubeRoom_GEO Mesh_surfaceShader1SG
+illum 2
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ns 0.000000
+map_Kd CubeRoom_BakedDiffuse_4096.png
+

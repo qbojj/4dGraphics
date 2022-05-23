@@ -1,0 +1,9 @@
+#
+#
+#
+
+newmtl Teapot_mat
+illum 2
+Kd 0 0 1
+Ks 1.00 1.00 1.00
+Ni 1.00

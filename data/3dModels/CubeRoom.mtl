@@ -1,0 +1,5 @@
+newmtl surfaceShader1SG
+illum 2
+Ks 0 0 0
+map_Kd CubeRoom_BakedDiffuse_4096.png
+Ni 1.00
