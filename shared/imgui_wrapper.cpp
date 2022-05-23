@@ -12,6 +12,7 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
+#define GLFW_INCLUDE_NONE
 
 #include <imgui.cpp>
 #include <imgui_demo.cpp>
