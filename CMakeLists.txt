@@ -80,6 +80,7 @@ include_directories(deps/stb)
 #include_directories(deps/bullet/src)
 #include_directories(deps/ImGuizmo/src)
 include_directories(deps/imgui)
+include_directories(deps/Vulkan/include)
 
 
 add_subdirectory(deps/glad/cmake)
