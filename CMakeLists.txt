@@ -63,8 +63,7 @@ include_directories(.)
 include_directories(deps)
 #include_directories(deps/src/freetype/include)
 #include_directories(deps/glfw/include)
-include_directories(deps/glm)
-include_directories(deps/gli)
+
 #include_directories(deps/include)
 #include_directories(deps/assimp/include)
 #include_directories(deps/etc2comp/EtcLib/Etc)
@@ -73,12 +72,16 @@ include_directories(deps/gli)
 #include_directories(deps/taskflow)
 #include_directories(deps/rapidjson/include)
 #include_directories(${CMAKE_CURRENT_BINARY_DIR}/deps/assimp/include)
-include_directories(deps/stb)
+
 #include_directories(deps/glslang)
 #include_directories(deps/glslang/StandAlone)
 #include_directories(deps/glslang/src)
 #include_directories(deps/bullet/src)
 #include_directories(deps/ImGuizmo/src)
+
+include_directories(deps/glm)
+include_directories(deps/gli)
+include_directories(deps/stb)
 include_directories(deps/imgui)
 
 
