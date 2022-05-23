@@ -58,7 +58,7 @@ endif()
 add_executable( 4dGraphics  ${4DGSources} )
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
-if( NOT WIN32 )
+if( UNIX AND NOT APPLE )
 	find_package(TBB REQUIRED)
 	target_link_libraries(4dGraphics PRIVATE TBB::tbb)
 endif()
