@@ -5,11 +5,14 @@
 
 #include "optick.h"
 
-#include <semaphore>
+//#define MULTI_THREADED
+
+#ifdef MULTI_THREADED
+#include <atomic>
+//#include <semaphore>
+#endif
 
 using namespace std;
-
-// #define MULTI_THREADED
 
 void ErrorCallback( int code, const char *description )
 {
@@ -53,14 +56,14 @@ public:
 #ifdef MULTI_THREADED 
 	mutex mtInputLock;
 
-	//atomic_flag 
-	//	RequestUpdateFlag = ATOMIC_FLAG_INIT,
-	//	UpdateReadyFlag = ATOMIC_FLAG_INIT;
+	atomic_flag 
+		RequestUpdateFlag = ATOMIC_FLAG_INIT,
+		UpdateReadyFlag = ATOMIC_FLAG_INIT;
 
 	// start locked
-	std::binary_semaphore
-		RequestUpdateFlag{ 0 },
-		UpdateReadyFlag{ 0 };
+	//std::binary_semaphore
+	//	RequestUpdateFlag{ 0 },
+	//	UpdateReadyFlag{ 0 };
 
 	atomic<bool> bInputInitialized = false;
 	atomic<int> iDestroyed = 0;
@@ -89,9 +92,9 @@ public:
 		*/
 
 		OPTICK_CATEGORY( OPTICK_FUNC, Optick::Category::Wait );
-		//RequestUpdateFlag.wait( false );
-		//RequestUpdateFlag.clear();
-		RequestUpdateFlag.acquire();
+		RequestUpdateFlag.wait( false, std::memory_order::acquire );
+		RequestUpdateFlag.clear( std::memory_order::release );
+		//RequestUpdateFlag.acquire();
 		return ShouldClose();
 	}
 
@@ -113,9 +116,9 @@ public:
 		*/
 
 		OPTICK_CATEGORY( OPTICK_FUNC, Optick::Category::Wait );
-		//UpdateReadyFlag.wait( false ); // wait for change from false
-		//UpdateReadyFlag.clear();
-		UpdateReadyFlag.acquire();
+		UpdateReadyFlag.wait( false, std::memory_order::acquire ); // wait for change from false
+		UpdateReadyFlag.clear( std::memory_order::release );
+		//UpdateReadyFlag.acquire();
 		return ShouldClose();
 	}
 
@@ -132,7 +135,7 @@ public:
 		return GetCurrentFrameData();
 	}
 
-	inline bool ShouldClose() { return bClose.test( std::memory_order::consume ); };
+	inline bool ShouldClose() { return bClose.test( std::memory_order::relaxed ); };
 	inline void Close()
 	{
 		//if( ShouldClose() ) return;
@@ -151,13 +154,13 @@ public:
 #endif
 	*/
 		bClose.test_and_set( std::memory_order::release );
-		RequestUpdateFlag.release();
-		UpdateReadyFlag.release();
-		//RequestUpdateFlag.test_and_set( std::memory_order::release );
-		//UpdateReadyFlag.test_and_set( std::memory_order::release );
+		//RequestUpdateFlag.release();
+		//UpdateReadyFlag.release();
+		RequestUpdateFlag.test_and_set( std::memory_order::release );
+		UpdateReadyFlag.test_and_set( std::memory_order::release );
 		//
-		//UpdateReadyFlag.notify_all();
-		//RequestUpdateFlag.notify_all();
+		UpdateReadyFlag.notify_all();
+		RequestUpdateFlag.notify_all();
 	};
 
 	inline void MessageRequestUpdate()
@@ -174,9 +177,9 @@ public:
 #endif
 		*/
 
-		//RequestUpdateFlag.test_and_set( std::memory_order::release );
-		//RequestUpdateFlag.notify_one();
-		RequestUpdateFlag.release();
+		RequestUpdateFlag.test_and_set( std::memory_order::release );
+		RequestUpdateFlag.notify_one();
+		//RequestUpdateFlag.release();
 	}
 
 	inline void MessageUpdateReady()
@@ -192,9 +195,9 @@ public:
 		cvUpdateReady.notify_one();
 #endif
 		*/
-		//UpdateReadyFlag.test_and_set( std::memory_order::release );
-		//UpdateReadyFlag.notify_one();
-		UpdateReadyFlag.release();
+		UpdateReadyFlag.test_and_set( std::memory_order::release );
+		UpdateReadyFlag.notify_one();
+		//UpdateReadyFlag.release();
 	}
 
 #endif
