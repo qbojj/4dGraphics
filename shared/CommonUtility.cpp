@@ -2,6 +2,7 @@
 //#include "Debug.h"
 #include <exception>
 #include <system_error>
+#include <cstring>
 
 using namespace std;
 
