@@ -43,12 +43,12 @@ void *GLCircularBufferGeneric_::MoveToNextBuffer()
 	return GetData();
 }
 
-inline void GLCircularBufferGeneric_::Flush() const
+void GLCircularBufferGeneric_::Flush() const
 {
 	if( !coherent ) glFlushMappedNamedBufferRange( Buff, GetCurrentOffset(), GetDataSize() );
 }
 
-inline void GLCircularBufferGeneric_::Invalidate()
+void GLCircularBufferGeneric_::Invalidate()
 {
 	if( !syncs[cur] )
 	{
@@ -96,7 +96,7 @@ void GLCircularBufferGeneric_::Create( GLsizeiptr objSize, bool coherent, GLintp
 	syncs.resize( partsCnt, 0 );
 }
 
-inline void GLBufferAllocator::Resize( GLsizeiptr size, const char *why )
+void GLBufferAllocator::Resize( GLsizeiptr size, const char *why )
 {
 	Create( size );
 	//#if IS_DEBUG
@@ -146,7 +146,7 @@ void *GLBufferAllocator::internalAlloc( GLsizeiptr siz, GLsizeiptr *allocated )
 	return d;
 }
 
-inline void GLBufferAllocator::clear()
+void GLBufferAllocator::clear()
 {
 	Buff.clear();
 
@@ -154,7 +154,7 @@ inline void GLBufferAllocator::clear()
 	allocatedSize = 0;
 }
 
-inline void GLBufferAllocator::Create( GLsizeiptr maxAlloc )
+void GLBufferAllocator::Create( GLsizeiptr maxAlloc )
 {
 	clear();
 
