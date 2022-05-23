@@ -1,8 +1,6 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 
 //#pragma warning(push)
 //#pragma warning( disable: 4251 )
