@@ -7,9 +7,7 @@ project(4dGraphics)
 include_directories(
 	"../shared" 
 	"../Collisions"
-	"../JJSON"
 	"../data/shaders/include"
-	"../deps/src/imgui"
 )
 
 # get by ls -1
@@ -40,8 +38,8 @@ set( 4DGSources
 	"ShaderUniforms.h"
 	"TextureLoad.cpp"
 	"TextureLoad.h"
-	"glTF.cpp"
-	"glTF.h"
+	
+	
 	"stdafx.cpp"
 	"stdafx.h"
 	"CommandQueue.h"
@@ -65,7 +63,7 @@ if( NOT WIN32 )
 	target_link_libraries(4dGraphics PRIVATE TBB::tbb)
 endif()
 
-target_link_libraries( 4dGraphics PRIVATE Collisions JJSON SharedUtils )
+target_link_libraries( 4dGraphics PRIVATE Collisions SharedUtils )
 
 if(WIN32)
 	add_definitions( -DREQUIRE_WINMAIN )

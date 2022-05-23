@@ -101,13 +101,13 @@ const GLextentionDef_t ExtensionsRequired[] = {
 void GameRenderHandler::OnDestroy()
 {
 	OPTICK_EVENT();
-
+/*
 	if( FT_Error err = FT_Done_FreeType( FreeTypeLib ) )
 	{
 		const char *why = FT_Error_String( err );
 		TRACE( DebugLevel::Error, "FT_Done_FreeType returned error (%d%s%s)\n", err, why ? ": " : "", why ? why : "" );
 	}
-
+	*/
 	if( g_BufAllocator ) delete g_BufAllocator;
 }
 
@@ -328,7 +328,7 @@ bool GameRenderHandler::OnCreate()
 
 	if( !ok ) { TRACE( DebugLevel::Error, "Cannot load meshes\n" ); }
 	ok = true;
-
+	/*
 	TRACE( DebugLevel::Debug, "Renderer: On create - fonts\n" );
 
 	if( FT_Error err = FT_Init_FreeType( &FreeTypeLib ) ) 
@@ -344,7 +344,7 @@ bool GameRenderHandler::OnCreate()
 		if( !ok ) { TRACE( DebugLevel::Error, "Cannot load font form %s\n", fontPath ); };// return false; }
 		ok = true;
 	}
-	
+	*/
 	TRACE( DebugLevel::Debug, "Renderer: On create - shaders\n" );
 
 	//if( GLAD_GL_ARB_parallel_shader_compile ) glMaxShaderCompilerThreadsARB( 64 );

@@ -80,7 +80,7 @@ protected:
 
 	glm::uint TraverseNodes( aiNode *node, int parent, glm::mat4 currMat );// , GLModelMatrices *Matrices, int curMatIdx = 0 );//, std::unordered_map<glm::mat4, int> &MatsIdxs );
 };
-
+/*
 class FontRenderer
 {
 protected:
@@ -117,7 +117,7 @@ public:
 	~FontRenderer() { clear(); }
 	void clear();
 };
-
+*/
 class StreamArrayDrawer
 {
 public:
