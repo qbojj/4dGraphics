@@ -1,8 +1,9 @@
-#include "/include/GLSLInit.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
 
-#include "/include/Matrices.glsl" //! #include "./include/Matrices.glsl"
-#include "/include/Materials.glsl" //! #include "./include/Materials.glsl"
-#include "/include/Lights.glsl" //! #include "./include/Lights.glsl"
+#include "include/Matrices.glsl" //! #include "./include/Matrices.glsl"
+#include "include/Materials.glsl" //! #include "./include/Materials.glsl"
+#include "include/Lights.glsl" //! #include "./include/Lights.glsl"
 
 layout(location = 0) out vec4 vFragColor;
 //layout(location = 1) out vec3 vFragNorm;

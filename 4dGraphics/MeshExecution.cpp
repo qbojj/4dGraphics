@@ -885,13 +885,13 @@ bool Model::Load( const char *file, Assimp::Importer &importer, unsigned int add
 				else return (GLuint64)texIdx;
 			};
 
-			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_DIFFUSE( 0 ), s ) ) s = "NoTextureColor.dds";
+			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_DIFFUSE( 0 ), s ) ) s = DATA_PATH "NoTextureColor.dds";
 			m.iTexDiffuse = glm::unpackUint2x32( LoadTexture( s ) );
 
-			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_SPECULAR( 0 ), s ) ) s = "NoTextureColor.dds";
+			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_SPECULAR( 0 ), s ) ) s = DATA_PATH "NoTextureColor.dds";
 			m.iTexSpecular = glm::unpackUint2x32( LoadTexture( s ) );
 
-			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_NORMALS( 0 ), s ) ) s = "NoTextureNormal.dds";
+			if( AI_SUCCESS != mat->Get( AI_MATKEY_TEXTURE_NORMALS( 0 ), s ) ) s = DATA_PATH "NoTextureNormal.dds";
 			m.iTexNormal = glm::unpackUint2x32( LoadTexture( s ) );
 
 			Maters[i] = m;//GLMaterialFormMaterial( m, Textures.data() );

@@ -64,3 +64,8 @@ using namespace collisions;
 #include <stb_rect_pack.h>
 #include <stb_image.h>
 #include <stb_sprintf.h>
+
+#define DATA_PATH "data/"
+#define MODELS_BASE_PATH DATA_PATH "3dModels/"
+#define FONTS_BASE_PATH DATA_PATH "fonts/"
+#define SHADER_BASE_PTH DATA_PATH "shaders/"

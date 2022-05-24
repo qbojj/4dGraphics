@@ -1,7 +1,7 @@
 #version 450
 
-#include "/include/GLSLInit.glsl" //! #include "./include/GLSLInit.glsl"
-#include "/include/Matrices.glsl" //! #include "./include/Matrices.glsl"
+#include "include/GLSLInit.glsl"
+#include "include/Matrices.glsl"
 
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec2 vTex;
@@ -14,7 +14,8 @@ layout(location = 0) out VS_OUT
 {
     vec3 vWorldPos;
     vec2 vTex;
-    vec3 vNorm, vTang;
+    vec3 vNorm;
+    vec3 vTang;
     vec4 vCol;
 
     flat uvec2 vModelPartIdx; // matrix, material
