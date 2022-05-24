@@ -15,8 +15,7 @@ namespace fs = filesystem;
 // constructor generates the shader on the fly
 // ------------------------------------------------------------------------
 
-string GLShader::includeDir;
-bool GLShader::includeDirInitialized = false;
+vector<fs::path> GLShader::includeDirs;
 
 // returns 0 if file doesn't exist
 static time_t GetFileWriteTime( const char *filePath )
@@ -338,6 +337,23 @@ static string SkipComments( const string &_line, bool &InMultilineComment )
 
 static void skipWhitespaces( const char *&s ) { while( isspace( *s ) ) ++s; }
 
+fs::path GLShader::ChoseShaderPath( const fs::path &name, const fs::path &cwd, bool *ok )
+{
+    if (ok) *ok = true;
+    fs::path checked = ( cwd / name );
+
+    if( fs::is_regular_file(checked) ) return checked.lexically_normal();
+
+    for (const fs::path& dir : includeDirs)
+    {
+        checked = (dir / name);
+        if (fs::is_regular_file(checked)) return checked.lexically_normal();
+    }
+
+    if (ok) *ok = false;
+    return "";
+}
+
 bool GLShader::ResolveIncludes( 
     vector<string> &sourceList, 
     const char *filePath,
@@ -359,14 +375,25 @@ bool GLShader::ResolveIncludes(
     int glslVer = 110;
     bool compat = false;
 
-    filesToVert[filePath] = 0;
-    deps = { { filePath, 0 } };
+    bool fileFound;
+    fs::path filePath2 = fs::absolute(filePath);
+    string FormatedPath = filePath2.string();
+
+    if (!fs::is_regular_file(filePath2))
+    {
+        TRACE(DebugLevel::Error, "Error: shader file '%s' does not exist or is not a regular file\n", FormatedPath.c_str());
+        return false;
+    }
+
+    filesToVert[FormatedPath] = 0;
+    deps = { { FormatedPath, 0 } };
 
     for( size_t SourceToParse = 0; SourceToParse < deps.size(); SourceToParse++ )
     {
-        string currentPath = deps[SourceToParse].path;//move( sourcesToParse.front() );
-        //sourcesToParse.pop();
+        string currentPath = deps[SourceToParse].path;
         dependencyGraph.emplace_back();
+
+        fs::path includeDir = fs::path(currentPath).parent_path();
 
         string source = GetFileString( currentPath.c_str(), false );
         if( source == "" ) return false;
@@ -408,25 +435,34 @@ bool GLShader::ResolveIncludes(
 
                     const char *start = NULL, *end = NULL;
 
-                    bool bad = *s != '\"' && *s != '<';
+                    bool bad = *s != '\"';
                     if( !bad )
                     {
                         end = start = s + 1;
-                        const char endChar = *s == '\"' ? '\"' : '>';
 
-                        while( *end != endChar && *end ) end++;
+                        while( *end != '\"' && *end ) end++;
 
                         if( !*end ) bad = true;
                     }
 
                     if( bad )
                     {
-                        TRACE( DebugLevel::Error, "Error: include is not in '< >' or '\" \"' ( line %d in ('%s') )\n", line_number, currentPath.c_str() );
+                        TRACE( DebugLevel::Error, "Error: include is not in '\" \"' ( line %d in ('%s') )\n", line_number, currentPath.c_str() );
                         return false;
                     }
 
-                    string_view includeName( start, end - start );// =matches[1].str();
-                    string include_file = fs::path( includeDir ).concat( includeName ).lexically_normal().string();
+                    string includeName( start, end - start );
+
+                    bool FileOK;
+                    string include_file = ChoseShaderPath( includeName, includeDir, &FileOK).string();
+
+                    //string include_file = fs::path( includeDir ).append( includeName ).lexically_normal().string();
+
+                    if (!FileOK)
+                    {
+                        TRACE(DebugLevel::Error, "Error: include file '%s' could not be found ( line %d in ('%s') )\n", includeName.c_str(), line_number, currentPath.c_str());
+                        return false;
+                    }
 
                     int idx;
 
@@ -582,20 +618,19 @@ bool GLShader::lessThan( const GLShader &a, const GLShader &b )
         find( ShaderStagesInDescendingOrder, ShaderStagesInDescendingOrder + siz, b.data->type );
 }
 
-bool GLShader::SetIncudeDir( const char *dir )//; , const std::string &GLSLNameDir )
+bool GLShader::AddIncudeDir( const char *dir )//; , const std::string &GLSLNameDir )
 {
     OPTICK_EVENT();
 
-    fs::path p = dir;
-    p = fs::absolute( p );
-    if( !fs::exists( p ) || !fs::is_directory( p ) )
+    
+    fs::path p = fs::absolute( dir ).lexically_normal();
+    if( !fs::is_directory( p ) )
     {
         TRACE( DebugLevel::Error, "I/O error: SetIncudeDir '%s' does not exist or is not a dir\n", dir );
         return false;
     }
 
-    includeDir = p.string();
-    includeDirInitialized = true;
+    includeDirs.push_back( p );
 
     return true;
     /*

@@ -1,5 +1,6 @@
-#include "/include/GLSLInit.glsl"
-#include "/include/Lights.glsl" //! #include "./include/Lights.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
+#include "include/Lights.glsl" //! #include "./include/Lights.glsl"
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices=32) out; // 128*3/32

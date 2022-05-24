@@ -17,8 +17,7 @@ using glm::vec4;
 using glm::mat3;
 using glm::mat4;
 
-#define MODELS_BASE_PATH "3dModels/"
-#define FONTS_BASE_PATH "fonts/"
+
 
 static void GLDebugMessageCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 	const GLchar *msg, const void *data )
@@ -60,7 +59,8 @@ static void GLDebugMessageCallback( GLenum source, GLenum type, GLuint id, GLenu
 	default:								_severity = "UNKNOWN"; lev = DebugLevel::Warning; break;
 	}
 
-	TRACE( lev, "%d: %s (%s) [%s]: %s\n", id, _type, _severity, _source, msg );
+	if( severity != GL_DEBUG_SEVERITY_NOTIFICATION )
+		TRACE( lev, "%d: %s (%s) [%s]: %s\n", id, _type, _severity, _source, msg );
 }
 
 /*
@@ -349,7 +349,7 @@ bool GameRenderHandler::OnCreate()
 
 	//if( GLAD_GL_ARB_parallel_shader_compile ) glMaxShaderCompilerThreadsARB( 64 );
 
-	ok &= GLShader::SetIncudeDir( SHADER_BASE_PTH );
+	//ok &= GLShader::AddIncudeDir( SHADER_BASE_PTH );
 
 	{
 		GLShader v, f;

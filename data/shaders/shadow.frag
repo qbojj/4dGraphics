@@ -1,5 +1,6 @@
-#include "/include/GLSLInit.glsl"
-#include "/include/Materials.glsl" //! #include "./include/Materials.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
+#include "include/Materials.glsl" //! #include "./include/Materials.glsl"
 in GS_OUT
 {
     vec3 vTexAlpha; // <vec2 tex, float alpha>

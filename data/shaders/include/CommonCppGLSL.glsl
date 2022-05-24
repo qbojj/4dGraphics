@@ -4,7 +4,7 @@
 #define CPP_GLSL_SWITCH( cpp, glsl ) cpp
 #else
 
-#include "/include/GLSLInit.glsl" //! #include "./GLSLInit.glsl"
+#include "GLSLInit.glsl"
 
 
 #define CPP_GLSL_SWITCH( cpp, glsl ) glsl

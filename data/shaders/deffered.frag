@@ -1,5 +1,6 @@
-#include "/include/GLSLInit.glsl"
-#include "/include/Materials.glsl" //! #include "./include/Materials.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
+#include "include/Materials.glsl" //! #include "./include/Materials.glsl"
 
 layout(location = 0) out vec4 vDiffuse_occlusion; // <vec3, float>
 layout(location = 1) out vec4 vSpecular_shininess; // <vec3, float>

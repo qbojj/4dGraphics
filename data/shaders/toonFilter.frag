@@ -1,4 +1,5 @@
-#include "/include/GLSLInit.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
 out vec4 vFragColor;
 in vec2 vPos;
 

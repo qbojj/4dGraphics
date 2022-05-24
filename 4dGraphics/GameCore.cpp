@@ -200,6 +200,17 @@ public:
 		//UpdateReadyFlag.release();
 	}
 
+	inline void SignalDestroyAndWaitAllDestroyed()
+	{
+		iDestroyed.fetch_add(1, std::memory_order::release);
+		iDestroyed.notify_all();
+
+		int old;
+
+		while ((old = iDestroyed.load(std::memory_order::acquire)) != 3)
+			iDestroyed.wait(old, std::memory_order::relaxed);
+	}
+
 #endif
 };
 
@@ -214,9 +225,10 @@ bool GameEngine::Init( InputHandler *i, GameHandler *g, RenderHandler *r )
 	m_pRenderHandler = r;
 
 	if( !i || !g || !r ) { TRACE( DebugLevel::FatalError, "All handlers must be specified\n" ); return false; }
-	if( !glfwInit() ) { TRACE( DebugLevel::FatalError, "Cannot init glfw\n" ); return false; }
 
-	glfwSetErrorCallback( ErrorCallback );
+	glfwSetErrorCallback(ErrorCallback);
+	if( !glfwInit( ) ) { TRACE( DebugLevel::FatalError, "Cannot init glfw\n" ); return false; }
+
 	m_bInitialized = true;
 
 	return true;
@@ -228,7 +240,8 @@ GameEngine::~GameEngine()
 	if( m_pInputHandler  ) delete m_pInputHandler;
 	if( m_pRenderHandler ) delete m_pRenderHandler;
 
-	if( m_bInitialized ) { glfwSetErrorCallback( NULL ); glfwTerminate(); }
+	glfwSetErrorCallback(NULL);
+	if( m_bInitialized ) { glfwTerminate(); }
 }
 
 bool GameEngine::Start()
@@ -302,10 +315,10 @@ void GameEngine::GameLoop(void* wData)
 
 		if( gameEngine->m_pGameHandler->OnCreate() )
 		{
-			( (GameEngine *)NULL )->m_bInitialized;
+			//while( !windowData->ShouldClose() && !windowData->bInputInitialized )
+			//	this_thread::yield();
 
-			while( !windowData->ShouldClose() && !windowData->bInputInitialized )
-				this_thread::yield();
+			windowData->bInputInitialized.wait( false, std::memory_order::acquire ); // wait for change to true
 
 			while(1)
 			{
@@ -341,13 +354,15 @@ void GameEngine::GameLoop(void* wData)
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in game OnDestroy: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in game OnDestroy\n" ); }
 
-	windowData->iDestroyed++;
-	while( windowData->iDestroyed != 3 ) this_thread::yield();
+	windowData->SignalDestroyAndWaitAllDestroyed();
 
 	try
 	{
-		if( windowData->FData[0] ) gameEngine->m_pGameHandler->DeleteFData( windowData->FData[0] ); windowData->FData[0] = NULL;
-		if( windowData->FData[1] ) gameEngine->m_pGameHandler->DeleteFData( windowData->FData[1] );	windowData->FData[1] = NULL;
+		for (void*& fdata : windowData->FData)
+		{
+			gameEngine->m_pGameHandler->DeleteFData( fdata ); 
+			fdata = NULL;
+		}
 	}
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in FData delete: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in FData delete\n" ); }
@@ -404,8 +419,7 @@ void GameEngine::RenderLoop(void* wData)
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in render OnDestroy: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in render OnDestroy\n" ); }
 
-	windowData->iDestroyed++;
-	while( windowData->iDestroyed != 3 ) this_thread::yield();
+	windowData->SignalDestroyAndWaitAllDestroyed();
 
 	try
 	{
@@ -430,10 +444,13 @@ void GameEngine::InputLoop( void *wData )
 
 	try
 	{
-		if( gameEngine->m_pInputHandler->OnCreate( window ) )
-		{
-			windowData->bInputInitialized = true;
+		bool ok = gameEngine->m_pInputHandler->OnCreate(window);
 
+		windowData->bInputInitialized.store(true, std::memory_order::release); // release tick thread from wait
+		windowData->bInputInitialized.notify_all();
+
+		if( ok )
+		{
 			while( !windowData->ShouldClose() )
 			{
 				OPTICK_CATEGORY( "wait for window messages", Optick::Category::Wait );
@@ -467,8 +484,7 @@ void GameEngine::InputLoop( void *wData )
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in input OnDestroy: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in input OnDestroy\n" ); }
 
-	windowData->iDestroyed++;
-	while( windowData->iDestroyed != 3 ) this_thread::yield();
+	windowData->SignalDestroyAndWaitAllDestroyed();
 
 	try
 	{

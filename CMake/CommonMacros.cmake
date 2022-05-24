@@ -5,7 +5,7 @@ macro(SETUP_COMMON projectname dirname )
 	#if(UNIX)
 	#	set_target_properties(${projectname} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 	if(MSVC)
-		set_property(TARGET ${projectname} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/data/")
+		set_property(TARGET ${projectname} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 		#set_property(TARGET ${projectname} APPEND PROPERTY CXX_FLAGS "/Zc:__cplusplus /std:c17")
 	endif()
 

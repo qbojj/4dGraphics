@@ -1,4 +1,5 @@
-#include "/include/GLSLInit.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
 out vec2 vPos;
 
 out gl_PerVertex
