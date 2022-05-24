@@ -40,12 +40,14 @@ jobs:
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
     
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j
+    - name: Build and install
+      run: | 
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j
+        cmake --install ${{github.workspace}}/build --prefix ${{github.workspace}}/install
 
     - name: Save build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: Build result ${{ matrix.os }}
-        path: ${{github.workspace}}/out
+        path: ${{github.workspace}}/install
 
