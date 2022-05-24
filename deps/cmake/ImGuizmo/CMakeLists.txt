@@ -9,3 +9,9 @@ add_library(ImGuizmo ../../ImGuizmo/ImGuizmo.cpp ../../ImGuizmo/ImGuizmo.h)
 
 set_property(TARGET ImGuizmo PROPERTY FOLDER "ThirdPartyLibraries")
 #target_link_libraries( ImGuizmo PRIVATE SharedUtils ) # needs linking to ImGui
+
+set_target_properties(ImGuizmo
+		PROPERTIES
+				CXX_STANDARD 11
+				CXX_STANDARD_REQUIRED YES
+	)
