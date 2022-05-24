@@ -7,7 +7,7 @@ project ("4DG")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 #set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/data")
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(BUILD_MP "Build project in parallel" ON)
 #option(BUILD_SHARED_LIBS "Build project with shared libs" ON )
