@@ -5,9 +5,9 @@ cmake_minimum_required (VERSION 3.16)
 project ("4DG")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/lib")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/lib")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/bin")
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/lib")
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/lib")
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/bin")
 
 option(BUILD_MP "Build project in parallel" ON)
 #option(BUILD_SHARED_LIBS "Build project with shared libs" ON )
@@ -25,6 +25,7 @@ set(ASSIMP_NO_EXPORT ON CACHE BOOL "")
 set(ASSIMP_BUILD_DRACO OFF CACHE BOOL "")
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "")
+set(ASSIMP_INSTALL OFF CACHE BOOL "")
 set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "")
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "")
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "")
@@ -102,7 +103,7 @@ if(WIN32)
 	#set_property(TARGET zlibstatic    PROPERTY FOLDER "ThirdPartyLibraries")
 	set_property(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTY FOLDER "ThirdPartyLibraries")
 endif()
-set_property(TARGET uninstall     PROPERTY FOLDER "ThirdPartyLibraries")
+#set_property(TARGET uninstall     PROPERTY FOLDER "ThirdPartyLibraries")
 #set_property(TARGET glslang       PROPERTY FOLDER "ThirdPartyLibraries/glslang")
 #set_property(TARGET OGLCompiler   PROPERTY FOLDER "ThirdPartyLibraries/glslang")
 #set_property(TARGET OSDependent   PROPERTY FOLDER "ThirdPartyLibraries/glslang")
@@ -118,3 +119,11 @@ add_subdirectory(shared)
 add_subdirectory(Collisions)
 #add_subdirectory(JJSON)
 add_subdirectory(4dGraphics)
+
+install(DIRECTORY data 
+	DESTINATION .
+)
+
+install( TARGETS 4dGraphics glad glfw assimp 
+	DESTINATION .
+)

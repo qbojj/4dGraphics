@@ -14,7 +14,7 @@
 #include "Windows.h"
 #endif
 
-#if defined(USE_WIN_DEBUG)
+#if defined(USE_WIN_DEBUG) && 0
 #define USE_EXCEPTION_HANDLER
 #endif
 

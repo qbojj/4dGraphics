@@ -1,4 +1,5 @@
-#include "/include/GLSLInit.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
 precision mediump float;
 layout( location = 0 ) in vec2 Position;
 layout( location = 1 ) in vec2 UV;

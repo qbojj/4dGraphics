@@ -1,4 +1,5 @@
-#include "/include/GLSLInit.glsl"
+#version 450
+#include "include/GLSLInit.glsl"
 layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
 out vec2 TexCoords;
 

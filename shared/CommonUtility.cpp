@@ -9,11 +9,12 @@ using namespace std;
 string GetFileString( const char *pth, bool binary )
 {
     FILE *fp = fopen( pth, binary ? "rb" : "r" );
-    if( !fp )
-    {
-        //TRACE( DebugLevel::Error, "I/O error: Cannot open '%s'\n", pth );
-        throw std::runtime_error( string() + "I/O error: Cannot open '" + pth + "'\n" );
-    }
+    if (!fp) return "";
+    //if( !fp )
+    //{
+    //    //TRACE( DebugLevel::Error, "I/O error: Cannot open '%s'\n", pth );
+    //    throw std::runtime_error( string() + "I/O error: Cannot open '" + pth + "'\n" );
+    //}
 
     fseek( fp, 0L, SEEK_END );
     const long int size = ftell( fp );

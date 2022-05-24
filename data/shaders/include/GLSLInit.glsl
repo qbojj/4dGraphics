@@ -1,4 +1,3 @@
-/*
 #if __VERSION__ < 140 // gl 3.1
 #extension GL_EXT_texture_array : require
 #extension GL_ARB_uniform_buffer_object : require
@@ -16,7 +15,6 @@
 #if __VERSION__ < 430
 #extension GL_ARB_shader_storage_buffer_object : require
 #endif
-*/
 
 #extension GL_ARB_bindless_texture : enable
 #extension GL_ARB_shader_draw_parameters : require

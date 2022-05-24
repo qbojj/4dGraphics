@@ -4,8 +4,6 @@
 #include "ShaderUniforms.h"
 #include "CommonUtility.h"
 
-#define SHADER_BASE_PTH "shaders/"
-
 #define SHADER_USE_BINARY 0//IS_NOT_DEBUG
 
 class GLShader;
@@ -46,12 +44,13 @@ protected:
 	std::shared_ptr<GLShaderData_t> data;
 
 public:
-	static bool SetIncudeDir( const char *dir );
+	static bool AddIncudeDir( const char *dir );
 
 	static constexpr GLbitfield ShaderTypeToShaderTypeBit( GLenum type );
 protected:
-	static std::string includeDir;
-	static bool includeDirInitialized;
+	static std::vector<std::filesystem::path> includeDirs;
+
+	static std::filesystem::path ChoseShaderPath(const std::filesystem::path&, const std::filesystem::path&, bool*);
 	static bool ResolveIncludes( 
 		std::vector<std::string> &sourceList, 
 		const char *filePath,
