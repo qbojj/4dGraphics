@@ -54,6 +54,7 @@ using namespace collisions;
 #include <regex>
 // #include <compare>
 #include <bitset>
+#include <numeric>
 
 #include <stdlib.h>
 #include <math.h>
