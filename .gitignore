@@ -368,3 +368,6 @@ FodyWeavers.xsd
 
 # Include all files in data directory
 !data/**/*
+
+# Build dir
+build
