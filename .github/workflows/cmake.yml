@@ -46,7 +46,9 @@ jobs:
 
     - name: run CMake
       uses: lukka/run-cmake@v10
-
+      with:
+        configurePreset: run-with-vcpkg
+        buildPreset: build
     #- name: Configure CMake
     #  run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
     
