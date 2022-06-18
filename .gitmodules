@@ -40,3 +40,7 @@
 [submodule "deps/Vulkan"]
 	path = deps/Vulkan
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg.git
+	branch = b49b2bdf22559c89eddbf29a29621a1dc6929320

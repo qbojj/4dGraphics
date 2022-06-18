@@ -1,0 +1,26 @@
+{
+    "version": 2,
+    "configurePresets": [
+      {
+        "name": "run-with-vcpkg",
+        "cacheVariables": {
+          "CMAKE_TOOLCHAIN_FILE": {
+            "type": "FILEPATH",
+            "value": "vcpkg/scripts/buildsystems/vcpkg.cmake"
+          }
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "build",
+        "configurePreset": "run-with-vcpkg"
+      }
+    ],
+    "testPresets": [
+      {
+        "name": "test",
+        "configurePreset": "run-with-vcpkg"
+      }
+    ]
+  }
