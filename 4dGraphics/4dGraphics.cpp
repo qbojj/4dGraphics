@@ -80,9 +80,11 @@ int Entry()
 	bool ok = false;
 
 
-	if( engine.Init( (InputHandler *)new GameInputHandler,
-		(GameHandler *)new GameTickHandler,
-		(RenderHandler *)new GameRenderHandler ) )
+	if( engine.Init( 
+		new GameInputHandler,
+		new GameTickHandler,
+		new GameRenderHandler )
+		)
 	{
 		ImGui::CreateContext();
 		ok = engine.Start();

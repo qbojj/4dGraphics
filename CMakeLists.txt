@@ -119,11 +119,7 @@ add_subdirectory(shared)
 add_subdirectory(Collisions)
 #add_subdirectory(JJSON)
 add_subdirectory(4dGraphics)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT 4dGraphics)
 
-install(DIRECTORY data 
-	DESTINATION .
-)
-
-install( TARGETS 4dGraphics glad glfw assimp 
-	DESTINATION .
-)
+install(DIRECTORY data TYPE DATA )
+install(TARGETS 4dGraphics glad )
