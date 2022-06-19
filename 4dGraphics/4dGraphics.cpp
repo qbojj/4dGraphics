@@ -7,8 +7,7 @@
 #include "Debug.h"
 #include "optick.h"
 #include <stdlib.h>
-
-//#include <boost/stacktrace.hpp>
+#include <filesystem>
 
 #ifdef _WIN32
 #include "Windows.h"
@@ -51,6 +50,8 @@ LONG WINAPI UnhandledFilter( _In_ struct _EXCEPTION_POINTERS *ExceptionInfo )
 int Entry()
 {
 	OPTICK_APP( "4dGraphics" );
+
+	//LogLevel = DebugLevel::Warning;
 
 	srand( (unsigned int)time( NULL ) );
 	//SetUnhandledExceptionFilter( UnhandledFilter );

@@ -2,13 +2,26 @@ cmake_minimum_required(VERSION 3.8)
 include(../CMake/CommonMacros.cmake)
 
 project(SharedUtils)
-include_directories(../deps/src/imgui)
-include_directories(../deps/src/vulkan/include)
 
-file(GLOB_RECURSE SRC_FILES LIST_DIRECTORIES false RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.c??)
-file(GLOB_RECURSE HEADER_FILES LIST_DIRECTORIES false RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.h)
+set( SOURCES 
+    CommonUtility.h
+    GlmHeaders.h
+    CommonUtility.cpp
+)
 
-add_library(SharedUtils ${SRC_FILES} ${HEADER_FILES} )
-target_link_libraries(SharedUtils PUBLIC glad glfw volk assimp OptickCore ) # glslang SPIRV freetype
+find_package( assimp REQUIRED )
+#find_package( volk REQUIRED )
+find_package( glfw3 REQUIRED )
+find_package( gli REQUIRED )
+find_package( glm REQUIRED )
+find_package( imgui REQUIRED )
+
+find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
+
+
+add_library( SharedUtils ${SOURCES} )
+
+target_link_libraries(SharedUtils PUBLIC glad OptickCore glfw assimp::assimp gli glm::glm imgui::imgui ) # glslang SPIRV freetype volk::volk
+target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} .)
 
 SETUP_COMMON( SharedUtils "SharedUtils" )

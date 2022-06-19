@@ -1,6 +1,8 @@
 #version 450
+//! #extension GL_GOOGLE_include_directive : enable
+
 #include "include/GLSLInit.glsl"
-#include "include/Materials.glsl" //! #include "./include/Materials.glsl"
+#include "include/Materials.glsl"
 in GS_OUT
 {
     vec3 vTexAlpha; // <vec2 tex, float alpha>

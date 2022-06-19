@@ -3,14 +3,12 @@ include(../CMake/CommonMacros.cmake)
 
 project( Collisions )
 
-
-include_directories( 
-	"../shared" 
-)
-
 add_library(Collisions 
 	"Collisions.cpp"
 	"Collisions.h"
 )
+
+target_link_libraries(Collisions PRIVATE SharedUtils)
+target_include_directories(Collisions PUBLIC .)
 
 SETUP_COMMON(Collisions "Collisions" )

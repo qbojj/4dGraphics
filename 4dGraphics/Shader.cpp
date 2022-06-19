@@ -877,6 +877,37 @@ bool GLShader::LoadInternal( const char *codePath, GLenum shaderType, bool lazy 
     
     if( !checkShaderErrors( data->ShaderFilePath.c_str(), data->ID ) )
     {
+        if( LogLevel <= DebugLevel::Debug )
+        {
+            stringstream ShaderSource;
+            int line = 0;
+
+            for( size_t i = 0; i < code.size(); i++ )
+            {
+                const GLchar *str = codeArray[i];
+
+                // insert file line at the start of a line
+                ShaderSource << '\n' << setw(3) << ++line << "> ";
+                
+                // copy to a new line
+                //while( *str && *str != '\n' ) ShaderSource << *str++;
+
+                // add file path
+                //ShaderSource << "  // file: '" << data->Dependencies[i].path << '\'';
+
+                // and continue with the rest of code and insert file lines
+                while( *str )
+                {
+                    bool insert = *str == '\n';
+                    ShaderSource << *str++;
+
+                    if( insert ) ShaderSource << setw(3) << ++line << "> ";
+                }
+            }
+
+            TRACE( DebugLevel::Error, "Shader source:%s\n", ShaderSource.str().c_str() );
+        }
+
         data->compileStatus = ShaderCompileStatus::error;
         return false;
     }

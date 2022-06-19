@@ -1,9 +1,11 @@
 #version 450
-#include "include/GLSLInit.glsl"
+//! #extension GL_GOOGLE_include_directive : enable
 
-#include "include/Matrices.glsl" //! #include "./include/Matrices.glsl"
-#include "include/Materials.glsl" //! #include "./include/Materials.glsl"
-#include "include/Lights.glsl" //! #include "./include/Lights.glsl"
+#include "include/GLSLInit.glsl"
+#include "include/Lights.glsl"
+#include "include/Matrices.glsl"
+#include "include/Materials.glsl"
+
 
 layout(location = 0) out vec4 vFragColor;
 //layout(location = 1) out vec3 vFragNorm;
@@ -12,9 +14,9 @@ in VS_OUT
 {
     vec3 vWorldPos;
     vec2 vTex;
-    vec3 vNorm, vTang;
+    vec3 vNorm;
+    vec3 vTang;
     vec4 vCol;
-
     flat uvec2 vModelPartIdx; // matrix, material
 } fs_in;
 

@@ -1,4 +1,6 @@
 #version 450
+//! #extension GL_GOOGLE_include_directive : enable
+
 #include "include/GLSLInit.glsl"
 layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
 out vec2 TexCoords;

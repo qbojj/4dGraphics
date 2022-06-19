@@ -2,6 +2,7 @@
 
 #include "CommonUtility.h"
 #include "GLId.h"
+#include <string>
 
 class GLBufferAllocator;
 extern GLBufferAllocator *g_BufAllocator;
@@ -24,7 +25,7 @@ public:
 
 	~GLCircularBufferGeneric_() { clear(); }
 
-	void SetName( std::string_view nm ) { name = nm; Buff.SetLabel( "%s - buffer", nm.data() ); }
+	void SetName( const std::string &nm ) { name = nm; Buff.SetLabel( "%s - buffer", nm.data() ); }
 
 private:
 	GLsizeiptr objSize;

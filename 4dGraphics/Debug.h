@@ -15,9 +15,9 @@
 #endif
 
 enum class DebugLevel { Debug, Log, Warning, Error, FatalError };
-constexpr DebugLevel LogLevel = IS_DEBUG ? DebugLevel::Debug : DebugLevel::Log;
-
+extern DebugLevel LogLevel;
+    
 void OutputDebug( DebugLevel, const char *, ... );
 void ClearLastInvocationsLog();
 
-#define TRACE( level, format, ... ) ( level >= LogLevel ? OutputDebug( level, "'%s' (%d): " format, __FILE__, __LINE__, ## __VA_ARGS__ ) : (void)0 )
+#define TRACE( level, format, ... ) OutputDebug( level, "'%s' (%d): " format, __FILE__, __LINE__, ## __VA_ARGS__ )

@@ -3,7 +3,7 @@
 #ifndef COLLISIONS_INCLUDE_COLLISIONS_H
 #define COLLISIONS_INCLUDE_COLLISIONS_H
 
-#include "shared/GlmHeaders.h"
+#include "GlmHeaders.h"
 #include <vector>
 #include <memory>
 #include <optional>

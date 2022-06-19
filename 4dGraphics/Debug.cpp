@@ -5,6 +5,8 @@
 #include <iostream>
 using namespace std;
 
+DebugLevel LogLevel = IS_DEBUG ? DebugLevel::Debug : DebugLevel::Log;
+
 static ofstream DebugFile( "log.txt", ios_base::out | ios_base::trunc );
 
 static void printToFile( const char *s )
@@ -12,7 +14,7 @@ static void printToFile( const char *s )
 	if( DebugFile ) 
 	{
 		DebugFile << s; 
-		DebugFile.flush();
+		//DebugFile.flush();
 	}
 	//FILE *f = fopen( "log.txt", "a" );
 	//if( f )
@@ -24,14 +26,15 @@ static void printToFile( const char *s )
 
 #ifdef USE_WIN_DEBUG
 #include "Windows.h"
-static void PRINT_DEBUG( const char *s ) { printToFile( s ); OutputDebugStringA( s ); }
+static void PRINT_DEBUG( const char *s ) { printToFile( s ); OutputDebugStringA( s ); cerr << s; }
 #else
-//#define PRINT_DEBUG( s ) fprintf( stderr, "%s", s )
 static void PRINT_DEBUG( const char *s ) { printToFile( s ); cerr << s; }
 #endif
 
 void OutputDebug( DebugLevel l, const char *fmt, ... )
 {
+	if( l < LogLevel ) return;
+
 	va_list va;
 	va_start( va, fmt );
 
