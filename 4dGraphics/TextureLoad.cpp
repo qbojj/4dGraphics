@@ -280,10 +280,10 @@ Texture::GetFormatRes Texture::GetFormat( TextureCompressionModel compr ) const
 		.format = formats[c],
 
 		// chanels:
-		// 1 : gray
-		// 2 : gray, alpha
-		// 3 : r,g,b
-		// 4 : r,g,b,a
+		// 1 : L (RRR1)
+		// 2 : LA (RRRG)
+		// 3 : RGB (RGB1)
+		// 4 : RGBA (RGBA)
 		.swizzle = {
 			GL_RED,
 			channels <= 2 ? GL_RED : GL_GREEN,
@@ -352,8 +352,10 @@ void Texture::MakeDefault( const glm::u8 def[4] )
 inline void Texture::clear()
 {
 	if( pData )
-		if( IsSTBAllocated ) stbi_image_free( pData );
-		else delete[] (glm::u8*)pData;
+	{
+		if( IsSTBAllocated ) { stbi_image_free( pData ); }
+		else { delete[] (glm::u8*)pData; }
+	}
 
 	IsSTBAllocated = false; type = GL_NONE;
 	pData = NULL; width = 0; height = 0;

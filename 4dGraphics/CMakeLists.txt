@@ -1,14 +1,7 @@
-﻿cmake_minimum_required (VERSION 3.16)
+﻿cmake_minimum_required (VERSION 3.21)
 include(../CMake/CommonMacros.cmake)
 
 project(4dGraphics)
-
-
-include_directories(
-	"../shared" 
-	"../Collisions"
-	"../data/shaders/include"
-)
 
 # get by ls -1
 set( 4DGSources
@@ -38,8 +31,6 @@ set( 4DGSources
 	"ShaderUniforms.h"
 	"TextureLoad.cpp"
 	"TextureLoad.h"
-	
-	
 	"stdafx.cpp"
 	"stdafx.h"
 	"CommandQueue.h"
@@ -52,15 +43,16 @@ if(WIN32)
 		"windows/StackWalker.cpp"
 		"windows/StackWalker.h"
 	)
-	include_directories( "./windows" )
 endif()
 
 add_executable( 4dGraphics  ${4DGSources} )
+target_include_directories( 4dGraphics PRIVATE "." "../data/shaders/include" $<$<BOOL:${WIN32}>:"./windows"> )
+
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
 if( UNIX AND NOT APPLE )
 	find_package(TBB REQUIRED)
-	target_link_libraries(4dGraphics PRIVATE TBB::tbb)
+	target_link_libraries(4dGraphics PRIVATE TBB::tbb) # required for debug builds on ubuntu????
 endif()
 
 target_link_libraries( 4dGraphics PRIVATE Collisions SharedUtils )
@@ -70,3 +62,11 @@ if(WIN32)
 	set_property( TARGET 4dGraphics PROPERTY WIN32_EXECUTABLE true )
 endif()
 SETUP_COMMON(4dGraphics "4dGraphics" )
+
+add_custom_command( 
+	TARGET 4dGraphics POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<TARGET_RUNTIME_DLLS:4dGraphics> $<TARGET_FILE:4dGraphics> # $<TARGET_FILE:4dGraphics> is added to never have empty set to copy
+		$<TARGET_FILE_DIR:4dGraphics>
+	COMMAND_EXPAND_LISTS
+)

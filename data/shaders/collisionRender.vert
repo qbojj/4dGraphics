@@ -1,6 +1,9 @@
 #version 450
+//! #extension GL_GOOGLE_include_directive : enable
+
+
 #include "include/GLSLInit.glsl"
-#include "include/Matrices.glsl" //! #include "./include/Matrices.glsl"
+#include "include/Matrices.glsl"
 
 layout(location=0) in vec3 pos;
 layout(location=1) in vec4 col;

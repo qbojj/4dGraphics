@@ -41,7 +41,7 @@ string GetFileString( const char *pth, bool binary )
     
     static constexpr unsigned char BOM[] = { 0xEF, 0xBB, 0xBF }; // remove UTF-8 bom if present
     if( BytesRead > 3 && !memcmp( res.data(), BOM, 3 ) )
-        memset( res.data(), ' ', 3 );
+        for( int i = 0; i < 3; i++ ) res[i] = ' ';
 
     return res;
 }

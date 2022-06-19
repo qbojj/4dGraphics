@@ -1,4 +1,6 @@
 #version 450
+//! #extension GL_GOOGLE_include_directive : enable
+
 #include "include/GLSLInit.glsl"
 precision mediump float;
 layout( location = 0 ) in vec2 Position;

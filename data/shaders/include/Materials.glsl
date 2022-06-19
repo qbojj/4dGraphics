@@ -1,4 +1,4 @@
-#include "CommonCppGLSL.glsl"
+#include "CommonCppGLSL.h"
 
 #define MAX_MATERIAL_TEXTURES (gl_MaxTextureImageUnits-2)
 

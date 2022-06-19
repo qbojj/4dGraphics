@@ -2,7 +2,7 @@
 
 #include "GameCore.h"
 #include "GLUniformBlockDefinitions.h"
-#include "imgui/imgui.h"
+#include <imgui.h>
 #include "GameObject.h"
 
 struct ImDrawDataBuffered : ImDrawData

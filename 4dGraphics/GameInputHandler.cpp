@@ -5,7 +5,7 @@
 #include <iostream>
 using namespace std;
 
-#include "imgui/backends/imgui_impl_glfw.h"
+#include <imgui_impl_glfw.h>
 
 // try to guess Args by type of function ptr that must be returned 
 // (and assert Args are the same as member function's args)

@@ -1,7 +1,18 @@
 {
-    "name": "4DG",
-    "version-string": "0.1.0-dev",
+    "name": "4dgraphics",
+    "version-string": "0.1.0",
     "dependencies": [
-        
+        "assimp",
+        "glfw3",
+        "stb",
+        "gli",
+        "glm",
+        { "name": "imgui", "features": [ "glfw-binding" ] },
+        { "name": "tbb", "platform": "linux" }
+    ],
+    "$unusedOldDeps": [
+        "meshoptimizer",
+        "volk",
+        "imguizmo"
     ]
 }

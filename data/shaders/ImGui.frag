@@ -1,4 +1,6 @@
 #version 450
+//! #extension GL_GOOGLE_include_directive : enable
+
 #include "include/GLSLInit.glsl"
 layout( binding = 0 ) uniform sampler2D Texture;
 layout( location = 0 ) out vec4 vOutColor;
