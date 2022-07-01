@@ -504,6 +504,7 @@ void GameEngine::EngineLoop( void *wData )
 
 	glfwMakeContextCurrent( window );
 
+	void* FData = NULL;
 	try
 	{
 		if(
@@ -512,7 +513,7 @@ void GameEngine::EngineLoop( void *wData )
 			gameEngine->m_pRenderHandler->OnCreate()
 			)
 		{
-			void *FData = gameEngine->m_pGameHandler->NewFData();
+			FData = gameEngine->m_pGameHandler->NewFData();
 
 			if( !FData ) throw runtime_error( "couldn't create Frame Data" );
 
@@ -534,6 +535,7 @@ void GameEngine::EngineLoop( void *wData )
 					}
 				}
 
+				
 				{
 					OPTICK_FRAME_EVENT( Optick::FrameType::Render );
 
@@ -559,6 +561,13 @@ void GameEngine::EngineLoop( void *wData )
 
 	try
 	{
+		if (FData) gameEngine->m_pGameHandler->DeleteFData(FData);
+	}
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in FData delete: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in FData delete\n"); }
+
+	try
+	{
 		gameEngine->m_pInputHandler->OnDestroy( window );
 	}
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
@@ -577,7 +586,7 @@ void GameEngine::EngineLoop( void *wData )
 	}
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
-
+	
 	try
 	{
 		delete gameEngine->m_pInputHandler;

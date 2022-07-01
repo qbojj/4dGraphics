@@ -1310,6 +1310,7 @@ void StackWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry &ent
 
 void StackWalker::OnDbgHelpErr(LPCSTR szFuncName, DWORD gle, DWORD64 addr)
 {
+	(void)szFuncName, gle, addr;
 	/*
 	CHAR buffer[STACKWALK_MAX_NAMELEN];
 	_snprintf_s(buffer, STACKWALK_MAX_NAMELEN, "ERROR: %s, GetLastError: %d (Address: %p)\n", szFuncName, gle, (LPVOID) addr);
@@ -1319,10 +1320,12 @@ void StackWalker::OnDbgHelpErr(LPCSTR szFuncName, DWORD gle, DWORD64 addr)
 
 void StackWalker::OnSymInit(LPCSTR szSearchPath, DWORD symOptions, LPCSTR szUserName)
 {
+	(void)szSearchPath, symOptions, szUserName;
+
 	return; // TJ: don't display anything
 
-	CHAR buffer[STACKWALK_MAX_NAMELEN];
-	_snprintf_s(buffer, STACKWALK_MAX_NAMELEN, "SymInit: Symbol-SearchPath: '%s', symOptions: %d, UserName: '%s'\n", szSearchPath, symOptions, szUserName);
+	//CHAR buffer[STACKWALK_MAX_NAMELEN];
+	//_snprintf_s(buffer, STACKWALK_MAX_NAMELEN, "SymInit: Symbol-SearchPath: '%s', symOptions: %d, UserName: '%s'\n", szSearchPath, symOptions, szUserName);
 	//OnOutput(buffer);
 	// Also display the OS-version
 

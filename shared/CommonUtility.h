@@ -21,4 +21,4 @@ template< typename V, typename A = decltype(alignof(std::max_align_t)) >
 std::enable_if_t< std::conjunction_v< std::is_integral< V >, std::is_integral< A > >, V >
 constexpr AlignValNonPOT( V v, A a = alignof( std::max_align_t ) ) { return (v + static_cast<V>(a - 1)) / static_cast<V>(a) * static_cast<V>(a); };
 
-inline bool endsWith( const char *s, const char *pattern ) { return (std::strstr( s, pattern ) - s) == (std::strlen( s ) - std::strlen( pattern )); }
+inline bool endsWith( const char *s, const char *pattern ) { return (std::size_t)(std::strstr( s, pattern ) - s) == (std::strlen( s ) - std::strlen( pattern )); }

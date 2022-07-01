@@ -47,6 +47,21 @@ LONG WINAPI UnhandledFilter( _In_ struct _EXCEPTION_POINTERS *ExceptionInfo )
 }
 #endif
 
+void* ImGuiAlloc(size_t size, void* dat)
+{
+	if( dat ) (*(int*)dat)++;
+	return malloc(size);
+}
+
+void ImGuiFree(void* ptr, void* dat)
+{
+	if (ptr)
+	{
+		if(dat) (*(int*)dat)--;
+		free(ptr);
+	}
+}
+
 int Entry()
 {
 	OPTICK_APP( "4dGraphics" );
@@ -87,9 +102,13 @@ int Entry()
 		new GameRenderHandler )
 		)
 	{
+		int allocCnt = 0;
+		ImGui::SetAllocatorFunctions(ImGuiAlloc, ImGuiFree, &allocCnt);
 		ImGui::CreateContext();
 		ok = engine.Start();
 		ImGui::DestroyContext();
+
+		if( allocCnt != 0 ) TRACE(DebugLevel::Error, "ImGui allocated %d %s than freed\n", abs(allocCnt), (allocCnt > 0 ? "more" : "less") );
 	}
 
 	return ok ? 0 : 1;
@@ -103,6 +122,7 @@ int WINAPI WinMain(
 	_In_ int nShowCmd
 )
 {
+	(void)hInstance, hPrevInstance, lpCmdLine, nShowCmd;
 	return Entry();
 }
 

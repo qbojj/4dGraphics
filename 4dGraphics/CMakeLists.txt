@@ -35,6 +35,8 @@ set( 4DGSources
 	"stdafx.h"
 	"CommandQueue.h"
 	"GameObject.h"
+	"ImguiBufferedHelper.cpp"
+	"ImguiBufferedHelper.h"
 )
 
 if(WIN32)
@@ -46,7 +48,6 @@ if(WIN32)
 endif()
 
 add_executable( 4dGraphics  ${4DGSources} )
-target_include_directories( 4dGraphics PRIVATE "." "../data/shaders/include" $<$<BOOL:${WIN32}>:"./windows"> )
 target_include_directories( 4dGraphics PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/../data/shaders/include $<$<BOOL:${WIN32}>:${PROJECT_SOURCE_DIR}/windows> )
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
@@ -59,9 +60,10 @@ endif()
 target_link_libraries( 4dGraphics PRIVATE Collisions SharedUtils )
 
 if(WIN32)
-	add_definitions( -DREQUIRE_WINMAIN )
+	target_compile_definitions( 4dGraphics PRIVATE REQUIRE_WINMAIN )
 	set_property( TARGET 4dGraphics PROPERTY WIN32_EXECUTABLE true )
 endif()
+
 SETUP_COMMON(4dGraphics "4dGraphics" )
 
 add_custom_command( 

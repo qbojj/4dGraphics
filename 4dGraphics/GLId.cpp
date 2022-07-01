@@ -71,6 +71,5 @@ const char *GetLabelAny( GLenum identifier, const void *id )
 
 		return LabelStr.get();
 	//}
-
-	return "";
+	//return "";
 }

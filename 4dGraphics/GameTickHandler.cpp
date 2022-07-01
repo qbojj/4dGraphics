@@ -10,79 +10,6 @@
 
 using namespace std;
 
-void ImSwapDrawDataInto( ImDrawList *src, ImDrawList *dst )
-{
-	dst->CmdBuffer.swap( src->CmdBuffer );
-	dst->IdxBuffer.swap( src->IdxBuffer );
-	dst->VtxBuffer.swap( src->VtxBuffer );
-	dst->Flags = src->Flags;
-}
-
-ImDrawDataBuffered::ImDrawDataBuffered( ImDrawDataBuffered &&o )
-{
-	*this = move( o );
-}
-
-ImDrawDataBuffered &ImDrawDataBuffered::operator=( ImDrawDataBuffered &&o )
-{
-	if( this == &o ) return *this;
-
-	Valid = o.Valid;
-	CmdLists = o.CmdLists;
-	CmdListsCount = o.CmdListsCount;
-	TotalIdxCount = o.TotalIdxCount;
-	TotalVtxCount = o.TotalVtxCount;
-	DisplayPos = o.DisplayPos;
-	DisplaySize = o.DisplaySize;
-
-	CmdListData.clear();
-	CmdListPointers.clear();
-
-	CmdListData.swap( o.CmdListData );
-	CmdListPointers.swap( o.CmdListPointers );
-
-	return *this;
-}
-
-// copy state and swap memory with existing draw lists
-void ImDrawDataBuffered::CopyDrawData( const ImDrawData *source )
-{
-	CmdListData.resize( source->CmdListsCount );
-	CmdListPointers.resize( source->CmdListsCount, NULL );
-
-	Valid = source->Valid;
-	CmdLists = source->CmdListsCount ? CmdListPointers.Data : NULL;
-	CmdListsCount = source->CmdListsCount;
-	TotalIdxCount = source->TotalIdxCount;
-	TotalVtxCount = source->TotalVtxCount;
-	DisplayPos = source->DisplayPos;
-	DisplaySize = source->DisplaySize;
-
-	for( int i = 0; i < CmdListsCount; ++i )
-	{
-		ImDrawList *src_list = source->CmdLists[i];
-
-		if( CmdListPointers[i] == NULL )
-		{
-			IM_PLACEMENT_NEW( &CmdListData[i] ) ImDrawList( src_list->_Data );
-		}
-
-		// always copy pointer in case the data list gets reallocated
-		CmdListPointers[i] = &CmdListData[i];
-
-		ImDrawList *dst_list = CmdListPointers[i];
-
-		// pre-allocate to the same size so we don't suffer multiple allocations next frame
-		dst_list->CmdBuffer.reserve( src_list->CmdBuffer.size() );
-		dst_list->IdxBuffer.reserve( src_list->IdxBuffer.size() );
-		dst_list->VtxBuffer.reserve( src_list->VtxBuffer.size() );
-
-		ImSwapDrawDataInto( src_list, dst_list );
-	}
-}
-
-
-
 template< typename T >
 const glm::mat<4, 4, T> ReverseDepthMatrix{
 	1, 0, 0, 0,
@@ -141,11 +68,11 @@ protected:
 			FirstFreeShadowMap < MAX_SHADOW_MAPS &&
 			PACKED_BITS_GET( LightsDat.baShadowMapActive, FirstFreeShadowMap ) ) FirstFreeShadowMap++;
 
-		int Checked = AlignValNonPOT( FirstFreeShadowMap, 6 );
-		for( bool OK = false; Checked + size <= MAX_SHADOW_MAPS; Checked += size )
+		int Checked = AlignValNonPOT( FirstFreeShadowMap, align );
+		for( bool OK = false; Checked + size <= MAX_SHADOW_MAPS; Checked += align )
 		{
 			OK = true;
-			for( int i = 0; i < 6; i++ ) OK &= !PACKED_BITS_GET( LightsDat.baShadowMapActive, Checked + i );
+			for( int i = 0; i < align; i++ ) OK &= !PACKED_BITS_GET( LightsDat.baShadowMapActive, Checked + i );
 
 			if( OK ) break;
 		}
@@ -306,6 +233,9 @@ bool GameTickHandler::OnCreate()
 
 	if( !IMGUI_CHECKVERSION() ) return false;
 
+	//ImGui::GetIO().Fonts->AddFontDefault();
+	//ImGui::GetIO().Fonts->Build();
+
 	return true;
 }
 
@@ -324,58 +254,6 @@ int modulo(int v, int m)
 	if (v < 0) v = (v + m) % m;
 	return v;
 }
-
-/*
-	ImGuiKey_Tab = 512,             // == ImGuiKey_NamedKey_BEGIN
-	ImGuiKey_LeftArrow,
-	ImGuiKey_RightArrow,
-	ImGuiKey_UpArrow,
-	ImGuiKey_DownArrow,
-	ImGuiKey_PageUp,
-	ImGuiKey_PageDown,
-	ImGuiKey_Home,
-	ImGuiKey_End,
-	ImGuiKey_Insert,
-	ImGuiKey_Delete,
-	ImGuiKey_Backspace,
-	ImGuiKey_Space,
-	ImGuiKey_Enter,
-	ImGuiKey_Escape,
-	ImGuiKey_LeftCtrl, ImGuiKey_LeftShift, ImGuiKey_LeftAlt, ImGuiKey_LeftSuper,
-	ImGuiKey_RightCtrl, ImGuiKey_RightShift, ImGuiKey_RightAlt, ImGuiKey_RightSuper,
-	ImGuiKey_Menu,
-	ImGuiKey_0, ImGuiKey_1, ImGuiKey_2, ImGuiKey_3, ImGuiKey_4, ImGuiKey_5, ImGuiKey_6, ImGuiKey_7, ImGuiKey_8, ImGuiKey_9,
-	ImGuiKey_A, ImGuiKey_B, ImGuiKey_C, ImGuiKey_D, ImGuiKey_E, ImGuiKey_F, ImGuiKey_G, ImGuiKey_H, ImGuiKey_I, ImGuiKey_J,
-	ImGuiKey_K, ImGuiKey_L, ImGuiKey_M, ImGuiKey_N, ImGuiKey_O, ImGuiKey_P, ImGuiKey_Q, ImGuiKey_R, ImGuiKey_S, ImGuiKey_T,
-	ImGuiKey_U, ImGuiKey_V, ImGuiKey_W, ImGuiKey_X, ImGuiKey_Y, ImGuiKey_Z,
-	ImGuiKey_F1, ImGuiKey_F2, ImGuiKey_F3, ImGuiKey_F4, ImGuiKey_F5, ImGuiKey_F6,
-	ImGuiKey_F7, ImGuiKey_F8, ImGuiKey_F9, ImGuiKey_F10, ImGuiKey_F11, ImGuiKey_F12,
-	ImGuiKey_Apostrophe,        // '
-	ImGuiKey_Comma,             // ,
-	ImGuiKey_Minus,             // -
-	ImGuiKey_Period,            // .
-	ImGuiKey_Slash,             // /
-	ImGuiKey_Semicolon,         // ;
-	ImGuiKey_Equal,             // =
-	ImGuiKey_LeftBracket,       // [
-	ImGuiKey_Backslash,         // \ (this text inhibit multiline comment caused by backslash)
-	ImGuiKey_RightBracket,      // ]
-	ImGuiKey_GraveAccent,       // `
-	ImGuiKey_CapsLock,
-	ImGuiKey_ScrollLock,
-	ImGuiKey_NumLock,
-	ImGuiKey_PrintScreen,
-	ImGuiKey_Pause,
-	ImGuiKey_Keypad0, ImGuiKey_Keypad1, ImGuiKey_Keypad2, ImGuiKey_Keypad3, ImGuiKey_Keypad4,
-	ImGuiKey_Keypad5, ImGuiKey_Keypad6, ImGuiKey_Keypad7, ImGuiKey_Keypad8, ImGuiKey_Keypad9,
-	ImGuiKey_KeypadDecimal,
-	ImGuiKey_KeypadDivide,
-	ImGuiKey_KeypadMultiply,
-	ImGuiKey_KeypadSubtract,
-	ImGuiKey_KeypadAdd,
-	ImGuiKey_KeypadEnter,
-	ImGuiKey_KeypadEqual,
-*/
 
 constexpr ImGuiKey ImGuiASCIIidx(char c)
 {
@@ -557,7 +435,7 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 		lights.pointlight( vec3( .02f ), vec3( 0.3f ), vec3( 0.5f ), LightPos, 1, 0.0001f, 0 );
 
 		{
-			float q = glm::smoothstep( 0.f, 1.f, lightForce );
+			//float q = glm::smoothstep( 0.f, 1.f, lightForce );
 
 			vec3 col = vOne;
 			col *= 1;// q;

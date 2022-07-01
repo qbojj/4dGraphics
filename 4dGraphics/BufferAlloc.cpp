@@ -75,7 +75,7 @@ void GLCircularBufferGeneric_::clear()
 	objSize = partsCnt = 0;
 }
 
-void GLCircularBufferGeneric_::Create( GLsizeiptr objSize, bool coherent, GLintptr partsCnt )
+void GLCircularBufferGeneric_::Create( GLsizeiptr _objSize, bool _coherent, GLintptr _partsCnt )
 {
 	clear();
 	glCreateBuffers( 1, &Buff );
@@ -84,20 +84,22 @@ void GLCircularBufferGeneric_::Create( GLsizeiptr objSize, bool coherent, GLintp
 	name = "Circular buffer " + std::to_string( cnt++ );
 	Buff.SetLabel( "%s - buffer", name.c_str() );
 
-	GLbitfield storageFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : 0);
+	GLbitfield storageFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (_coherent ? GL_MAP_COHERENT_BIT : 0);
 
-	glNamedBufferStorage( Buff, objSize * partsCnt, NULL, storageFlags );
-	buffDat = glMapNamedBufferRange( Buff, 0, objSize * partsCnt, 
-		storageFlags | (!coherent ? GL_MAP_FLUSH_EXPLICIT_BIT : 0) );
+	glNamedBufferStorage( Buff, _objSize * _partsCnt, NULL, storageFlags );
+	buffDat = glMapNamedBufferRange( Buff, 0, _objSize * _partsCnt, 
+		storageFlags | (!_coherent ? GL_MAP_FLUSH_EXPLICIT_BIT : 0) );
 
-	this->objSize = objSize;
-	this->coherent = coherent;
-	this->partsCnt = partsCnt;
+	objSize = _objSize;
+	coherent = _coherent;
+	partsCnt = _partsCnt;
 	syncs.resize( partsCnt, 0 );
 }
 
 void GLBufferAllocator::Resize( GLsizeiptr size, const char *why )
 {
+	(void)why;
+
 	Create( size );
 	//#if IS_DEBUG
 	//TRACE( DebugLevel::Log, "Buffer allocator resized to %d because %s\n", (int)Buff.GetDataSize(), why );

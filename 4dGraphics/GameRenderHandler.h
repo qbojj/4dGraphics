@@ -39,7 +39,7 @@ public:
 
 	StreamArrayDrawer StreamDrawSimple;
 
-	GLuint ShadowMapCount = -1;
+	GLuint ShadowMapCount = ~0u;
 
 	int ShadowMapSize = 1;
 
