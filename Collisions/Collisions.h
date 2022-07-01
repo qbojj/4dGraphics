@@ -3,10 +3,6 @@
 #ifndef COLLISIONS_INCLUDE_COLLISIONS_H
 #define COLLISIONS_INCLUDE_COLLISIONS_H
 
-#define _CRTDBG_MAP_ALLOC
-#include <cstdlib>
-#include <crtdbg.h>
-
 #include "GlmHeaders.h"
 #include <vector>
 #include <memory>
