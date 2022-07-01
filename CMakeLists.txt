@@ -8,7 +8,7 @@ project( 4DG )
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if( WIN32 )
-	add_compile_definitions( _CRT_SECURE_NO_WARNINGS _CRTDBG_MAP_ALLOC )
+	add_compile_definitions( _CRT_SECURE_NO_WARNINGS )
 endif()
 
 if( MSVC )
