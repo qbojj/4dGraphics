@@ -47,6 +47,7 @@ endif()
 
 add_executable( 4dGraphics  ${4DGSources} )
 target_include_directories( 4dGraphics PRIVATE "." "../data/shaders/include" $<$<BOOL:${WIN32}>:"./windows"> )
+target_include_directories( 4dGraphics PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/../data/shaders/include $<$<BOOL:${WIN32}>:${PROJECT_SOURCE_DIR}/windows> )
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
