@@ -65,7 +65,7 @@ protected:
 class GLProgram
 {
 public:
-	GLProgram() {};
+	GLProgram() {}
 	~GLProgram() { clear(); }
 
 	GLProgramId ID;
@@ -140,10 +140,10 @@ protected:
 
 	std::vector<GLShader> shaders;
 	//std::unordered_map<std::string, UniformInfo> Uniforms;
-	GLbitfield shadersAttached;
-	bool separable;
+	GLbitfield shadersAttached = 0;
+	bool separable = false;
 
-	std::time_t ShadersReadMaxTime;
+	std::time_t ShadersReadMaxTime = 0;
 	//std::filesystem::file_time_type ShadersReadMaxTime;
 
 	friend GLPipeline;

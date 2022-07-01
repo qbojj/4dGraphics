@@ -4,21 +4,7 @@
 #include "GLUniformBlockDefinitions.h"
 #include <imgui.h>
 #include "GameObject.h"
-
-struct ImDrawDataBuffered : ImDrawData
-{
-	ImVector<ImDrawList> CmdListData;
-	ImVector<ImDrawList *> CmdListPointers;
-
-	ImDrawDataBuffered() {};
-	~ImDrawDataBuffered() {};
-	ImDrawDataBuffered( const ImDrawDataBuffered & ) = delete;
-	ImDrawDataBuffered &operator=( const ImDrawDataBuffered & ) = delete;
-	ImDrawDataBuffered( ImDrawDataBuffered && );
-	ImDrawDataBuffered &operator=( ImDrawDataBuffered && );
-
-	void  CopyDrawData( const ImDrawData *source ); // efficiently backup draw data into a new container for multi buffer rendering
-};
+#include "ImguiBufferedHelper.h"
 
 struct FrameData
 {

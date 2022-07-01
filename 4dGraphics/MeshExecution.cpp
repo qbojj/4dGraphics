@@ -26,13 +26,6 @@ static glm::mat4 ToGLM( const aiMatrix4x4 &m ) {
 		m.a4, m.b4, m.c4, m.d4
 	);
 }
-static glm::mat3 ToGLM( const aiMatrix3x3 &m ) {
-	return glm::mat3(
-		m.a1, m.b1, m.c1,
-		m.a2, m.b2, m.c2,
-		m.a3, m.b3, m.c3
-	);
-}
 
 /*
 void FontRenderer::RenderText( GLProgram *fontFrag, const char *str, glm::vec2 pos, glm::vec4 col, float scale )
@@ -863,7 +856,6 @@ bool Model::Load( const char *file, Assimp::Importer &importer, unsigned int add
 
 
 				tex.SetLabel( "mesh '%s' texture %d ('%s')", file, res, s.C_Str() );
-				GLuint texID = tex;
 				textures.push_back( move( tex ) );
 
 				return res;

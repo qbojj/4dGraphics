@@ -22,6 +22,8 @@ using glm::mat4;
 static void GLDebugMessageCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 	const GLchar *msg, const void *data )
 {
+	(void)data, length;
+
 	OPTICK_EVENT();
 
 	const char *_source;
@@ -108,7 +110,11 @@ void GameRenderHandler::OnDestroy()
 		TRACE( DebugLevel::Error, "FT_Done_FreeType returned error (%d%s%s)\n", err, why ? ": " : "", why ? why : "" );
 	}
 	*/
-	if( g_BufAllocator ) delete g_BufAllocator;
+	if (g_BufAllocator)
+	{
+		delete g_BufAllocator;
+		g_BufAllocator = NULL;
+	}
 }
 
 void GameRenderHandler::CreateAndInitShadowFBO( int cnt, int size )
@@ -209,14 +215,8 @@ bool GameRenderHandler::OnCreate()
 	}
 
 	GLAD_GL_ARB_bindless_texture &= !FOR_RENDERDOC;
-
-	/*
-	glbinding::initialize( glfwGetProcAddress );
-	glbinding::setCallbackMask( glbinding::CallbackMask::Unresolved );
-	glbinding::setUnresolvedCallback( []( const glbinding::AbstractFunction &unresolved ) {
-		TRACE( DebugLevel::Error, "Program tried to reference unresolved function: %s !!!!!!!!!!!!!!\n", unresolved.name() );
-	} );
-	*/
+	
+	
 	{
 		ostringstream out;
 		out << "Vendor: " << glGetString( GL_VENDOR ) << "\n";
@@ -248,45 +248,12 @@ bool GameRenderHandler::OnCreate()
 		TRACE( DebugLevel::Log, "%s\n", move( out ).str().c_str() );
 	}
 
-	//GLExtensions.Query();
 	GLParameters.Query();
-	
-	//EXT_AVAIABLE( GL_ARB_bindless_texture ) = false;
 
-	//if( EXT_AVAIABLE( GL_KHR_debug ) )
-	//{
-		glEnable( GL_DEBUG_OUTPUT );
-		glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-		glDebugMessageCallback( GLDebugMessageCallback, NULL );
-	//}
-	//else if( EXT_AVAIABLE( GL_ARB_debug_output ) )
-	//{
-	//	glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
-	//	glDebugMessageCallbackARB( GLDebugMessageCallback, NULL );
-	//}
-	//else TRACE( DebugLevel::Warning, "GL_ARB_debug_output and GL_KHR_debug not avaiable\n" );
-	
-	/*
-	// Make sure all required extensions are avaiable
-	{
-		bool ok = true;
-		string errStr = "Some required extensions not avaiable!: ";
-		for( const GLextentionDef_t &d : ExtensionsRequired )
-		{
-			if( !GLExtensions[ d.ext ] )
-			{
-				errStr += d.name + ' ';
-				ok = false;
-			}
-		}
+	glEnable( GL_DEBUG_OUTPUT );
+	glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+	glDebugMessageCallback( GLDebugMessageCallback, NULL );
 
-		if( !ok )
-		{
-			TRACE( DebugLevel::FatalError, "%s\n", errStr.c_str() );
-			return false;
-		}
-	}
-	*/
 
 	// set depth space to [0,1]
 	glClipControl( GL_LOWER_LEFT, GL_ZERO_TO_ONE );
@@ -303,54 +270,39 @@ bool GameRenderHandler::OnCreate()
 
 	glEnable( GL_FRAMEBUFFER_SRGB );
 	glEnable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
-
+	
 	TRACE( DebugLevel::Debug, "Renderer: On create - meshes\n" );
-
+	
 	const char
-		*peachCastleName = MODELS_BASE_PATH "princess peaches castle (outside).obj",
-		*cubeName = MODELS_BASE_PATH "cube.obj",
-		*texCubeName = MODELS_BASE_PATH "cube2.obj",
-		*spaceShuttleName = MODELS_BASE_PATH "SpaceShuttle.obj",
+//		*peachCastleName = MODELS_BASE_PATH "princess peaches castle (outside).obj",
+//		*cubeName = MODELS_BASE_PATH "cube.obj",
+//		*texCubeName = MODELS_BASE_PATH "cube2.obj",
+//		*spaceShuttleName = MODELS_BASE_PATH "SpaceShuttle.obj",
 		*cubeRoomName = MODELS_BASE_PATH "CubeRoom.obj",
-		*teapotName = MODELS_BASE_PATH "teapot.obj",
+//		*teapotName = MODELS_BASE_PATH "teapot.obj",
 		*peach2Name = MODELS_BASE_PATH "SM64/Peaches Castle.obj",
-		*wolf = MODELS_BASE_PATH "wolf/Wolf-Blender-2.82a.gltf",
-		*bistro = "../deps/src/bistro/Interior/interior.obj";
+		*wolf = MODELS_BASE_PATH "wolf/Wolf-Blender-2.82a.gltf";
+//		*bistro = "../deps/src/bistro/Interior/interior.obj";
 
 	bool ok = true;
 
+	
 	{
 		Assimp::Importer AssimpImp;
 		ok &= box.Load( wolf, AssimpImp );
 		ok &= room.Load( cubeRoomName, AssimpImp );
 		ok &= object.Load( peach2Name, AssimpImp );
 	}
-
+	
 	if( !ok ) { TRACE( DebugLevel::Error, "Cannot load meshes\n" ); }
 	ok = true;
-	/*
-	TRACE( DebugLevel::Debug, "Renderer: On create - fonts\n" );
 
-	if( FT_Error err = FT_Init_FreeType( &FreeTypeLib ) ) 
-	{ 
-		const char *why = FT_Error_String( err );
-		TRACE( DebugLevel::Error, "FT_Init_FreeType returned error (%d%s%s)\n", err, why ? ": " : "", why ? why : "" );
-	}
-	else
-	{
-		const char *fontPath = FONTS_BASE_PATH "arial.ttf";
-		ok = fontArial.Load( FreeTypeLib, fontPath, 24 );
-
-		if( !ok ) { TRACE( DebugLevel::Error, "Cannot load font form %s\n", fontPath ); };// return false; }
-		ok = true;
-	}
-	*/
 	TRACE( DebugLevel::Debug, "Renderer: On create - shaders\n" );
 
 	//if( GLAD_GL_ARB_parallel_shader_compile ) glMaxShaderCompilerThreadsARB( 64 );
 
 	//ok &= GLShader::AddIncudeDir( SHADER_BASE_PTH );
-
+	
 	{
 		GLShader v, f;
 		ok &= v.Load( SHADER_BASE_PTH "fontShader.vert", GL_VERTEX_SHADER );
@@ -400,6 +352,7 @@ bool GameRenderHandler::OnCreate()
 		ok &= f.Load( SHADER_BASE_PTH "ImGui.frag", GL_FRAGMENT_SHADER );
 		ok &= ImGuiProgram.Create( { v,f } );
 	}
+	
 
 	if( !ok ) { TRACE( DebugLevel::Error, "Cannot load shaders\n" ); };// return false; }
 	ok = true;
@@ -452,18 +405,20 @@ bool GameRenderHandler::OnCreate()
 	glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &texture_units );
 	TRACE( DebugLevel::Log, "texture units: %d\n", texture_units );
 
-	StreamDrawSimple.Create(
-		{ 
-			{ 0, 3, GL_FLOAT, GL_FALSE, 0 },
-			{ 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3*sizeof(float) }
-		},
-		{ 
-			{ 3 * sizeof( float ) + 4 }
-		}
-	);
+	
+	//StreamDrawSimple.Create(
+	//	{ 
+	//		{ 0, 3, GL_FLOAT, GL_FALSE, 0 },
+	//		{ 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3*sizeof(float) }
+	//	},
+	//	{ 
+	//		{ 3 * sizeof( float ) + 4 }
+	//	}
+	//);
 
 	TRACE( DebugLevel::Debug, "Renderer: On create - ImGui font setup\n" );
-
+	
+	
 	{
 		ImGuiIO &io = ImGui::GetIO();
 		io.BackendFlags |=
@@ -477,8 +432,9 @@ bool GameRenderHandler::OnCreate()
 		cfg.OversampleH = 4;
 		cfg.OversampleV = 4;
 
-		ImFont *Font = io.Fonts->AddFontFromFileTTF( 
-			FONTS_BASE_PATH "OpenSans-Light.ttf", cfg.SizePixels, &cfg );
+		auto data = GetFileString(FONTS_BASE_PATH "OpenSans-Light.ttf", true);
+
+		ImFont* Font = io.Fonts->AddFontFromMemoryTTF(data.data(), (int)data.size(), cfg.SizePixels, &cfg);
 
 		unsigned char *pixels = NULL;
 		int width, height;
@@ -508,7 +464,7 @@ bool GameRenderHandler::OnCreate()
 	TRACE( DebugLevel::Log, "Renderer: On create - end\n" );
 
 	//glFinish();
-
+	
 	return true;
 }
 
@@ -523,7 +479,11 @@ void GameRenderHandler::OnDraw( const void *_FData )
 	FrameData *FData = (FrameData *)_FData;
 	auto FrameStartTime = chrono::high_resolution_clock::now();
 
-	if( LastVSync != FData->bVSync ) glfwSwapInterval( ( LastVSync = FData->bVSync ) ? 1 : 0 );
+	if (LastVSync != FData->bVSync)
+	{
+		LastVSync = FData->bVSync;
+		glfwSwapInterval(FData->bVSync ? 1 : 0);
+	}
 
 	if( FData->WndSize != LastWndSize )
 	{
@@ -666,11 +626,11 @@ void GameRenderHandler::OnDraw( const void *_FData )
 	
 	//glEnable( GL_RASTERIZER_DISCARD );
 	t1 = chrono::high_resolution_clock::now();
-	for( int i = 0; i < 2; i++ )
+	for( int iRenderPass = 0; iRenderPass < 2; iRenderPass++ )
 	{
 		OPTICK_EVENT( "RenderPass" );
-		OPTICK_TAG( "PassData", i );
-		OPTICK_TAG( "PassName", i == 0 ? "depth" : "color" );
+		OPTICK_TAG( "PassData", iRenderPass);
+		OPTICK_TAG( "PassName", iRenderPass == 0 ? "depth" : "color" );
 
 		//if( i == 0 ) i++;
 
@@ -681,7 +641,7 @@ void GameRenderHandler::OnDraw( const void *_FData )
 		float DefaultColor[] = { 0.2f, 0.2f, 0.2f, 1 };
 		float DefaultNormal[] = { 0.5f, 0.5f, 0.5f, 0 };
 		
-		switch( i )
+		switch( iRenderPass )
 		{
 		case 0:
 			glBindFramebuffer( GL_FRAMEBUFFER, ShadowFBO );			
@@ -782,7 +742,7 @@ void GameRenderHandler::OnDraw( const void *_FData )
 			o.model->Draw( currFrag );// , visible, modelsVisibleStartIdx[j] );
 		}
 
-		switch( i )
+		switch( iRenderPass )
 		{
 		case 0:
 			break;
@@ -951,7 +911,7 @@ void GameRenderHandler::OnDraw( const void *_FData )
 		const mat4 proj = glm::ortho( L, R, B, T );
 		glNamedBufferSubData( Mats, 0, sizeof( mat4 ), glm::value_ptr( proj ) ); // reuse Mats (already bound to 0)
 
-		GLuint bound = -1;
+		GLuint bound = ~0u;
 
 		glBindVertexArray( ImGuiVAO );
 

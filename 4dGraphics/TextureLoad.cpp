@@ -62,7 +62,7 @@ static GLTexId CreateTextureFromFile_gli( const char *Filename )
 			for( size_t Level = 0; Level < Texture.levels(); ++Level )
 			{
 				GLsizei const LayerGL = static_cast<GLsizei>( Layer );
-				glm::tvec3<GLsizei> Extent( Texture.extent( Level ) );
+				glm::tvec3<GLsizei> LevExtent( Texture.extent( Level ) );
 
 				GLsizei CubeZOff = (GLsizei)( gli::is_target_cube( Texture.target() ) ?
 											  Face + Layer * 6 : 0 );
@@ -75,12 +75,12 @@ static GLTexId CreateTextureFromFile_gli( const char *Filename )
 				case gli::TARGET_1D:
 					if( gli::is_compressed( Texture.format() ) )
 						glCompressedTextureSubImage1D(
-							tex, static_cast<GLint>( Level ), 0, Extent.x,
+							tex, static_cast<GLint>( Level ), 0, LevExtent.x,
 							(GLenum)Format.Internal, siz,
 							data );
 					else
 						glTextureSubImage1D(
-							tex, static_cast<GLint>( Level ), 0, Extent.x,
+							tex, static_cast<GLint>( Level ), 0, LevExtent.x,
 							(GLenum)Format.External, (GLenum)Format.Type,
 							data );
 					break;
@@ -90,16 +90,16 @@ static GLTexId CreateTextureFromFile_gli( const char *Filename )
 						glCompressedTextureSubImage2D(
 							tex, static_cast<GLint>( Level ),
 							0, 0,
-							Extent.x,
-							Texture.target() == gli::TARGET_1D_ARRAY ? LayerGL : Extent.y,
+							LevExtent.x,
+							Texture.target() == gli::TARGET_1D_ARRAY ? LayerGL : LevExtent.y,
 							(GLenum)Format.Internal, siz,
 							data );
 					else
 						glTextureSubImage2D(
 							tex, static_cast<GLint>( Level ),
 							0, 0,
-							Extent.x,
-							Texture.target() == gli::TARGET_1D_ARRAY ? LayerGL : Extent.y,
+							LevExtent.x,
+							Texture.target() == gli::TARGET_1D_ARRAY ? LayerGL : LevExtent.y,
 							(GLenum)Format.External, (GLenum)Format.Type,
 							data );
 					break;
@@ -111,16 +111,16 @@ static GLTexId CreateTextureFromFile_gli( const char *Filename )
 						glCompressedTextureSubImage3D(
 							tex, static_cast<GLint>( Level ),
 							0, 0, CubeZOff,
-							Extent.x, Extent.y,
-							Texture.target() == gli::TARGET_3D ? Extent.z : LayerGL,
+							LevExtent.x, LevExtent.y,
+							Texture.target() == gli::TARGET_3D ? LevExtent.z : LayerGL,
 							(GLenum)Format.Internal, siz,
 							data );
 					else
 						glTextureSubImage3D(
 							tex, static_cast<GLint>( Level ),
 							0, 0, CubeZOff,
-							Extent.x, Extent.y,
-							Texture.target() == gli::TARGET_3D ? Extent.z : LayerGL,
+							LevExtent.x, LevExtent.y,
+							Texture.target() == gli::TARGET_3D ? LevExtent.z : LayerGL,
 							(GLenum)Format.External, (GLenum)Format.Type,
 							data );
 					break;
@@ -379,13 +379,13 @@ void Texture::LoadFromFile( const char *file, bool swapY )
 
 	GLenum typ = GL_NONE;
 
-	if( stbi_is_16_bit_from_memory( (stbi_uc *)data.data(), data.size() ) )
-		typ = GL_UNSIGNED_SHORT, buf = stbi_load_16_from_memory( (stbi_uc *)data.data(), data.size(), &x, &y, &_channels, 0 );
+	if( stbi_is_16_bit_from_memory( (stbi_uc *)data.data(), (int)data.size() ) )
+		typ = GL_UNSIGNED_SHORT, buf = stbi_load_16_from_memory( (stbi_uc *)data.data(), (int)data.size(), &x, &y, &_channels, 0 );
 	else 
-		if( stbi_is_hdr_from_memory( (stbi_uc *)data.data(), data.size() ) )
-		typ = GL_FLOAT, buf = stbi_loadf_from_memory( (stbi_uc *)data.data(), data.size(), &x, &y, &_channels, 0 );
+		if( stbi_is_hdr_from_memory( (stbi_uc *)data.data(), (int)data.size() ) )
+		typ = GL_FLOAT, buf = stbi_loadf_from_memory( (stbi_uc *)data.data(), (int)data.size(), &x, &y, &_channels, 0 );
 	else
-		typ = GL_UNSIGNED_BYTE, buf = stbi_load_from_memory( (stbi_uc *)data.data(), data.size(), &x, &y, &_channels, 0 );
+		typ = GL_UNSIGNED_BYTE, buf = stbi_load_from_memory( (stbi_uc *)data.data(), (int)data.size(), &x, &y, &_channels, 0 );
 
 	//fclose( f );
 

@@ -18,24 +18,10 @@ namespace fs = filesystem;
 vector<fs::path> GLShader::includeDirs;
 
 // returns 0 if file doesn't exist
-static time_t GetFileWriteTime( const char *filePath )
+static time_t GetFileWriteTime(const char* filePath)
 {
     struct stat st;
-    return stat( filePath, &st ) == -1 ? 0 : st.st_mtime;
-}
-
-static const char *GLShaderTypeToString( GLenum t )
-{
-    switch( t )
-    {
-    case GL_VERTEX_SHADER: return "Vertex";
-    case GL_FRAGMENT_SHADER: return "Fragment";
-    case GL_GEOMETRY_SHADER: return "Geometry";
-    case GL_TESS_CONTROL_SHADER: return "Tesselation control";
-    case GL_TESS_EVALUATION_SHADER: return "Tesselation evaluation";
-    case GL_COMPUTE_SHADER: return "Compute";
-    default: return "Unknown";
-    }
+    return stat(filePath, &st) == -1 ? 0 : st.st_mtime;
 }
 
 static bool checkProgramErrors( const GLProgramId &program )
@@ -375,7 +361,6 @@ bool GLShader::ResolveIncludes(
     int glslVer = 110;
     bool compat = false;
 
-    bool fileFound;
     fs::path filePath2 = fs::absolute(filePath);
     string FormatedPath = filePath2.string();
 
@@ -746,12 +731,12 @@ bool GLProgram::CreateInternal()
     return true;// InitUniforms();
 }
 
-bool GLProgram::Create( std::vector<GLShader> _shaders, bool separable )
+bool GLProgram::Create( std::vector<GLShader> _shaders, bool _separable )
 {
     clear();
     shaders = move(_shaders);
     sort( shaders.begin(), shaders.end(), GLShader::lessThan );
-    this->separable = separable;
+    separable = _separable;
 
     return CreateInternal();
 }

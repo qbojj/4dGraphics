@@ -30,13 +30,13 @@ public:
 		std::fill( std::begin( data ), std::end( data ), 0 );
 	};
 
-	void *alloc()
+	void *Alloc()
 	{
 		if( freeEnd != 0 ) [[likely]] return &data[allocSize * freeDat[--freeEnd]];
 		else return _mm_malloc( allocSize, align );
 	}
 
-	void free( void *p )
+	void Free( void *p )
 	{
 		if( (char*)p >= &data[0] && (char *)p < &data[allocSize * cnt] ) [[likely]] freeDat[freeEnd++] = (idxType)( ((char *)p - &data[0]) / allocSize );
 		else _mm_free( p );
@@ -329,10 +329,10 @@ void collisions::detail::VerticesCoordsData::Create( size_t _size )
 	//size_t siz = this->size * VecSize;
 
 	if( size == 0 ) data = NULL;
-	else if( size <= FastAllocatorMaxSize ) data = (float *)allocator.alloc();
+	else if( size <= FastAllocatorMaxSize ) data = (float *)allocator.Alloc();
 	else data = (float *)_mm_malloc( size * 3 * sizeof(float), VecSize );
 	/*
-	if( size == 8 ) x = (float *)allocator.alloc();
+	if( size == 8 ) x = (float *)allocator.Alloc();
 	else x = (float*)_mm_malloc( siz * 3, VecSize );
 	y = (float *)((char *)x + siz);//(float *)_mm_malloc( siz, VecSize );
 	z = (float *)((char *)y + siz);//(float *)_mm_malloc( siz, VecSize );
@@ -341,7 +341,7 @@ void collisions::detail::VerticesCoordsData::Create( size_t _size )
 
 collisions::detail::VerticesCoordsData::~VerticesCoordsData()
 { 
-	if( size <= FastAllocatorMaxSize ) allocator.free( data );
+	if( size <= FastAllocatorMaxSize ) allocator.Free( data );
 	else _mm_free( data );
 
 	data = nullptr;

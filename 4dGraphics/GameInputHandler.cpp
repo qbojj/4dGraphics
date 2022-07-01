@@ -18,12 +18,16 @@ void nonMember_helper( GLFWwindow *wnd, Args... args )
 
 void GameInputHandler::onResize( GLFWwindow *window, int width, int height )
 {
+	(void)window;
+
 	WndSize = { max( width,1 ), max( height,1 ) };
 }
 
 
 void GameInputHandler::onKey( GLFWwindow *window, int key, int scancode, int action, int mods )
 {
+	(void)mods, scancode, window;
+
 	if( action == GLFW_REPEAT ) return;
 	
 	if( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS )
@@ -42,16 +46,19 @@ void GameInputHandler::onKey( GLFWwindow *window, int key, int scancode, int act
 
 void GameInputHandler::onMouseButton( GLFWwindow *window, int button, int action, int mods )
 {
+	(void)mods, window;
 	MouseButtons.set( button, action != GLFW_RELEASE );
 }
 
 void GameInputHandler::onMouseMove( GLFWwindow *window, double xpos, double ypos )
 {
+	(void)window;
 	MousePos = glm::vec2( xpos, WndSize.y - ypos );
 }
 
 void GameInputHandler::onMouseEnter( GLFWwindow *window, int entered )
 {
+	(void)window;
 	MouseInside = entered;
 }
 
@@ -96,5 +103,6 @@ void GameInputHandler::OnPostTick()
 
 void GameInputHandler::OnDestroy( GLFWwindow *window )
 {
+	(void)window;
 	ImGui_ImplGlfw_Shutdown();
 }
