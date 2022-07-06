@@ -98,7 +98,7 @@ namespace collisions
 			virtual ElementIdxVectRes Triangles() const;
 			virtual ElementIdxVectRes Lines() const;
 		};
-	};
+	} // detail 
 
 	enum class IntersectResult
 	{

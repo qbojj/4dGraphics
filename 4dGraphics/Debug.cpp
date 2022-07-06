@@ -31,22 +31,30 @@ static void PRINT_DEBUG( const char *s ) { printToFile( s ); OutputDebugStringA(
 static void PRINT_DEBUG( const char *s ) { printToFile( s ); cerr << s; }
 #endif
 
-void OutputDebug( DebugLevel l, const char *fmt, ... )
+void OutputDebug(DebugLevel l, const char* fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	OutputDebugV(l, fmt, va);
+	va_end(va);
+}
+
+void OutputDebugV( DebugLevel l, const char *fmt, va_list va )
 {
 	if( l < LogLevel ) return;
 
-	va_list va;
-	va_start( va, fmt );
-
 	char buf[1024];
 	char *dat = buf;
-	int si = stbsp_vsnprintf( dat, 1024, fmt, va );
+
+	va_list va2;
+	va_copy(va2, va);
+	int si = stbsp_vsnprintf( dat, 1024, fmt, va2 );
+	va_end(va2);
+
 	if( si >= 1024 )
 	{
 		dat = (char *)malloc( si + 1 );
 
-		va_end( va );
-		va_start( va, fmt );
 		stbsp_vsprintf( dat, fmt, va );
 	}
 
@@ -57,6 +65,4 @@ void OutputDebug( DebugLevel l, const char *fmt, ... )
 #endif
 
 	if( si >= 1024 ) free( dat );
-
-	va_end( va );
 }
