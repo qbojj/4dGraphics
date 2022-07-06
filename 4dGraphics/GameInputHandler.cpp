@@ -18,7 +18,7 @@ void nonMember_helper( GLFWwindow *wnd, Args... args )
 
 void GameInputHandler::onResize( GLFWwindow *window, int width, int height )
 {
-	(void)window;
+	(void) window;
 
 	WndSize = { max( width,1 ), max( height,1 ) };
 }
@@ -26,7 +26,10 @@ void GameInputHandler::onResize( GLFWwindow *window, int width, int height )
 
 void GameInputHandler::onKey( GLFWwindow *window, int key, int scancode, int action, int mods )
 {
-	(void)mods, scancode, window;
+	(void) window;
+	(void) scancode;
+	(void) mods;
+	
 
 	if( action == GLFW_REPEAT ) return;
 	
@@ -46,7 +49,9 @@ void GameInputHandler::onKey( GLFWwindow *window, int key, int scancode, int act
 
 void GameInputHandler::onMouseButton( GLFWwindow *window, int button, int action, int mods )
 {
-	(void)mods, window;
+	(void)window;
+	(void)mods;
+
 	MouseButtons.set( button, action != GLFW_RELEASE );
 }
 
@@ -104,5 +109,6 @@ void GameInputHandler::OnPostTick()
 void GameInputHandler::OnDestroy( GLFWwindow *window )
 {
 	(void)window;
+	
 	ImGui_ImplGlfw_Shutdown();
 }

@@ -7,18 +7,19 @@
 //#define GLM_FORCE_INLINE
 //#define GLM_FORCE_ALIGNED_GENTYPES
 //#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_SWIZZLE
+//#define GLM_FORCE_SWIZZLE
+#define GLM_FORCE_SILENT_WARNINGS
 #include <glm/glm.hpp>
-#include <glm/ext.hpp>
-//#include <glm/gtc/quaternion.hpp>
+//#include <glm/ext.hpp>
+#include <glm/gtc/quaternion.hpp>
 //#include <glm/gtc/constants.hpp>
-//#include <glm/gtc/integer.hpp>
+#include <glm/gtc/integer.hpp>
 //#include <glm/gtc/matrix_inverse.hpp>
 //#include <glm/gtc/matrix_transform.hpp>
-//#include <glm/gtc/packing.hpp>
+#include <glm/gtc/packing.hpp>
 //#include <glm/gtc/type_aligned.hpp>
 //#include <glm/gtc/type_precision.hpp>
-//#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/type_ptr.hpp>
 //#include <glm/gtc/random.hpp>
 
 /*

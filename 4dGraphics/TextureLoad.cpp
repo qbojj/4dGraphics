@@ -245,31 +245,31 @@ Texture::GetFormatRes Texture::GetFormat( TextureCompressionModel compr ) const
 	{
 		// CompressionNoCompression:
 		{
-			GL_R8, GL_R16, GL_R32F,
-			GL_RG8, GL_RG16, GL_RG32F,
-			GL_RGB8, GL_RGB16, GL_RGB32F,
-			GL_RGBA8, GL_RGBA16, GL_RGBA32F
+			{ GL_R8, GL_R16, GL_R32F },
+			{ GL_RG8, GL_RG16, GL_RG32F },
+			{ GL_RGB8, GL_RGB16, GL_RGB32F },
+			{ GL_RGBA8, GL_RGBA16, GL_RGBA32F }
 		},
 		// CompressionWeak:
 		{
-			GL_R8, GL_R16, GL_R16F,
-			GL_RG8, GL_RG16, GL_RG16F,
-			GL_RGB5, GL_RGB10, GL_RGB16F,
-			GL_RGB5_A1, GL_RGB10_A2, GL_RGBA16F
+			{ GL_R8, GL_R16, GL_R16F },
+			{ GL_RG8, GL_RG16, GL_RG16F },
+			{ GL_RGB5, GL_RGB10, GL_RGB16F },
+			{ GL_RGB5_A1, GL_RGB10_A2, GL_RGBA16F }
 		},
 		// CompressionMedium:
 		{
-			GL_R8, GL_R16, GL_R16F,
-			GL_RG8, GL_RG16, GL_RG16F,
-			GL_R3_G3_B2, GL_RGB5, GL_RGB16F,
-			GL_RGBA4, GL_RGB5_A1, GL_R11F_G11F_B10F
+			{ GL_R8, GL_R16, GL_R16F },
+			{ GL_RG8, GL_RG16, GL_RG16F },
+			{ GL_R3_G3_B2, GL_RGB5, GL_RGB16F },
+			{ GL_RGBA4, GL_RGB5_A1, GL_R11F_G11F_B10F }
 		},
 		// CompressionStrong:
 		{
-			GL_R8, GL_R16, GL_R16F,
-			GL_RG8, GL_RG16, GL_RG16F,
-			GL_R3_G3_B2, GL_RGB5, GL_RGB16F,
-			GL_RGBA4, GL_RGB5_A1, GL_R11F_G11F_B10F
+			{ GL_R8, GL_R16, GL_R16F },
+			{ GL_RG8, GL_RG16, GL_RG16F },
+			{ GL_R3_G3_B2, GL_RGB5, GL_RGB16F },
+			{ GL_RGBA4, GL_RGB5_A1, GL_R11F_G11F_B10F }
 		},
 	};
 

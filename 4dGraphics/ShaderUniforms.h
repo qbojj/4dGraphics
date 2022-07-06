@@ -57,12 +57,12 @@ SET_UNIFORM_VECTOR_T( 3, T, c, suf ) \
 SET_UNIFORM_VECTOR_T( 2, T, c, suf ) \
 SET_UNIFORM_SCALAR_T( T, c, suf )
 
-	SET_UNIFORMS_FOR_FP_TYPE_T( float, f, );
-	SET_UNIFORMS_FOR_FP_TYPE_T( double, d, );
-	SET_UNIFORMS_FOR_INT_TYPE_T( int32_t, i, );
-	//SET_UNIFORMS_FOR_INT_TYPE_T( int64_t, i64, ARB );
-	SET_UNIFORMS_FOR_INT_TYPE_T( uint32_t, ui, );
-	//SET_UNIFORMS_FOR_INT_TYPE_T( uint64_t, ui64, ARB );
+	SET_UNIFORMS_FOR_FP_TYPE_T( float, f, )
+	SET_UNIFORMS_FOR_FP_TYPE_T( double, d, )
+	SET_UNIFORMS_FOR_INT_TYPE_T( int32_t, i, )
+	//SET_UNIFORMS_FOR_INT_TYPE_T( int64_t, i64, ARB )
+	SET_UNIFORMS_FOR_INT_TYPE_T( uint32_t, ui, )
+	//SET_UNIFORMS_FOR_INT_TYPE_T( uint64_t, ui64, ARB )
 	
 	struct GLBindlessTextureHandle {
 		unsigned long long handle;
@@ -109,7 +109,7 @@ protected:
 	GLint location;
 public:
 
-	GLUniform() : location( -1 ) {};
+	GLUniform() : location( -1 ) {}
 	GLUniform( GLuint prog, const char *name ) { Register( prog, name ); }
 	void Register( GLuint prog, const char *name ) { location = glGetUniformLocation( prog, name ); }
 	template<typename T> void Set( const T &v ) { uniformDetail::SetUniform( location, v ); }
@@ -124,7 +124,7 @@ protected:
 	GLuint program;
 	GLint location;
 public:
-	GLUniformDSA() : program( 0 ), location( -1 ) {};
+	GLUniformDSA() : program( 0 ), location( -1 ) {}
 	GLUniformDSA( GLuint prog, const char *name ) { Register( prog, name ); }
 	GLUniformDSA( GLuint prog, GLuint loc ) : program(prog), location(loc) {}
 	void Register( GLuint prog, const char *name ) { program = prog, location = glGetUniformLocation( program, name ); }

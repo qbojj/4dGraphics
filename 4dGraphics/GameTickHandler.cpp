@@ -178,7 +178,7 @@ public:
 	{
 		//RemoveShadowMap( id );
 
-		glsl::LightSpec ls{ 0 };
+		glsl::LightSpec ls;
 		ls.bEnabled = true;
 		ls.iLightType = 0;
 
@@ -282,7 +282,7 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 
 	assert(0 && "Character given to ImGuiASCIIidx doesn't correspond to a key");
 	return 0;
-};
+}
 
 void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 {

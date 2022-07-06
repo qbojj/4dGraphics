@@ -25,9 +25,9 @@ protected:
 public:
 	constexpr FastAlignedAllocator()
 	{
-		std::iota( std::rbegin( freeDat ), std::rend( freeDat ), 0 );
+		std::iota( std::rbegin( freeDat ), std::rend( freeDat ), static_cast<idxType>(0) );
 		freeEnd = cnt;
-		std::fill( std::begin( data ), std::end( data ), 0 );
+		std::fill( std::begin( data ), std::end( data ), (char)0 );
 	};
 
 	void *Alloc()
@@ -118,7 +118,7 @@ bool AABB::Intersects( const AABB &rhs ) const
 	);
 }
 
-OBB::OBB() : dat( 0 ) {};
+OBB::OBB() : dat( 0 ) {}
 OBB::OBB( const Vect &p, const Vect &v1, const Vect &v2, const Vect &v3 ) : dat( v1, v2, v3, p ) {}
 OBB::OBB( const AABB &o ) : dat( Vect( o.hi.x - o.lo.x, 0, 0 ), Vect( 0, o.hi.y - o.lo.y, 0 ), Vect( 0, 0, o.hi.z - o.lo.z ), o.lo ) {}
 
@@ -284,12 +284,11 @@ OBB &OBB::rotate( const Mat4x4 &transform )
 struct MinMax
 {
 	float mi, ma;
-	MinMax() : mi( INFINITY ), ma( -INFINITY ) {};
-	MinMax( float f ) : mi( f ), ma( f ) {};
-	MinMax( float mi, float ma ) : mi( mi ), ma( ma ) {};
+	MinMax() : mi( INFINITY ), ma( -INFINITY ) {}
+	MinMax( float f ) : mi( f ), ma( f ) {}
+	MinMax( float mi, float ma ) : mi( mi ), ma( ma ) {}
 
-	static MinMax merge( const MinMax &a, const MinMax &b ) { return MinMax{ glm::min( a.mi, b.mi ), glm::max( a.ma, b.ma ) }; };
-#pragma warning(suppress:4091) // warning C4091: 'static ': ignored on left of 'MinMax' when no variable is declared
+	static MinMax merge( const MinMax &a, const MinMax &b ) { return MinMax{ glm::min( a.mi, b.mi ), glm::max( a.ma, b.ma ) }; }
 };
 
 /*
@@ -337,7 +336,7 @@ void collisions::detail::VerticesCoordsData::Create( size_t _size )
 	y = (float *)((char *)x + siz);//(float *)_mm_malloc( siz, VecSize );
 	z = (float *)((char *)y + siz);//(float *)_mm_malloc( siz, VecSize );
 	*/
-};
+}
 
 collisions::detail::VerticesCoordsData::~VerticesCoordsData()
 { 
@@ -769,7 +768,7 @@ void CameraCollider::Create( const Mat4x4 &view, float fov, float aspect, float 
 
 	projectionHull.vert = VectorVect( 8 );
 
-	const Vect zero( 0 );
+	//const Vect zero( 0 );
 	const Vect p( 0, 0, -1 );
 	const Vect r( right, 0, 0 );
 	const Vect t( 0, top, 0 );

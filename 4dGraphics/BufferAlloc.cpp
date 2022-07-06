@@ -104,7 +104,7 @@ void GLBufferAllocator::Resize( GLsizeiptr size, const char *why )
 	//#if IS_DEBUG
 	//TRACE( DebugLevel::Log, "Buffer allocator resized to %d because %s\n", (int)Buff.GetDataSize(), why );
 	//#endif
-};
+}
 
 void *GLBufferAllocator::internalAlloc( GLsizeiptr siz, GLsizeiptr *allocated )
 {

@@ -112,8 +112,8 @@ struct BinaryFileFormat_t
         bool separable;
         GLbitfield shadersAttached;
     } header;
-#pragma warning( suppress : 4200 )
-    unsigned char data[];
+
+    unsigned char data[1]; // fits all of shader data (dynamic size)
 };
 
 bool GLProgram::LoadFromBinary( const char *pth )
@@ -132,7 +132,7 @@ bool GLProgram::LoadFromBinary( const char *pth )
         BinaryFileFormat_t *file = (BinaryFileFormat_t *)data.data();
 
         if( file->header.magicNum != CorrectBinMagicNum ) { error = 2; goto cleanUp; }
-        if( data.size() - hSize != file->header.len ) { error = 3; goto cleanUp; }
+        if( data.size() - hSize != (size_t)file->header.len ) { error = 3; goto cleanUp; }
         if( file->header.separable != separable ) { error = 4; goto cleanUp; }
         if( file->header.shadersAttached != shadersAttached ) { error = 5; goto cleanUp; }
 
@@ -252,7 +252,12 @@ string GLProgram::GetBinPath() const
     string name = "";
     for( const GLShader &s : shaders )
     {
-        if( sep ) name += ";"; sep = true;
+        if( sep ) 
+        { 
+            name += ";"; 
+            sep = true; 
+        }
+        
         name += fs::path(s.data->ShaderFilePath).filename().string();
     }
     if( separable ) name += ".sep";

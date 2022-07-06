@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdarg>
+
 #if defined(_WIN32) && 1
 #define USE_WIN_DEBUG 
 #endif
@@ -17,7 +19,7 @@
 enum class DebugLevel { Debug, Log, Warning, Error, FatalError };
 extern DebugLevel LogLevel;
     
+void OutputDebugV( DebugLevel, const char*, va_list );
 void OutputDebug( DebugLevel, const char *, ... );
-void ClearLastInvocationsLog();
 
-#define TRACE( level, format, ... ) OutputDebug( level, "'%s' (%d): " format, __FILE__, __LINE__, ## __VA_ARGS__ )
+#define TRACE( level, format, ... ) OutputDebug( level, "%s(%u): " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__ )

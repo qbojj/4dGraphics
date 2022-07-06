@@ -7,10 +7,5 @@ static_assert(std::endian::native == std::endian::little);
 namespace glsl 
 {
 	using namespace glm; 
-#pragma warning( push )
-#pragma warning( disable: 4200 )
-
-#include "CommonCppGLSL.h"
-
-#pragma warning( pop )
-}; // namespace glsl
+	#include "CommonCppGLSL.h"
+} // namespace glsl

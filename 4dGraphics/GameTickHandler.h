@@ -14,7 +14,8 @@ struct FrameData
 	bool bBoundingBoxes;
 	bool bReload;
 
-	glsl::Lights oLightsDat; int iUsedShadowMapCnt;
+	glsl::Lights oLightsDat; 
+	int iUsedShadowMapCnt;
 	glsl::MatsVP oMats;
 
 	int iShadowMapSize;
@@ -62,7 +63,7 @@ public:
 	virtual void DeleteFData( void *FData );
 
 	virtual bool OnCreate();
-	virtual void OnTick( void *_FData, InputHandler *_IData );;
+	virtual void OnTick( void *_FData, InputHandler *_IData );
 	virtual void OnDestroy();
 
 	void Move( glm::vec3 v );	
