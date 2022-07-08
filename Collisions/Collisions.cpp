@@ -32,13 +32,13 @@ public:
 
 	void *Alloc()
 	{
-		if( freeEnd != 0 ) [[likely]] return &data[allocSize * freeDat[--freeEnd]];
+		if( freeEnd != 0 ) return &data[allocSize * freeDat[--freeEnd]];
 		else return _mm_malloc( allocSize, align );
 	}
 
 	void Free( void *p )
 	{
-		if( (char*)p >= &data[0] && (char *)p < &data[allocSize * cnt] ) [[likely]] freeDat[freeEnd++] = (idxType)( ((char *)p - &data[0]) / allocSize );
+		if( (char*)p >= &data[0] && (char *)p < &data[allocSize * cnt] ) freeDat[freeEnd++] = (idxType)( ((char *)p - &data[0]) / allocSize );
 		else _mm_free( p );
 	}
 	

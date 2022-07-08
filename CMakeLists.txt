@@ -21,7 +21,7 @@ if( 4DG_ALL_WARINGS )
 	if (MSVC)
 		add_compile_options( /W4 )
 	else()
-		add_compile_options( -Wall -Wextra -pedantic )
+		add_compile_options( -Wall -Wextra -pedantic $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments> )
 	endif()
 endif()
 

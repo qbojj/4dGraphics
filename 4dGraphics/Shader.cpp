@@ -524,7 +524,7 @@ bool GLShader::ResolveIncludes(
         SourceStrs.push_back( move( output ).str() );
     }
 
-    assert( filesCnt == SourceStrs.size() && filesCnt == dependencyGraph.size() );
+    assert( filesCnt == (int)SourceStrs.size() && filesCnt == (int)dependencyGraph.size() );
 
     //vector<int> sourcePermutation( filesCnt );
     //iota( sourcePermutation.begin(), sourcePermutation.end(), 0 );
