@@ -1,6 +1,7 @@
 .vs/
 .vscode/
 out/
+build/
 
 imgui.ini
 log.txt
