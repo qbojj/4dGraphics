@@ -2,10 +2,9 @@ name: Build on Everything
 
 on:
   workflow_dispatch:
-  #push:
-  #  branches: [ master ]
-  #pull_request:
-  #  branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    types: [ opened, reopened ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
