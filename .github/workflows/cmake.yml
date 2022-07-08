@@ -2,9 +2,9 @@ name: Build on Everything
 
 on:
   workflow_dispatch:
-  push:
+  #push:
   #  branches: [ master ]
-  pull_request:
+  #pull_request:
   #  branches: [ master ]
 
 env:
