@@ -100,12 +100,12 @@ public:
 
 		// < facing, up >
 		const glm::vec3 cubemapDirs[6][2] = {
-			 vRight, vDown , // +X
-			 vLeft , vDown , // -X
-			 vUp   , vBack , // +Y
-			 vDown , vFront, // -Y
-			 vBack , vDown , // +Z
-			 vFront, vDown , // -Z
+			{vRight, vDown }, // +X
+			{vLeft , vDown }, // -X
+			{vUp   , vBack }, // +Y
+			{vDown , vFront}, // -Y
+			{vBack , vDown }, // +Z
+			{vFront, vDown }, // -Z
 		};
 
 		if( ls.iShadowMapId != -1 )
