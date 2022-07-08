@@ -7,4 +7,8 @@ macro(SETUP_COMMON projectname dirname )
 	endif()
 
 	target_compile_features( ${projectname} PRIVATE cxx_std_20 c_std_17 )
+	set_target_properties( ${projectname} PROPERTIES 
+		VISIBILITY_INLINES_HIDDEN true
+		CXX_VISIBILITY_PRESET hidden
+	)
 endmacro()
