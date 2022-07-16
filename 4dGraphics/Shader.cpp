@@ -167,8 +167,9 @@ bool GLProgram::SaveBinary( const char *binaryPath ) const
     if( len == 0 ) return false; // not linked successfully
 
     size_t binFileSize = sizeof( BinaryFileFormat_t::BinaryHeader_t ) + len;
-    unique_ptr<BinaryFileFormat_t> binData( (BinaryFileFormat_t*)calloc( 1, binFileSize ) );
-
+    BinaryFileFormat_t *binData = (BinaryFileFormat_t*)calloc( 1, binFileSize );
+    if( !binData ) { TRACE( DebugLevel::Error, "Error: cannot allocate bin data buffer\n" ); return false; }
+    
     binData->header.len = len;
     binData->header.magicNum = CorrectBinMagicNum;
     binData->header.separable = separable;
@@ -176,12 +177,12 @@ bool GLProgram::SaveBinary( const char *binaryPath ) const
 
     glGetProgramBinary( ID, len, NULL, &binData->header.binForm, binData->data );
 
-    FILE *f = fopen( binaryPath, "w" );//ofstream f( binaryPath, ios_base::out | ios_base::binary );
-    if( !f ) { TRACE( DebugLevel::Error, "Error: binary shader file '%s' cannot be written\n", binaryPath ); return false; }
-    //f.write( (char *)binData.get(), binFileSize );
-    //f.close();
-    fwrite( (char *)binData.get(), 1, binFileSize, f );
+    FILE *f = fopen( binaryPath, "w" );
+    if( !f ) { TRACE( DebugLevel::Error, "Error: binary shader file '%s' cannot be written to\n", binaryPath ); free( binData ); return false; }
+
+    fwrite( binData, 1, binFileSize, f );
     fclose( f );
+    free( binData );
 
     return true;
 }
