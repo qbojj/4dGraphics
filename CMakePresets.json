@@ -32,20 +32,19 @@
     ],
     "buildPresets": [
         {
-            "name": "build-default",
-            "configurePreset": "default-vcpkg",
-            "jobs": 0
+            "name": "default-vcpkg",
+            "configurePreset": "default-vcpkg"
         },
         {
-            "name": "build-ninja",
+            "name": "ninja-vcpkg",
             "configurePreset": "ninja-vcpkg"
         },
         {
-            "name": "multi-build-ninja",
+            "name": "ninja-multi-vcpkg",
             "configurePreset": "ninja-multi-vcpkg"
         },
         {
-            "name": "build-msbuild",
+            "name": "msbuild-vcpkg",
             "configurePreset": "msbuild-vcpkg"
         }
     ]
