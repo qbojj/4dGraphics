@@ -3,8 +3,8 @@
     "configurePresets": [
         {
             "name": "default-vcpkg",
-            "binaryDir": "${sourceDir}/out/build/",
-            "installDir": "${sourceDir}/out/install/",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
             "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
         },
         {
@@ -20,20 +20,21 @@
             "inherits": "default-vcpkg",
 
             "generator": "Ninja Multi-Config"
-          },
-          {
+        },
+        {
             "name": "msbuild-vcpkg",
             "displayName": "MSBuild Configure Settings",
             "inherits": "default-vcpkg",
 
             "generator": "Visual Studio 17 2022",
             "architecture": { "strategy": "set", "value": "x64" }
-          }
+        }
     ],
     "buildPresets": [
         {
             "name": "build-default",
-            "configurePreset": "default-vcpkg"
+            "configurePreset": "default-vcpkg",
+            "jobs": 0
         },
         {
             "name": "build-ninja",
