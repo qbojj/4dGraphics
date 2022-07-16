@@ -52,11 +52,6 @@ target_include_directories( 4dGraphics PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_S
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
-if( UNIX AND NOT APPLE )
-	find_package(TBB REQUIRED)
-	target_link_libraries(4dGraphics PRIVATE TBB::tbb) # required for debug builds on ubuntu????
-endif()
-
 target_link_libraries( 4dGraphics PRIVATE Collisions SharedUtils )
 
 if(WIN32)

@@ -7,8 +7,7 @@
         "stb",
         "gli",
         "glm",
-        { "name": "imgui", "features": [ "glfw-binding" ] },
-        { "name": "tbb", "platform": "linux" }
+        { "name": "imgui", "features": [ "glfw-binding" ] }
     ],
     "$unusedOldDeps": [
         "meshoptimizer",
