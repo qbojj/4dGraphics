@@ -9,6 +9,6 @@ add_library(Collisions
 )
 
 target_link_libraries(Collisions PRIVATE SharedUtils)
-target_include_directories(Collisions PUBLIC .)
+target_include_directories(Collisions PUBLIC ${PROJECT_SOURCE_DIR} )
 
 SETUP_COMMON(Collisions "Collisions" )

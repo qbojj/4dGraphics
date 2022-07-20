@@ -22,6 +22,6 @@ find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 add_library( SharedUtils ${SOURCES} )
 
 target_link_libraries(SharedUtils PUBLIC glad OptickCore glfw assimp::assimp gli glm::glm imgui::imgui ) # glslang SPIRV freetype volk::volk
-target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} .)
+target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})
 
 SETUP_COMMON( SharedUtils "SharedUtils" )

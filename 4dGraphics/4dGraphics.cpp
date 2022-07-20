@@ -13,40 +13,6 @@
 #include "Windows.h"
 #endif
 
-#if defined(USE_WIN_DEBUG) && 0
-#define USE_EXCEPTION_HANDLER
-#endif
-
-#ifdef USE_EXCEPTION_HANDLER
-#include "StackWalker.h"
-
-class MyWalker : public StackWalker
-{
-public:
-	//std::string res;
-protected:
-	virtual void OnOutput( const char *str )
-	{
-		//res += str;
-		TRACE( DebugLevel::Error, "%s", str );
-	}
-} walker;
-
-LONG WINAPI UnhandledFilter( _In_ struct _EXCEPTION_POINTERS *ExceptionInfo )
-{
-	//walker.res.clear();
-	walker.ShowCallstack( GetCurrentThread(), ExceptionInfo->ContextRecord );
-	TRACE( DebugLevel::Error, "\n\n" );
-	//TRACE( DebugLevel::FatalError, "Fatal Error: unhandled exception! Callstack:\n%s\n", walker.res.c_str() );
-	//walker.res.clear();
-	//boost::stacktrace::basic_stacktrace stack;
-	//std::string str = boost::stacktrace::to_string( stack );
-	//TRACE( DebugLevel::Error, "Error: unhandled exception!\n" );// %s", str.data() );
-
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-#endif
-
 void* ImGuiAlloc(size_t size, void* dat)
 {
 	if( dat ) (*(int*)dat)++;
@@ -69,12 +35,6 @@ int Entry()
 	//LogLevel = DebugLevel::Warning;
 
 	srand( (unsigned int)time( NULL ) );
-	//SetUnhandledExceptionFilter( UnhandledFilter );
-
-#ifdef USE_EXCEPTION_HANDLER
-	if( !IsDebuggerPresent() ) AddVectoredExceptionHandler( 0, UnhandledFilter );
-	else TRACE( DebugLevel::Log, "Debugger present => did not install exception handler\n" );
-#endif
 
 	{
 		time_t rawtime;

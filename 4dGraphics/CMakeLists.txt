@@ -39,16 +39,8 @@ set( 4DGSources
 	"ImguiBufferedHelper.h"
 )
 
-if(WIN32)
-	set( 4DGSources
-		${4DGSources}
-		"windows/StackWalker.cpp"
-		"windows/StackWalker.h"
-	)
-endif()
-
 add_executable( 4dGraphics  ${4DGSources} )
-target_include_directories( 4dGraphics PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/../data/shaders/include $<$<BOOL:${WIN32}>:${PROJECT_SOURCE_DIR}/windows> )
+target_include_directories( 4dGraphics PUBLIC ${PROJECT_SOURCE_DIR} PRIVATE $<PATH:NORMAL_PATH,${PROJECT_SOURCE_DIR}/../Shaders/include> )
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
