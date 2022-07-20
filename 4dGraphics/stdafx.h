@@ -69,4 +69,4 @@ using namespace collisions;
 #define DATA_PATH "data/"
 #define MODELS_BASE_PATH DATA_PATH "3dModels/"
 #define FONTS_BASE_PATH DATA_PATH "fonts/"
-#define SHADER_BASE_PTH DATA_PATH "shaders/"
+#define SHADER_BASE_PTH "Shaders/"
