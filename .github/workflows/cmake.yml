@@ -40,5 +40,5 @@ jobs:
     - name: run CMake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: default-vcpkg
-        buildPreset: build-default
+        configurePreset: default
+        buildPreset: default

@@ -1,51 +1,17 @@
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "default-vcpkg",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
-            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        },
-        {
-            "name": "ninja-vcpkg",
-            "displayName": "Ninja Configure Settings",
-            "inherits": "default-vcpkg",
-            
-            "generator": "Ninja"
-        },
-        {
-            "name": "ninja-multi-vcpkg",
-            "displayName": "Ninja Multi-Config Configure Settings",
-            "inherits": "default-vcpkg",
-
-            "generator": "Ninja Multi-Config"
-        },
-        {
-            "name": "msbuild-vcpkg",
-            "displayName": "MSBuild Configure Settings",
-            "inherits": "default-vcpkg",
-
-            "generator": "Visual Studio 17 2022",
-            "architecture": { "strategy": "set", "value": "x64" }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "default-vcpkg",
-            "configurePreset": "default-vcpkg"
-        },
-        {
-            "name": "ninja-vcpkg",
-            "configurePreset": "ninja-vcpkg"
-        },
-        {
-            "name": "ninja-multi-vcpkg",
-            "configurePreset": "ninja-multi-vcpkg"
-        },
-        {
-            "name": "msbuild-vcpkg",
-            "configurePreset": "msbuild-vcpkg"
-        }
-    ]
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "binaryDir": "${sourceDir}/out/build",
+      "installDir": "${sourceDir}/out/install",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    }
+  ]
 }
