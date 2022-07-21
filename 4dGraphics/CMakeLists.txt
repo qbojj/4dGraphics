@@ -40,7 +40,7 @@ set( 4DGSources
 )
 
 add_executable( 4dGraphics  ${4DGSources} )
-target_include_directories( 4dGraphics PUBLIC ${PROJECT_SOURCE_DIR} PRIVATE $<PATH:NORMAL_PATH,${PROJECT_SOURCE_DIR}/../Shaders/include> )
+target_include_directories( 4dGraphics PUBLIC ${PROJECT_SOURCE_DIR} PRIVATE ${PROJECT_SOURCE_DIR}/../Shaders/include )
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
