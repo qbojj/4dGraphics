@@ -31,7 +31,6 @@ using namespace collisions;
 #include <unordered_map>
 #include <map>
 #include <set>
-#include <execution>
 #include <regex>
 #include <bitset>
 #include <numeric>
