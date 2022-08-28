@@ -244,7 +244,7 @@ bool GameRenderHandler::OnCreate()
 		GLint numExt;
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExt );
 		out << "Avaiable GL extensions (" << numExt << "): \n";
-		for( int i = 0; i < numExt; i++ ) out << glGetStringi( GL_EXTENSIONS, i ) << " ";
+		for( int i = 0; i < numExt; i++ ) out << glGetStringi( GL_EXTENSIONS, i ) << "\n";
 
 		TRACE( DebugLevel::Log, "%s\n", move( out ).str().c_str() );
 	}
@@ -387,12 +387,9 @@ bool GameRenderHandler::OnCreate()
 		glEnableVertexArrayAttrib( ImGuiVAO, 1 );
 		glEnableVertexArrayAttrib( ImGuiVAO, 2 );
 
-		glVertexArrayAttribFormat( ImGuiVAO, 0, 2, GL_FLOAT, GL_FALSE, 
-			IM_OFFSETOF( ImDrawVert, pos ) );
-		glVertexArrayAttribFormat( ImGuiVAO, 1, 2, GL_FLOAT, GL_FALSE,
-			IM_OFFSETOF( ImDrawVert, uv ) );
-		glVertexArrayAttribFormat( ImGuiVAO, 2, 4, GL_UNSIGNED_BYTE, GL_TRUE,
-			IM_OFFSETOF( ImDrawVert, col ) );
+		glVertexArrayAttribFormat( ImGuiVAO, 0, 2, GL_FLOAT, GL_FALSE, IM_OFFSETOF( ImDrawVert, pos ) );
+		glVertexArrayAttribFormat( ImGuiVAO, 1, 2, GL_FLOAT, GL_FALSE, IM_OFFSETOF( ImDrawVert, uv ) );
+		glVertexArrayAttribFormat( ImGuiVAO, 2, 4, GL_UNSIGNED_BYTE, GL_TRUE, IM_OFFSETOF( ImDrawVert, col ) );
 
 		glVertexArrayAttribBinding( ImGuiVAO, 0, 0 );
 		glVertexArrayAttribBinding( ImGuiVAO, 1, 0 );
@@ -756,9 +753,6 @@ void GameRenderHandler::OnDraw( const void *_FData )
 			break;
 		}
 
-
-
-		//glTextureBarrier();
 		FINISH();		
 	}
 
@@ -950,8 +944,9 @@ void GameRenderHandler::OnDraw( const void *_FData )
 				bound = g_BufAllocator->ID();
 				glVertexArrayElementBuffer( ImGuiVAO, bound );
 				glVertexArrayVertexBuffer( ImGuiVAO, 0, bound, 0, sizeof( ImDrawVert ) );
+				
 			//}
-
+				
 			for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ )
 			{
 				const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[cmd_i];
@@ -978,8 +973,6 @@ void GameRenderHandler::OnDraw( const void *_FData )
 			}
 		}
 
-		glVertexArrayElementBuffer( ImGuiVAO, 0 );
-		glVertexArrayVertexBuffer( ImGuiVAO, 0, 0, 0, 0 );
 		glBindTextureUnit( 0, 0 );
 
 		glBindVertexArray( 0 );

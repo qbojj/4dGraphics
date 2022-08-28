@@ -1,4 +1,4 @@
-#define FOR_RENDERDOC (0)
+#define FOR_RENDERDOC (1)
 
 #ifdef __cplusplus
 #define CPP_GLSL_SWITCH( cpp, glsl ) cpp

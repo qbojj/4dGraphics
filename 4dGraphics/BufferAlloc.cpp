@@ -102,7 +102,7 @@ void GLBufferAllocator::Resize( GLsizeiptr size, const char *why )
 
 	Create( size );
 	//#if IS_DEBUG
-	//TRACE( DebugLevel::Log, "Buffer allocator resized to %d because %s\n", (int)Buff.GetDataSize(), why );
+	TRACE( DebugLevel::Log, "Buffer allocator resized to %d because %s\n", (int)Buff.GetDataSize(), why );
 	//#endif
 }
 
@@ -114,13 +114,13 @@ void *GLBufferAllocator::internalAlloc( GLsizeiptr siz, GLsizeiptr *allocated )
 	GLsizeiptr dataSize = (GLsizeiptr)Buff.GetDataSize();//data.size();
 	
 	if( !allocated && siz > dataSize )
-		Resize( siz, "Buffer is too small for an allocation" );
+		Resize( siz * 2, "Buffer is too small for an allocation" );
 
 	if( siz + currOffset > dataSize )
 	{
 		if( !allocated || (GLsizeiptr)currOffset >= dataSize )
 		{
-			if( Buff.HasToWaitForNext() ) Resize( dataSize, "Allocator would have to wait" );
+			if( Buff.HasToWaitForNext() ) Resize( dataSize * 2, "Allocator would have to wait" );
 			else Buff.MoveToNextBuffer();
 
 			currOffset = 0;

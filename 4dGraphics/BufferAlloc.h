@@ -47,7 +47,7 @@ protected:
 
 public:
 	void clear();
-	void Create( GLsizeiptr maxAlloc = 1 << 20u );
+	void Create( GLsizeiptr maxAlloc = 1 << 10u );
 
 	inline void *allocPartial( GLsizeiptr siz, GLsizeiptr &allocated ) { return internalAlloc( siz, &allocated ); }
 	inline void *alloc( GLsizeiptr siz ) { return internalAlloc( siz, NULL ); }

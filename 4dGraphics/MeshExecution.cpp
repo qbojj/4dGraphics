@@ -657,6 +657,8 @@ bool Model::Load( const char *file, Assimp::Importer &importer, unsigned int add
 
 	glNamedBufferStorage( RenderDataBuffer, (GLsizeiptr)Matrices.end(), NULL, GL_MAP_WRITE_BIT );
 
+	unordered_map<string, unsigned int> NameToTex;
+
 	const int maxTries_ = 2;
 	for( int tries_ = 0; tries_ < maxTries_; tries_++ )
 	{
@@ -763,8 +765,6 @@ bool Model::Load( const char *file, Assimp::Importer &importer, unsigned int add
 
 			VertexOffset += mesh->mNumVertices;
 		}
-
-		unordered_map<string, unsigned int> NameToTex;
 
 		//GLUniformArrayData<GLMaterialSpec> Materials( scene->mNumMaterials );
 		//materials.resize( scene->mNumMaterials );
@@ -891,18 +891,17 @@ bool Model::Load( const char *file, Assimp::Importer &importer, unsigned int add
 
 		for( int i = 0; i < (int)matrices.size(); i++ ) Matris[i] = { matrices[i], glm::transpose( glm::inverse( matrices[i] ) ) };
 
-		if( !glUnmapNamedBuffer( RenderDataBuffer ) )
+		if (glUnmapNamedBuffer(RenderDataBuffer)) break;
+
+		// data store contents have become corrupt during the time the data store was mapped
+		// try again and if bad again report error
+		if (tries_ < maxTries_ - 1) TRACE(DebugLevel::Warning, "Warning: glUnmapNamedBuffer returned GL_FALSE => try to write data again\n");
+		else
 		{
-			// data store contents have become corrupt during the time the data store was mapped
-			// try again and if bad again report error
-			if( tries_ < maxTries_ - 1 ) TRACE( DebugLevel::Warning, "Warning: glUnmapNamedBuffer returned GL_FALSE => try to write data again\n" );
-			else
-			{
-				TRACE( DebugLevel::Error, "Error: glUnmapNamedBuffer returned GL_FALSE again! Trying no more!\n" );
-				importer.FreeScene(); 
-				clear();
-				return false;
-			}
+			TRACE(DebugLevel::Error, "Error: glUnmapNamedBuffer returned GL_FALSE again! Trying no more!\n");
+			importer.FreeScene();
+			clear();
+			return false;
 		}
 	}
 
