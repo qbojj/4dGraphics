@@ -2,9 +2,6 @@ name: Build on Everything
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ master ]
-    types: [ opened, reopened ]
 
 env:
   CMAKE_BUILD_TYPE: Release # Release, Debug, RelWithDebInfo, MinSizeRel
@@ -18,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        os: [ubuntu-latest, windows-latest] #, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
    
     steps:
     - name: Checkout repository
