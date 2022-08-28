@@ -3,10 +3,6 @@ using namespace collisions;
 using namespace detail;
 
 #include <numeric>
-//#include <execution>
-//#include <ranges>
-//#include "taskflow/taskflow.hpp"
-
 #include <immintrin.h>
 
 template< size_t allocSize, size_t align, size_t cnt >
