@@ -8,7 +8,7 @@ add_library(Collisions
 	"Collisions.h"
 )
 
-target_link_libraries(Collisions PRIVATE SharedUtils)
+target_link_libraries(Collisions PRIVATE GlmHeaders)
 target_include_directories(Collisions PUBLIC ${PROJECT_SOURCE_DIR} )
 
 SETUP_COMMON(Collisions "Collisions" )
