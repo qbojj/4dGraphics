@@ -3,9 +3,9 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems
 set(CMAKE_CONFIGURATION_TYPES "Release;Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "Configuration types for multi-configuration buildsystems")
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build configuration for single-configuration buildsystems")
 
-if( NOT APPLE )
-	list(APPEND CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-endif()
+set(CMAKE_MACOSX_RPATH True)
+list(APPEND CMAKE_INSTALL_RPATH 
+	"$<$<AND:$<BOOL:${UNIX}>,$<NOT:$<BOOL:${APPLE}>>>:$ORIGIN/>." )
 
 project( 4DG )
 
@@ -44,3 +44,14 @@ add_subdirectory(Collisions)
 add_subdirectory(4dGraphics)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT 4dGraphics)
+
+install( TARGETS 4dGraphics SharedUtils Collisions glad )
+include(InstallRequiredSystemLibraries)
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixBundle.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/FixBundle.cmake
+  @ONLY
+  )
+
+install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/FixBundle.cmake)

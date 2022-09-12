@@ -13,12 +13,16 @@ jobs:
     uses: ./.github/workflows/SetupAndBuild.yml
     with:
       system: ubuntu-latest
+      saveArtifact: true
+      ArtifactName: build-linux
     secrets: inherit
   
   windows:
     uses: ./.github/workflows/SetupAndBuild.yml
     with:
       system: windows-latest
+      saveArtifact: true
+      ArtifactName: build-windows
     secrets: inherit
   
   macOS:
@@ -26,4 +30,6 @@ jobs:
     uses: ./.github/workflows/SetupAndBuild.yml
     with:
       system: macOS-latest
+      saveArtifact: true
+      ArtifactName: build-macOS
     secrets: inherit

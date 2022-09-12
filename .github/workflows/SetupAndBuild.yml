@@ -10,6 +10,14 @@ on:
         required: false
         default: Relase
         type: string
+      saveArtifact:
+        required: false
+        default: false
+        type: boolean
+      ArtifactName:
+        required: false
+        default: build-artifact
+        type: string
     
 env:
   CMAKE_BUILD_TYPE: ${{ inputs.buildType }} # Release, Debug, RelWithDebInfo, MinSizeRel
@@ -46,3 +54,10 @@ jobs:
       with:
         configurePreset: default
         buildPreset: default
+
+    - name: Archive production artifacts
+      if: inputs.saveArtifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.ArtifactName }}
+        path: out/install/*.app

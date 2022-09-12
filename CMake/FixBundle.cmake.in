@@ -1,0 +1,28 @@
+include(BundleUtilities)
+
+# Set bundle to the full path name of the executable already
+# existing in the install tree:
+set(bundle "${CMAKE_INSTALL_PREFIX}/bin/4dGraphics@CMAKE_EXECUTABLE_SUFFIX@")
+
+# Set other_libs to a list of full path names to additional
+# libraries that cannot be reached by dependency analysis.
+# (Dynamically loaded PlugIns, for example.)
+set(other_libs "")
+
+# Set dirs to a list of directories where prerequisite libraries
+# may be found:
+set(dirs
+    "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/bin"
+    "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/lib"
+    "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/debug/bin"
+    "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/debug/lib"
+    "@CMAKE_INSTALL_PREFIX@/bin/"
+    "@CMAKE_INSTALL_PREFIX@/lib/"
+   )
+
+set(NewBundleDir "${CMAKE_INSTALL_PREFIX}/4dG.app/")
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${NewBundleDir}")
+set(NewBundlePath "${NewBundleDir}/4dGraphics@CMAKE_EXECUTABLE_SUFFIX@" )
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "${bundle}" "${NewBundlePath}")
+
+fixup_bundle("${NewBundlePath}" "${other_libs}" "${dirs}")
