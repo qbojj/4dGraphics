@@ -2,11 +2,11 @@
 //! #extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
-out vec4 vFragColor;
+layout(location = 0) out vec4 vFragColor;
 
 uniform sampler2D tTexture;
 
-in VS_OUT
+layout(location = 0) in VS_OUT
 {
     vec3 vWorldPos;
     vec2 vTex;

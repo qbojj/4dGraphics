@@ -25,6 +25,8 @@ layout(location = 0) out VS_OUT
 out gl_PerVertex
 {
     vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
 };
 
 void main()

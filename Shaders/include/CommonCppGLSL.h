@@ -1,3 +1,6 @@
+#ifndef COMMON_CPP_GLSL_H_
+#define COMMON_CPP_GLSL_H_
+
 #define FOR_RENDERDOC (1)
 
 #ifdef __cplusplus
@@ -87,3 +90,5 @@ CPP_STRUCT( layout( std140, binding = SSBO_MATERIALS_BINDING ) readonly restrict
 
 #undef CPP_GLSL_SWITCH
 #undef CPP_STRUCT
+
+#endif // COMMON_CPP_GLSL_H_

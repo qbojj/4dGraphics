@@ -12,11 +12,18 @@ layout( std140, binding = 0 ) uniform PerFrameData
 	mat4 MVP;
 };
 
-out VERT_OUT 
+layout(location = 0) out VERT_OUT 
 {
 	vec2 UV;
 	vec4 Color;
 } vs_out;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+};
 
 void main()
 {

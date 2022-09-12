@@ -9,21 +9,25 @@ layout(triangle_strip, max_vertices=32) out; // 128*3/32
 
 in gl_PerVertex
 {
-	vec4 gl_Position;
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
 } gl_in[];
 
 out gl_PerVertex
 {
-	vec4 gl_Position;
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
 };
 
-out GS_OUT
+layout(location = 0) out GS_OUT
 {
     vec3 vTexAlpha; // <vec2 tex, float alpha>
     flat uint vMaterialIdx; //  material
 } gs_out;
 
-in VS_OUT
+layout(location = 0) in VS_OUT
 {
 	vec3 vTexAlpha; // <vec2 tex, float alpha>
     flat uint vMaterialIdx; // material

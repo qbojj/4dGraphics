@@ -2,9 +2,8 @@
 //! #extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
-out vec4 frag;
-
-in vec4 vCol;
+layout(location = 0) in vec4 vCol;
+layout(location = 0) out vec4 frag;
 
 void main()
 {

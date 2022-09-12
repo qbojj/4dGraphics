@@ -3,9 +3,9 @@
 
 #include "include/GLSLInit.glsl"
 layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
-out vec2 TexCoords;
+layout(location = 0) out vec2 TexCoords;
 
-uniform mat4 mProjection;
+layout(location = 32+0) uniform mat4 mProjection;
 
 out gl_PerVertex
 {

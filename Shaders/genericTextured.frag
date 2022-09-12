@@ -10,7 +10,7 @@
 layout(location = 0) out vec4 vFragColor;
 //layout(location = 1) out vec3 vFragNorm;
 
-in VS_OUT
+layout(location = 0) in VS_OUT
 {
     vec3 vWorldPos;
     vec2 vTex;
@@ -28,8 +28,8 @@ struct ColorSpec
     float fAlpha;
 };
 
-uniform bool bUseToonShading = false;
-uniform uint uToonQuants = 16;
+layout(location = 64+0) uniform bool bUseToonShading = false;
+layout(location = 64+1) uniform uint uToonQuants = 16;
 
 const float fPI = radians(180);
 const float fE = exp(1);

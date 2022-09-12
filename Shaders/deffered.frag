@@ -6,11 +6,11 @@
 
 layout(location = 0) out vec4 vDiffuse_occlusion; // <vec3, float>
 layout(location = 1) out vec4 vSpecular_shininess; // <vec3, float>
-layout(location = 2) out vec3 vNormal
-// layout(location = 3) out vec3 result
+layout(location = 2) out vec3 vNormal;
+// layout(location = 3) out vec3 result;
 // Depth/Stencil
 
-in VS_OUT
+layout(location = 0) in VS_OUT
 {
     vec3 vWorldPos;
     vec2 vTex;
@@ -31,12 +31,12 @@ vec3 GetNormal( MaterialSpec mat, vec3 Norm, vec3 Tan, vec2 vTexUV )
 
 void main()
 {
-    MaterialSpec material = oMaterials[fs_in.vModelPartIdx.y];
+    MaterialSpec mat = oMaterials[fs_in.vModelPartIdx.y];
 
-    vec4 color = fs_in.vCol * material.vColDif * SampleTexture( material.iTexDiffuse, fs_in.vTex );
+    vec4 color = fs_in.vCol * mat.vColDif * SampleTexture( mat.iTexDiffuse, fs_in.vTex );
     if( color.a < 0.5 ) discard;
 
     vDiffuse_occlusion = vec4( color.rgb, 1 );
-    vSpecular_shininess = mat.vColSpec * vec4( SampleTexture( mat.iTexSpecular, vTexUV ).rgb, 1.0 );
-    vNormal = GetNormal( material, fs_in.vNorm, fs_in.vTang, fs_in.vTex );
+    vSpecular_shininess = mat.vColSpec * vec4( SampleTexture( mat.iTexSpecular, fs_in.vTex ).rgb, 1.0 );
+    vNormal = GetNormal( mat, fs_in.vNorm, fs_in.vTang, fs_in.vTex );
 }

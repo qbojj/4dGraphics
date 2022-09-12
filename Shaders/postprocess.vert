@@ -2,7 +2,7 @@
 //! #extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
-out vec2 vPos;
+layout(location = 0) out vec2 vPos;
 
 out gl_PerVertex
 {

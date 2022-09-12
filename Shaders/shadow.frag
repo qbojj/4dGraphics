@@ -3,7 +3,7 @@
 
 #include "include/GLSLInit.glsl"
 #include "include/Materials.glsl"
-in GS_OUT
+layout(location = 0) in GS_OUT
 {
     vec3 vTexAlpha; // <vec2 tex, float alpha>
     flat uint vMaterialIdx; //  material

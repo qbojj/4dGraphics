@@ -2,12 +2,11 @@
 //! #extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
-out vec4 FragColor;
+layout(location = 0) in vec2 TexCoords;
+layout(location = 0) out vec4 FragColor;
 
-uniform sampler2D tTex;
-uniform vec4 vTextColor;
-
-in vec2 TexCoords;
+layout(binding = 0) uniform sampler2D tTex;
+layout(location = 64+0) uniform vec4 vTextColor;
 
 void main()
 {    

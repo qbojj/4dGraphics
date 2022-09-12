@@ -2,8 +2,8 @@
 //! #extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
-out vec4 vFragColor;
-in vec2 vPos;
+layout(location = 0) in vec2 vPos;
+layout(location = 0) out vec4 vFragColor;
 
 uniform sampler2D tNormals, tColors, tDepth;
 layout(pixel_center_integer) in vec4 gl_FragCoord;
@@ -62,7 +62,7 @@ vec3 hsv2rgb(vec3 c)
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-uniform float fNear = 0.00001;//, fFar = 10000.;
+layout(location = 64+0) uniform float fNear = 0.00001;//, fFar = 10000.;
 
 float linearize_depth(float d)
 {

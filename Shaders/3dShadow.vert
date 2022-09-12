@@ -11,13 +11,15 @@ layout (location = 4) in vec4 vCol;
 out gl_PerVertex
 {
     vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
 };
 
-out VS_OUT
+layout(location = 0) out VS_OUT
 {
 	vec3 vTexAlpha; // <vec2 tex, float alpha>
     flat uint vMaterialIdx; // material
-}  vs_out;
+} vs_out;
 
 void main()
 {
