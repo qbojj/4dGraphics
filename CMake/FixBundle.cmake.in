@@ -16,11 +16,11 @@ set(dirs
     "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/lib"
     "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/debug/bin"
     "@VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@/debug/lib"
-    "@CMAKE_INSTALL_PREFIX@/bin/"
-    "@CMAKE_INSTALL_PREFIX@/lib/"
+    "@CMAKE_INSTALL_PREFIX@/bin"
+    "@CMAKE_INSTALL_PREFIX@/lib"
    )
 
-set(NewBundleDir "${CMAKE_INSTALL_PREFIX}/4dG.app/")
+set(NewBundleDir "${CMAKE_INSTALL_PREFIX}/4dG.app/bin")
 execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${NewBundleDir}")
 set(NewBundlePath "${NewBundleDir}/4dGraphics@CMAKE_EXECUTABLE_SUFFIX@" )
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "${bundle}" "${NewBundlePath}")

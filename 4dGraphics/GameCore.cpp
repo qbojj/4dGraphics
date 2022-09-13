@@ -255,23 +255,23 @@ bool GameEngine::Start()
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 6 );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-	//glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
+	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
 
 	const GLFWvidmode *mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
 
-	glfwWindowHint( GLFW_REFRESH_RATE, mode->refreshRate );
+	glfwWindowHint( GLFW_REFRESH_RATE, GLFW_DONT_CARE );
 
-	glfwWindowHint( GLFW_RED_BITS, mode->redBits );
-	glfwWindowHint( GLFW_GREEN_BITS, mode->greenBits );
-	glfwWindowHint( GLFW_BLUE_BITS, mode->blueBits );
+	glfwWindowHint( GLFW_RED_BITS, GLFW_DONT_CARE );
+	glfwWindowHint( GLFW_GREEN_BITS, GLFW_DONT_CARE );
+	glfwWindowHint( GLFW_BLUE_BITS, GLFW_DONT_CARE );
 
-	glfwWindowHint( GLFW_ALPHA_BITS, 0 );
+	glfwWindowHint( GLFW_ALPHA_BITS, GLFW_DONT_CARE );
 
-	glfwWindowHint( GLFW_DEPTH_BITS, 0 );
-	glfwWindowHint( GLFW_STENCIL_BITS, 0 );
+	glfwWindowHint( GLFW_DEPTH_BITS, GLFW_DONT_CARE );
+	glfwWindowHint( GLFW_STENCIL_BITS, GLFW_DONT_CARE );
 
-	//glfwWindowHint( GLFW_SAMPLES, 4 );
-	//glfwWindowHint( GLFW_SRGB_CAPABLE, GLFW_TRUE );
+	glfwWindowHint( GLFW_SAMPLES, GLFW_DONT_CARE );
+	glfwWindowHint( GLFW_SRGB_CAPABLE, GLFW_TRUE );
 
 	GLFWwindow *window = glfwCreateWindow( mode->width, mode->height, "GameEngine", NULL, NULL );
 	if( !window ) { TRACE( DebugLevel::FatalError, "Cannot create window\n" ); return false; }
