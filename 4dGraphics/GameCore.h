@@ -23,7 +23,7 @@ protected:
 	virtual void *NewFData() = 0;
 	virtual void DeleteFData( void * ) = 0;
 
-	virtual bool OnCreate() { return true; };
+	virtual bool OnCreate(GLFWwindow*) { return true; };
 	virtual void OnDestroy() {};
 	virtual void OnTick( void* FData, InputHandler *IData ) = 0;
 public:
@@ -35,7 +35,7 @@ public:
 class RenderHandler
 {
 protected:
-	virtual bool OnCreate() { return true; };
+	virtual bool OnCreate(GLFWwindow*) { return true; };
 	virtual void OnDestroy() {};
 	virtual void OnDraw( const void *FData ) = 0;
 public:

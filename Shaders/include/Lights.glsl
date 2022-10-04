@@ -3,7 +3,7 @@
 
 #include "CommonCppGLSL.h"
 
-uniform sampler2DArrayShadow ShadowMaps;
-uniform samplerCubeArrayShadow ShadowPointMaps;
+layout(binding=gl_MaxTextureImageUnits-2) uniform sampler2DArrayShadow ShadowMaps;
+layout(binding=gl_MaxTextureImageUnits-1) uniform samplerCubeArrayShadow ShadowPointMaps;
 
 #endif // LIGHTS_GLSL_

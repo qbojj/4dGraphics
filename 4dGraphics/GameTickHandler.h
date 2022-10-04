@@ -1,24 +1,13 @@
 #pragma once
 
 #include "GameCore.h"
-#include "GLUniformBlockDefinitions.h"
 #include <imgui.h>
-#include "GameObject.h"
 #include "ImguiBufferedHelper.h"
 
 struct FrameData
 {
 	glm::uvec2 WndSize;
 	bool bVSync;
-
-	bool bBoundingBoxes;
-	bool bReload;
-
-	glsl::Lights oLightsDat; 
-	int iUsedShadowMapCnt;
-	glsl::MatsVP oMats;
-
-	int iShadowMapSize;
 	float fTime;
 
 	ImDrawDataBuffered ImGuiDrawData;
@@ -62,7 +51,7 @@ public:
 	virtual void *NewFData();
 	virtual void DeleteFData( void *FData );
 
-	virtual bool OnCreate();
+	virtual bool OnCreate(GLFWwindow*);
 	virtual void OnTick( void *_FData, InputHandler *_IData );
 	virtual void OnDestroy();
 

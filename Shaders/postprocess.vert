@@ -1,5 +1,5 @@
 #version 450
-//! #extension GL_GOOGLE_include_directive : enable
+#extension GL_GOOGLE_include_directive : enable
 
 #include "include/GLSLInit.glsl"
 layout(location = 0) out vec2 vPos;

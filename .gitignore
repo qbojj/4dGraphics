@@ -3,6 +3,8 @@
 out/
 build/
 
+*spv
+
 imgui.ini
 log.txt
 4dGraphics(*).opt

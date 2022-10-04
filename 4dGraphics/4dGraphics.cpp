@@ -8,10 +8,13 @@
 #include "optick.h"
 #include <stdlib.h>
 #include <filesystem>
+#include <chrono>
 
 #ifdef _WIN32
 #include "Windows.h"
 #endif
+
+#include "Shader.h"
 
 void* ImGuiAlloc(size_t size, void* dat)
 {
@@ -55,20 +58,37 @@ int Entry()
 	
 	bool ok = false;
 
-
 	if( engine.Init( 
-		new GameInputHandler,
-		new GameTickHandler,
-		new GameRenderHandler )
+		new GameInputHandler(),
+		new GameTickHandler(),
+		new GameRenderHandlerIndirect<GameRenderHandler>() )
 		)
 	{
 		int allocCnt = 0;
 		ImGui::SetAllocatorFunctions(ImGuiAlloc, ImGuiFree, &allocCnt);
-		ImGui::CreateContext();
+
+		if (ImGui::CreateContext() == NULL)
+		{
+			TRACE(DebugLevel::FatalError, "Cannot initialize imgui context");
+			return 0;
+		}
+
+		if (!glslang::InitializeProcess())
+		{
+			ImGui::DestroyContext();
+			TRACE(DebugLevel::FatalError, "Cannot initialize glslang context");
+			return 0;
+		}
+
 		ok = engine.Start();
+		glslang::FinalizeProcess();
 		ImGui::DestroyContext();
 
-		if( allocCnt != 0 ) TRACE(DebugLevel::Error, "ImGui allocated %d %s than freed\n", abs(allocCnt), (allocCnt > 0 ? "more" : "less") );
+		if( allocCnt != 0 )
+			TRACE( DebugLevel::Error, "ImGui made %d %s %s than frees\n", 
+				abs( allocCnt ), 
+				abs( allocCnt ) > 1 ? "allocations" : "allocation", 
+				allocCnt > 0 ? "more" : "less" );
 	}
 
 	return ok ? 0 : 1;

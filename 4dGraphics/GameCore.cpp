@@ -248,15 +248,7 @@ bool GameEngine::Start()
 {
 	if( !m_bInitialized ) { TRACE( DebugLevel::FatalError, "Game engine must be initialized before starting\n" ); return false; }
 
-	glfwWindowHint( GLFW_DOUBLEBUFFER, GLFW_TRUE );
-	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
-	glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
-
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 6 );
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
-
+	glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
 	const GLFWvidmode *mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
 
 	glfwWindowHint( GLFW_REFRESH_RATE, GLFW_DONT_CARE );
@@ -302,35 +294,35 @@ bool GameEngine::Start()
 #ifdef MULTI_THREADED
 void GameEngine::GameLoop(void* wData)
 {
-	OPTICK_THREAD( "Game loop thread" );
+	OPTICK_THREAD("Game loop thread");
 
-	WindowDataContainer *windowData = (WindowDataContainer *)wData;
-	GameEngine *gameEngine = windowData->pGameEngine;
-	GLFWwindow *window = windowData->window;
+	WindowDataContainer* windowData = (WindowDataContainer*)wData;
+	GameEngine* gameEngine = windowData->pGameEngine;
+	GLFWwindow* window = windowData->window;
 
 	try
 	{
 		windowData->FData[0] = gameEngine->m_pGameHandler->NewFData();
 		windowData->FData[1] = gameEngine->m_pGameHandler->NewFData();
 
-		if( gameEngine->m_pGameHandler->OnCreate() )
+		if (gameEngine->m_pGameHandler->OnCreate())
 		{
 			//while( !windowData->ShouldClose() && !windowData->bInputInitialized )
 			//	this_thread::yield();
 
-			windowData->bInputInitialized.wait( false, std::memory_order::acquire ); // wait for change to true
+			windowData->bInputInitialized.wait(false, std::memory_order::acquire); // wait for change to true
 
-			while(1)
+			while (1)
 			{
-				OPTICK_CATEGORY( "wait for GPU rendered", Optick::Category::Wait );
-				if( windowData->WaitRequestUpdate() ) break; // returns when indowData->ShouldClose()
+				OPTICK_CATEGORY("wait for GPU rendered", Optick::Category::Wait);
+				if (windowData->WaitRequestUpdate()) break; // returns when indowData->ShouldClose()
 
 				windowData->mtInputLock.lock();
 
-				OPTICK_CATEGORY( "Process new Frame", Optick::Category::GameLogic );
+				OPTICK_CATEGORY("Process new Frame", Optick::Category::GameLogic);
 				gameEngine->m_pInputHandler->OnPreTick();
 
-				gameEngine->m_pGameHandler->OnTick( windowData->FData[!windowData->currentFrameData], gameEngine->m_pInputHandler );
+				gameEngine->m_pGameHandler->OnTick(windowData->FData[!windowData->currentFrameData], gameEngine->m_pInputHandler);
 
 				windowData->MessageUpdateReady();
 
@@ -339,11 +331,11 @@ void GameEngine::GameLoop(void* wData)
 				windowData->mtInputLock.unlock();
 			}
 		}
-		else TRACE( DebugLevel::Log, "Game handler OnCreate returned false\n" );
+		else TRACE(DebugLevel::Log, "Game handler OnCreate returned false\n");
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in game loop: %s\n", e.what() ); }
-	catch( ShutdownException ) {}
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in game loop\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in game loop: %s\n", e.what()); }
+	catch (ShutdownException) {}
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in game loop\n"); }
 
 	windowData->Close();
 
@@ -351,8 +343,8 @@ void GameEngine::GameLoop(void* wData)
 	{
 		gameEngine->m_pGameHandler->OnDestroy();
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in game OnDestroy: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in game OnDestroy\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in game OnDestroy: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in game OnDestroy\n"); }
 
 	windowData->SignalDestroyAndWaitAllDestroyed();
 
@@ -360,55 +352,55 @@ void GameEngine::GameLoop(void* wData)
 	{
 		for (void*& fdata : windowData->FData)
 		{
-			gameEngine->m_pGameHandler->DeleteFData( fdata ); 
+			gameEngine->m_pGameHandler->DeleteFData(fdata);
 			fdata = NULL;
 		}
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in FData delete: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in FData delete\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in FData delete: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in FData delete\n"); }
 
 	try
 	{
 		delete gameEngine->m_pGameHandler;
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in game destructor: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in game destructor\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in game destructor: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in game destructor\n"); }
 
 	gameEngine->m_pGameHandler = NULL;
 }
 
 void GameEngine::RenderLoop(void* wData)
 {
-	OPTICK_THREAD( "Render thread" );
+	OPTICK_THREAD("Render thread");
 
-	WindowDataContainer *windowData = (WindowDataContainer *)wData;
-	GameEngine *gameEngine = windowData->pGameEngine;
+	WindowDataContainer* windowData = (WindowDataContainer*)wData;
+	GameEngine* gameEngine = windowData->pGameEngine;
 
 	windowData->MessageRequestUpdate();
-	glfwMakeContextCurrent( windowData->window );
+	glfwMakeContextCurrent(windowData->window);
 
 	try
 	{
-		if( gameEngine->m_pRenderHandler->OnCreate() )
+		if (gameEngine->m_pRenderHandler->OnCreate())
 		{
-			while( 1 )
+			while (1)
 			{
-				OPTICK_CATEGORY( "wait for new tick", Optick::Category::Wait );
-				if( windowData->WaitUpdateReady() ) break; // returns when windowData->ShouldClose()
+				OPTICK_CATEGORY("wait for new tick", Optick::Category::Wait);
+				if (windowData->WaitUpdateReady()) break; // returns when windowData->ShouldClose()
 
-				OPTICK_CATEGORY( "render frame", Optick::Category::Rendering );
-				gameEngine->m_pRenderHandler->OnDraw( windowData->SwapFrameData() );
+				OPTICK_CATEGORY("render frame", Optick::Category::Rendering);
+				gameEngine->m_pRenderHandler->OnDraw(windowData->SwapFrameData());
 
-				OPTICK_CATEGORY( "Swap buffers", Optick::Category::Wait );
-				glfwSwapBuffers( windowData->window );
+				OPTICK_CATEGORY("Swap buffers", Optick::Category::Wait);
+				glfwSwapBuffers(windowData->window);
 
 			}
 		}
-		else TRACE( DebugLevel::Log, "Render handler OnCreate returned false\n" );	
+		else TRACE(DebugLevel::Log, "Render handler OnCreate returned false\n");
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in render loop: %s\n", e.what() ); }
-	catch( ShutdownException ) {}
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in render loop\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in render loop: %s\n", e.what()); }
+	catch (ShutdownException) {}
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in render loop\n"); }
 
 	windowData->Close();
 
@@ -416,8 +408,8 @@ void GameEngine::RenderLoop(void* wData)
 	{
 		gameEngine->m_pRenderHandler->OnDestroy();
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in render OnDestroy: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in render OnDestroy\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in render OnDestroy: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in render OnDestroy\n"); }
 
 	windowData->SignalDestroyAndWaitAllDestroyed();
 
@@ -425,22 +417,22 @@ void GameEngine::RenderLoop(void* wData)
 	{
 		delete gameEngine->m_pRenderHandler;
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in render destructor: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in render destructor\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in render destructor: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in render destructor\n"); }
 
 	//glbinding::aux::stop();
 	gameEngine->m_pRenderHandler = NULL;
 
-	glfwMakeContextCurrent( NULL );
+	glfwMakeContextCurrent(NULL);
 }
 
-void GameEngine::InputLoop( void *wData )
+void GameEngine::InputLoop(void* wData)
 {
-	OPTICK_THREAD( "I/O thread" );
+	OPTICK_THREAD("I/O thread");
 
-	WindowDataContainer *windowData = (WindowDataContainer *)wData;
-	GameEngine *gameEngine = windowData->pGameEngine;
-	GLFWwindow *window = windowData->window;
+	WindowDataContainer* windowData = (WindowDataContainer*)wData;
+	GameEngine* gameEngine = windowData->pGameEngine;
+	GLFWwindow* window = windowData->window;
 
 	try
 	{
@@ -449,16 +441,16 @@ void GameEngine::InputLoop( void *wData )
 		windowData->bInputInitialized.store(true, std::memory_order::release); // release tick thread from wait
 		windowData->bInputInitialized.notify_all();
 
-		if( ok )
+		if (ok)
 		{
-			while( !windowData->ShouldClose() )
+			while (!windowData->ShouldClose())
 			{
-				OPTICK_CATEGORY( "wait for window messages", Optick::Category::Wait );
-				glfwWaitEventsTimeout( 0.5 );
+				OPTICK_CATEGORY("wait for window messages", Optick::Category::Wait);
+				glfwWaitEventsTimeout(0.5);
 
 				//auto t1 = high_resolution_clock::now();
 
-				OPTICK_CATEGORY( "process messages", Optick::Category::IO );
+				OPTICK_CATEGORY("process messages", Optick::Category::IO);
 				windowData->mtInputLock.lock();
 				glfwPollEvents();
 				windowData->mtInputLock.unlock();
@@ -466,23 +458,23 @@ void GameEngine::InputLoop( void *wData )
 				//float dt = duration<float>( high_resolution_clock::now() - t1 ).count() * 1000; // ms
 				//if( dt > 1 ) TRACE( DebugLevel::Debug, "InputLoop was in glfwPollEvents for %fms\n", dt );
 
-				if( glfwWindowShouldClose( window ) ) break;
+				if (glfwWindowShouldClose(window)) break;
 			}
 		}
-		else TRACE( DebugLevel::Log, "Input handler OnCreate returned false\n" );
+		else TRACE(DebugLevel::Log, "Input handler OnCreate returned false\n");
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in input loop: %s\n", e.what() ); }
-	catch( ShutdownException ) {}
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in input loop\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in input loop: %s\n", e.what()); }
+	catch (ShutdownException) {}
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in input loop\n"); }
 
 	windowData->Close();
 
 	try
 	{
-		gameEngine->m_pInputHandler->OnDestroy( window );
+		gameEngine->m_pInputHandler->OnDestroy(window);
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in input OnDestroy: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in input OnDestroy\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in input OnDestroy: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in input OnDestroy\n"); }
 
 	windowData->SignalDestroyAndWaitAllDestroyed();
 
@@ -490,27 +482,25 @@ void GameEngine::InputLoop( void *wData )
 	{
 		delete gameEngine->m_pInputHandler;
 	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught in input destructor: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught in input destructor\n" ); }
+	catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in input destructor: %s\n", e.what()); }
+	catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in input destructor\n"); }
 
 	gameEngine->m_pInputHandler = NULL;
 }
 #else // def MULTI_THREADED
-void GameEngine::EngineLoop( void *wData )
+void GameEngine::EngineLoop(void* wData)
 {
-	WindowDataContainer *windowData = (WindowDataContainer *)wData;
-	GameEngine *gameEngine = windowData->pGameEngine;
-	GLFWwindow *window = windowData->window;
-
-	glfwMakeContextCurrent( window );
+	WindowDataContainer* windowData = (WindowDataContainer*)wData;
+	GameEngine* gameEngine = windowData->pGameEngine;
+	GLFWwindow* window = windowData->window;
 
 	void* FData = NULL;
 	try
 	{
 		if(
 			gameEngine->m_pInputHandler->OnCreate( window ) &&
-			gameEngine->m_pGameHandler->OnCreate() &&
-			gameEngine->m_pRenderHandler->OnCreate()
+			gameEngine->m_pGameHandler->OnCreate( window ) &&
+			gameEngine->m_pRenderHandler->OnCreate( window )
 			)
 		{
 			FData = gameEngine->m_pGameHandler->NewFData();
@@ -542,11 +532,6 @@ void GameEngine::EngineLoop( void *wData )
 					{
 						OPTICK_CATEGORY( "render frame", Optick::Category::Rendering );
 						gameEngine->m_pRenderHandler->OnDraw( FData );
-					}
-
-					{
-						OPTICK_CATEGORY( "Swap buffers", Optick::Category::Wait );
-						glfwSwapBuffers( window );
 					}
 				}
 			}

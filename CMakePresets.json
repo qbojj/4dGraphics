@@ -4,7 +4,7 @@
     {
       "name": "default",
       "binaryDir": "${sourceDir}/out/build",
-      "installDir": "${sourceDir}/out/install",
+      "installDir": "${sourceDir}/out/install/4DG.app",
       "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
   ],

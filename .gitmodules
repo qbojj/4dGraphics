@@ -1,10 +1,6 @@
 [submodule "deps/optick"]
 	path = deps/optick
 	url = https://github.com/bombomby/optick.git
-[submodule "deps/glad"]
-	path = deps/glad
-	url = https://github.com/Dav1dde/glad.git
-	branch = glad2
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg.git

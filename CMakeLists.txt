@@ -37,11 +37,8 @@ set(OPTICK_ENABLED OFF CACHE BOOL "" )
 set(OPTICK_INSTALL_TARGETS OFF CACHE BOOL "" )
 
 add_subdirectory(deps/optick)
-add_subdirectory(deps/glad/cmake)
-glad_add_library( glad SHARED LANGUAGE C API gl:core=4.6 EXTENSIONS GL_ARB_bindless_texture )
 
 set_property(TARGET OptickCore    PROPERTY FOLDER "ThirdPartyLibraries")
-set_property(TARGET glad          PROPERTY FOLDER "ThirdPartyLibraries")
 
 add_subdirectory(shared)
 add_subdirectory(Collisions)
@@ -49,7 +46,7 @@ add_subdirectory(4dGraphics)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT 4dGraphics)
 
-install( TARGETS 4dGraphics SharedUtils Collisions glad )
+install( TARGETS 4dGraphics SharedUtils Collisions )
 include(InstallRequiredSystemLibraries)
 
 configure_file(

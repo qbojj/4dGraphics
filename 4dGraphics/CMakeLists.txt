@@ -6,14 +6,8 @@ project(4dGraphics)
 # get by ls -1
 set( 4DGSources
 	"4dGraphics.cpp"
-	"BufferAlloc.cpp"
-	"BufferAlloc.h"
-	"CMakeLists.txt"
 	"Debug.cpp"
 	"Debug.h"
-	"GLId.cpp"
-	"GLId.h"
-	"GLUniformBlockDefinitions.h"
 	"GameCore.cpp"
 	"GameCore.h"
 	"GameInputHandler.cpp"
@@ -22,34 +16,25 @@ set( 4DGSources
 	"GameRenderHandler.h"
 	"GameTickHandler.cpp"
 	"GameTickHandler.h"
-	"MeshExecution.cpp"
-	"MeshExecution.h"
-	"Objects.cpp"
-	"Objects.h"
-	"Shader.cpp"
-	"Shader.h"
-	"ShaderUniforms.h"
-	"TextureLoad.cpp"
-	"TextureLoad.h"
 	"stdafx.cpp"
 	"stdafx.h"
-	"CommandQueue.h"
-	"GameObject.h"
 	"ImguiBufferedHelper.cpp"
 	"ImguiBufferedHelper.h"
+	"Shader.cpp"
+	"Shader.h"
+	"VulkanHelpers.h"
+	"VulkanHelpers.cpp"
+	"Constants.h"
 )
 
-add_executable( 4dGraphics  ${4DGSources} )
+add_executable( 4dGraphics WIN32 ${4DGSources} )
 target_include_directories( 4dGraphics PUBLIC ${PROJECT_SOURCE_DIR} PRIVATE ${PROJECT_SOURCE_DIR}/../Shaders/include )
 
 target_precompile_headers( 4dGraphics PRIVATE "stdafx.h" )
 
 target_link_libraries( 4dGraphics PRIVATE Collisions SharedUtils )
 
-if(WIN32)
-	target_compile_definitions( 4dGraphics PRIVATE REQUIRE_WINMAIN )
-	set_property( TARGET 4dGraphics PROPERTY WIN32_EXECUTABLE true )
-endif()
+target_compile_definitions( 4dGraphics PRIVATE $<$<BOOL:${WIN32}>:REQUIRE_WINMAIN> )
 
 SETUP_COMMON(4dGraphics "4dGraphics" )
 
