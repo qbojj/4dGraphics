@@ -265,6 +265,8 @@ bool GameEngine::Start()
 	glfwWindowHint( GLFW_SAMPLES, GLFW_DONT_CARE );
 	glfwWindowHint( GLFW_SRGB_CAPABLE, GLFW_TRUE );
 
+	TRACE( DebugLevel::Log, "Before create window\n" );
+
 	GLFWwindow *window = glfwCreateWindow( mode->width, mode->height, "GameEngine", NULL, NULL );
 	if( !window ) { TRACE( DebugLevel::FatalError, "Cannot create window\n" ); return false; }
 
@@ -497,12 +499,15 @@ void GameEngine::EngineLoop(void* wData)
 	void* FData = NULL;
 	try
 	{
+		TRACE( DebugLevel::Log, "Before OnCreate\n" );
 		if(
 			gameEngine->m_pInputHandler->OnCreate( window ) &&
 			gameEngine->m_pGameHandler->OnCreate( window ) &&
 			gameEngine->m_pRenderHandler->OnCreate( window )
 			)
 		{
+			TRACE( DebugLevel::Log, "After OnCreate\n" );
+
 			FData = gameEngine->m_pGameHandler->NewFData();
 
 			if( !FData ) throw runtime_error( "couldn't create Frame Data" );
@@ -542,6 +547,7 @@ void GameEngine::EngineLoop(void* wData)
 	catch( ShutdownException ) {}
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 
+	TRACE( DebugLevel::Log, "Begin closing\n" );
 	glfwSetWindowShouldClose( window, true );
 
 	try
@@ -572,6 +578,8 @@ void GameEngine::EngineLoop(void* wData)
 	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
 	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 	
+	TRACE( DebugLevel::Log, "After OnDestroy\n" );
+
 	try
 	{
 		delete gameEngine->m_pInputHandler;

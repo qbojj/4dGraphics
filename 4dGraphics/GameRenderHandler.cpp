@@ -79,6 +79,7 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	ASSERT_LOG_RETURN(glfwVulkanSupported(), "Vulkan not supported");
 
 	volkInitializeCustom(glfwGetInstanceProcAddress);
+	return true;
 	CHECK_LOG_RETURN(CreateInstance(NULL, &vk.instance), "Could not create vulkan instance");
 
 #if IS_DEBUG
@@ -114,7 +115,7 @@ void GameRenderHandler::OnDestroy()
 GameRenderHandler::~GameRenderHandler()
 {
 	//DestroyVulkanRendererDevice( vkDev );
-	DestroyVulkanInstance( vk );
+	//DestroyVulkanInstance( vk );
 }
 
 VkResult fillCommandBuffers( VulkanRenderDevice &/* vkDev */, size_t /* index */ )
