@@ -23,7 +23,6 @@ extern DebugLevel LogLevel;
     
 void OutputDebugV( DebugLevel, const char*, va_list );
 void OutputDebug( DebugLevel, const char *, ... );
-
 const char* VulkanResultErrorCause(VkResult);
 
 #define TRACE( level, format, ... ) OutputDebug( level, "%s(%u): " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__ )
@@ -40,3 +39,7 @@ const char* VulkanResultErrorCause(VkResult);
     VK_ASSERT( result_check_ >= 0 );                    \
     if( result_check_ < 0 ) { return result_check_; };  \
 }while(0)
+
+#define VK_CHECK_GOTO_INIT VkResult _result = VK_SUCCESS
+#define VK_CHECK_GOTO( c ) do{ _result = (c); if( _result < 0 ) goto _error; }while(0)
+#define VK_CHECK_GOTO_HANDLE( val ) _error: VkResult val = _result

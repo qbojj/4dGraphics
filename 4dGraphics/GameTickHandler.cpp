@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "GameTickHandler.h"
 #include "GameInputHandler.h"
 

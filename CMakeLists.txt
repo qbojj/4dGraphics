@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.21)
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
-set(CMAKE_CONFIGURATION_TYPES "Release;Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "Configuration types for multi-configuration buildsystems")
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build configuration for single-configuration buildsystems")
+set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;Release;MinSizeRel" CACHE STRING "Configuration types for multi-configuration buildsystems")
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build configuration for single-configuration buildsystems")
 
 set(CMAKE_MACOSX_RPATH True)
 

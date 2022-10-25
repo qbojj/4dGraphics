@@ -50,7 +50,7 @@ jobs:
 
     - name: Prepare for build (Ubuntu)
       if: contains( inputs.system, 'ubuntu' )
-      run: sudo apt-get install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev libpthread-stubs0-dev
+      run: sudo apt-get install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config libpthread-stubs0-dev
 
     - name: run CMake
       uses: lukka/run-cmake@v10

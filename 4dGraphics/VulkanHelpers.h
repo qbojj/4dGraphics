@@ -5,9 +5,38 @@
 #include <functional>
 #include <vk_mem_alloc.h>
 
+namespace vulkan_helpers {
+	template <typename T, typename F, typename... Ts> auto get_vector( std::vector<T> &out, F &&f, Ts&&... ts ) -> VkResult
+	{
+		uint32_t count = 0;
+		VkResult err;
+		do {
+			err = f( ts..., &count, nullptr );
+			if( err != VK_SUCCESS ) {
+				return err;
+			};
+			out.resize( count );
+			err = f( ts..., &count, out.data() );
+			out.resize( count );
+		} while( err == VK_INCOMPLETE );
+		return err;
+	}
+
+	template <typename T, typename F, typename... Ts> auto get_vector_noerror( F &&f, Ts&&... ts ) -> std::vector<T> {
+		uint32_t count = 0;
+		std::vector<T> results;
+		f( ts..., &count, nullptr );
+		results.resize( count );
+		f( ts..., &count, results.data() );
+		results.resize( count );
+		return results;
+	}
+}
+
 // high level interfaces
 struct VulkanInstance {
 	VkInstance instance;
+	uint32_t apiVersion;
 	VkSurfaceKHR surface;
 	VkDebugUtilsMessengerEXT messenger;
 	VkDebugReportCallbackEXT reportCallback;
@@ -25,7 +54,7 @@ struct VulkanDevice {
 };
 
 struct VulkanRenderDevice {
-	VulkanDevice *device; // non owning
+	VulkanDevice device; // non owning
 	VulkanQueue graphicsQueue;
 	VkSemaphore semophore;
 	VkSemaphore renderSemaphore;
@@ -57,13 +86,18 @@ struct VulkanState {
 	VkDescriptorSetLayout descriptorSetLayout;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	VulkanBuffer uniformBuffer;
+	VulkanBuffer uniformBufferMemory;
 	std::vector<VulkanBufferSuballocation> uniformBuffers;
 
 	VulkanBuffer modelBuffer;
 	VulkanBufferSuballocation vertexBuffer, indexBuffer;
 	VkSampler textureSampler;
 	VulkanTexture texture;
+
+	VkPipelineLayout layout;
+	VkPipeline graphicsPipeline;
+	
+	VulkanTexture depthResource; 
 };
 
 // for caches and such
@@ -82,12 +116,16 @@ void GetVulkanPNextChainStructureCount( VulkanPNextChainManager manager, VkStruc
 
 VkResult InitVulkanDevice(
 	VulkanInstance &vk,
-	std::function<bool( VkPhysicalDevice )> selector,
+	VkPhysicalDevice device,
+	const std::vector<VkDeviceQueueCreateInfo> &families,
+	const std::vector<const char *> &extensions,
 	const VkPhysicalDeviceFeatures2 *deviceFeatures, 
 	VulkanDevice &vkDev
 );
+
 VkResult InitVulkanRenderDevice( 
 	const VulkanInstance &vk, VulkanDevice &vkDev,
+	VulkanQueue graphicsQueue,
 	uint32_t width, uint32_t height,
 	VulkanRenderDevice &vkRDev
 );
@@ -118,6 +156,7 @@ VkResult CreateEngineDescriptorSets(
 	VulkanState &vkState
 );
 
+void DestroyVulkanState( VulkanDevice &vkDev, VulkanState &vkState );
 void DestroyVulkanRendererDevice( VulkanRenderDevice &vkDev );
 void DestroyVulkanDevice( VulkanDevice &vkDev );
 void DestroyVulkanInstance( VulkanInstance &vk );
@@ -129,13 +168,18 @@ VkResult EndSingleTimeCommands( VkDevice device, VkCommandPool commandPool, VkQu
 
 // instance and device creation functions
 
-VkResult RemoveUnsupportedLayers( std::vector<const char *> &layers );
-VkResult RemoveUnsupportedExtensions( const std::vector<const char *> &layers, std::vector<const char *> &exts );
-
-// pInstanceCreateInfo may be NULL
-VkResult CreateInstance( const VkInstanceCreateInfo *pInstanceCreateInfo, VkInstance *pInstance );
-VkResult CreateDevice( VkPhysicalDevice physicalDevice, 
-	const VkPhysicalDeviceFeatures2 *deviceFeatures, uint32_t graphicsFamily, VkDevice *pDevice
+VkResult CreateInstance(
+	const std::vector<const char *> &layers,
+	const std::vector<const char *> &extensions, 
+	const VkApplicationInfo *pAppInfo, // may be NULL
+	bool enumeratePortability,
+	void *pCreateInstanceNext,
+	VkInstance *pInstance 
+);
+VkResult CreateDevice( VkPhysicalDevice physicalDevice,
+	const std::vector<VkDeviceQueueCreateInfo> &families,
+	const std::vector<const char *> &extensions,
+	const VkPhysicalDeviceFeatures2 *deviceFeatures, VkDevice *pDevice
 );
 
 VkResult FindSuitablePhysicalDevice( VkInstance instance,
@@ -175,6 +219,13 @@ VkResult CreateSwapchainImages( VkDevice device, VkSwapchainKHR swapchain,
 );
 
 // memory/buffer manipulation functions
+
+void GetSuballocatedBufferSize( 
+	const std::vector<VkDeviceSize> &sizes,
+	VkDeviceSize alignment, 
+	VkDeviceSize *bufferSize,
+	std::vector<VulkanBufferSuballocation> &suballocations
+);
 
 VkResult CreateBuffer(
 	VmaAllocator allocator,
@@ -229,6 +280,7 @@ bool FormatHasStencilComponent( VkFormat fmt );
 // synchronization functions
 
 VkResult CreateSemophore( VkDevice device, VkSemaphore *semaphore );
+VkResult CreateTimelineSemaphore( VkDevice device, uint64_t initialValue, VkSemaphore *semaphore );
 
 // descriptor set functions
 VkResult CreateDescriptorPool(
@@ -266,4 +318,10 @@ VkResult CreatePipelineLayout(
 	uint32_t pushConstantRangeCount,
 	const VkPushConstantRange *pPushConstantRanges,
 	VkPipelineLayout *layout
+);
+
+void FillGraphicsPipelineDefaults( VkGraphicsPipelineCreateInfo *gpci );
+VkPipelineShaderStageCreateInfo FillShaderStage( 
+	VkShaderStageFlagBits stage, 
+	VkShaderModule module, const char *name 
 );

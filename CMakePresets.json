@@ -1,18 +1,23 @@
 {
-  "version": 3,
-  "configurePresets": [
-    {
-      "name": "default",
-      "binaryDir": "${sourceDir}/out/build",
-      "installDir": "${sourceDir}/out/install/4DG.app",
-      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "default",
-      "configurePreset": "default",
-      "targets": [ "install" ]
-    }
-  ]
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/out/build",
+            "installDir": "${sourceDir}/out/install/4DG.app",
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+            "configuration": "RelWithDebInfo",
+            "targets": [
+                "4dGraphics",
+                "install"
+            ]
+        }
+    ]
 }

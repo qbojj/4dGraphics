@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "GameInputHandler.h"
 
 #include <functional>
@@ -36,7 +35,7 @@ void GameInputHandler::onKey( GLFWwindow *window, int key, int scancode, int act
 	if( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS )
 	{
 		static bool CursorEnabled = false;
-		glfwSetInputMode(window, GLFW_CURSOR, CursorEnabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL );
+		//glfwSetInputMode(window, GLFW_CURSOR, CursorEnabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL );
 		
 		CursorEnabled = !CursorEnabled;
 		
@@ -82,7 +81,7 @@ bool GameInputHandler::OnCreate( GLFWwindow *window )
 	glfwSetWindowSize( window, 1024, 1024 );
 	glfwSetWindowPos( window, 128, 128 );
 	glfwShowWindow( window );
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	int w, h;
 	glfwGetWindowSize( window, &w, &h );

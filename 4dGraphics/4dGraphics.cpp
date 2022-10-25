@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "GameCore.h"
 #include "GameInputHandler.h"
 #include "GameRenderHandler.h"
@@ -9,6 +8,7 @@
 #include <stdlib.h>
 #include <filesystem>
 #include <chrono>
+#include <thread>
 
 #ifdef _WIN32
 #include "Windows.h"
@@ -57,11 +57,11 @@ int Entry()
 	GameEngine engine;
 	
 	bool ok = false;
-
+	
 	if( engine.Init( 
 		new GameInputHandler(),
 		new GameTickHandler(),
-		new GameRenderHandlerIndirect<GameRenderHandler>() )
+		new GameRenderHandler() )
 		)
 	{
 		int allocCnt = 0;

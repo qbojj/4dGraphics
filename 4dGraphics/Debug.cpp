@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Debug.h"
 
 #include <fstream>
@@ -7,6 +6,7 @@
 #define STB_SPRINTF_STATIC
 #define STB_SPRINTF_IMPLEMENTATION
 #include <stb_sprintf.h>
+#include <mutex>
 using namespace std;
 
 DebugLevel LogLevel = IS_DEBUG ? DebugLevel::Debug : DebugLevel::Log;
@@ -27,6 +27,8 @@ static void printToFile( const char *s )
 	//	fclose( f );
 	//}
 }
+
+static std::mutex DebugMutex;
 
 #ifdef USE_WIN_DEBUG
 #include "Windows.h"
@@ -62,8 +64,10 @@ void OutputDebugV( DebugLevel l, const char *fmt, va_list va )
 		stbsp_vsprintf( dat, fmt, va );
 	}
 
-	PRINT_DEBUG( dat );
-	
+    {
+        std::lock_guard lock( DebugMutex );
+	    PRINT_DEBUG( dat );
+    }
 #ifdef USE_WIN_DEBUG
 	if( l == DebugLevel::FatalError ) MessageBoxA( NULL, dat, "Fatal Error!", MB_OK );
 #endif

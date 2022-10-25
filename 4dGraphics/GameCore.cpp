@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "GameCore.h"
 
 #include "Debug.h"

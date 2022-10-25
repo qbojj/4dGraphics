@@ -8,8 +8,6 @@
 #include <volk.h>
 #include "VulkanHelpers.h"
 
-VkResult fillCommandBuffers( VulkanRenderDevice &vkDev, size_t index );
-
 class GameRenderHandler : public RenderHandler
 {
 public:
@@ -19,7 +17,14 @@ public:
 	~GameRenderHandler() override;
 protected:
 	VulkanInstance vk;
-	VulkanRenderDevice vkDev;
+	VulkanDevice vkDev;
+	VulkanRenderDevice vkRDev;
+
+	VulkanState vkState;
+
+	uint32_t kScreenWidth, kScreenHeight;
+
+	VkResult FillCommandBuffers( uint32_t index );
 };
 
 template<typename RH >

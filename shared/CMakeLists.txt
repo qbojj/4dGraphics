@@ -35,7 +35,7 @@ target_link_libraries(SharedUtils PUBLIC
     volk::volk 
     unofficial::portable-snippets::debug-trap unofficial::portable-snippets::builtin
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
-    glslang::glslang glslang::SPIRV
+    glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits
 ) # freetype
 target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})
 

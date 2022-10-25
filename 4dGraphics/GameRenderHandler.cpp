@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "GameRenderHandler.h"
 #include "GameTickHandler.h"
 
@@ -21,13 +20,24 @@ using namespace std;
 	if( result_check_log_ < 0 )						\
 	{												\
 		TRACE(DebugLevel::FatalError,				\
-			logmsg " (cause: %s)" __VA_OPT__(, ) __VA_ARGS__,	\
+			logmsg " (cause: %s)\n" __VA_OPT__(, ) __VA_ARGS__,	\
 			VulkanResultErrorCause(result_check_log_));			\
 		return false;								\
 	}												\
 }while(0)
 
-#if IS_DEBUG
+#define CHECK_LOG_RETURN_NOVAL( expr, logmsg, ... ) do{	\
+	VkResult result_check_log_ = (expr);			\
+	if( result_check_log_ < 0 )						\
+	{												\
+		TRACE(DebugLevel::FatalError,				\
+			logmsg " (cause: %s)\n" __VA_OPT__(, ) __VA_ARGS__,	\
+			VulkanResultErrorCause(result_check_log_));			\
+		return ;									\
+	}												\
+}while(0)
+
+#if IS_DEBUG || 1
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 VulkanDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT Severity,
@@ -76,35 +86,359 @@ VulkanDebugReportCallback(
 
 bool GameRenderHandler::OnCreate(GLFWwindow* window)
 {
+	VkResult res = VK_SUCCESS;
 	ASSERT_LOG_RETURN(glfwVulkanSupported(), "Vulkan not supported");
 
 	volkInitializeCustom(glfwGetInstanceProcAddress);
-	return true;
-	CHECK_LOG_RETURN(CreateInstance(NULL, &vk.instance), "Could not create vulkan instance");
 
-#if IS_DEBUG
+	std::vector<const char *> instanceLayers{
+		"VK_LAYER_KHRONOS_validation"
+	};
+
+	std::vector<const char *> instanceExtensions{
+		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+	};
+
+	CHECK_LOG_RETURN(CreateInstance(instanceLayers, instanceExtensions, nullptr, false, nullptr, &vk.instance), "Could not create vulkan instance");
+
+#if IS_DEBUG || 1
 	CHECK_LOG_RETURN(SetupDebugCallbacks( vk.instance,
 		&vk.messenger, VulkanDebugCallback, nullptr,
 		&vk.reportCallback, VulkanDebugReportCallback, nullptr ), "Could not setup debug callbacks");
 #endif
 
 	CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
-	/*
-	int width, height;
-	glfwGetFramebufferSize( window, &width, &height );
-	VkPhysicalDeviceFeatures2 phFeatures = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-		.pNext = nullptr,
-		.features = {
+	
+	glfwGetFramebufferSize( window, (int*)&kScreenWidth, (int*)&kScreenHeight );
+	
+	std::vector<VkPhysicalDevice> devices;
+	CHECK_LOG_RETURN( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
+
+	VkPhysicalDevice best = VK_NULL_HANDLE;
+	{
+		VkPhysicalDeviceVulkan12Properties best12Props;
+		VkPhysicalDeviceVulkan11Properties best11Props;
+		VkPhysicalDeviceProperties2 bestProps;
+
+		VkPhysicalDeviceVulkan12Features best12Feats;
+		VkPhysicalDeviceVulkan11Features best11Feats;
+		VkPhysicalDeviceFeatures2 bestFeats;
+
+		auto GetTypeCost = []( VkPhysicalDeviceType type ) -> uint32_t
+		{
+			const VkPhysicalDeviceType order[] = {
+				VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
+				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+				VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU,
+				VK_PHYSICAL_DEVICE_TYPE_CPU,
+				VK_PHYSICAL_DEVICE_TYPE_OTHER,
+			};
+
+			auto idx = find( begin(order), end(order), type );
+
+			return (uint32_t)( end(order) - idx );
+		};
+
+		auto StripPatch = []( uint32_t ver ) -> uint32_t { 
+			return VK_MAKE_API_VERSION( 0, VK_API_VERSION_MAJOR(ver), VK_API_VERSION_MINOR(ver), 0 );
+		};
+
+		for( VkPhysicalDevice dev : devices )
+		{
+			VkPhysicalDeviceProperties props;
+			vkGetPhysicalDeviceProperties( dev, &props );
+
+			if( VK_API_VERSION_VARIANT( props.apiVersion ) == 0 &&
+				props.apiVersion >= VK_API_VERSION_1_2 )
+			{
+				VkPhysicalDeviceVulkan12Properties cur12Props{};
+				cur12Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+
+				VkPhysicalDeviceVulkan11Properties cur11Props{};
+				cur11Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+				cur11Props.pNext = &cur12Props;
+
+				VkPhysicalDeviceProperties2 curProps{};
+				curProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+				curProps.pNext = &cur11Props;
+
+				VkPhysicalDeviceVulkan12Features cur12Feats{};
+				cur12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+				VkPhysicalDeviceVulkan11Features cur11Feats{};
+				cur11Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+				cur11Feats.pNext = &cur12Feats;
+
+				VkPhysicalDeviceFeatures2 curFeats{};
+				curFeats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				curFeats.pNext = &cur11Feats;
+
+				vkGetPhysicalDeviceProperties2( dev, &curProps );
+				vkGetPhysicalDeviceFeatures2( dev, &curFeats );
+
+				auto selectNew = [&]() {
+					best = dev; 
+					bestProps = curProps;
+					best11Props = cur11Props;
+					best12Props = cur12Props;
+
+					bestFeats = curFeats;
+					best11Feats = cur11Feats;
+					best12Feats = cur12Feats;
+				};
+
+				if( !best ) { selectNew(); continue; }
+
+				uint32_t newDev = GetTypeCost( curProps.properties.deviceType );
+				uint32_t oldDev = GetTypeCost( bestProps.properties.deviceType );
+
+				if( oldDev != newDev ) { if( oldDev < newDev ) selectNew(); continue; }
+
+				uint32_t newDevVer = StripPatch( curProps.properties.apiVersion );
+				uint32_t oldDevVer = StripPatch( bestProps.properties.apiVersion );
+
+				if( oldDevVer != newDevVer ) { if( oldDevVer < newDevVer ) selectNew(); continue; }
+			}
+		}
+
+		TRACE(DebugLevel::Log, "Selected %s\n", bestProps.properties.deviceName );
+	}
+
+	VulkanQueue graphicsQueue;
+	graphicsQueue.family = FindQueueFamilies( best, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+
+	std::vector<float> priorities{ 1.0f };
+	std::vector<VkDeviceQueueCreateInfo> queueCI{
+		VkDeviceQueueCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.queueFamilyIndex = graphicsQueue.family,
+			.queueCount = 1,
+			.pQueuePriorities = priorities.data()
 		}
 	};
-	CHECK_LOG_RETURN( InitVulkanRenderDevice( vk, vkDev, width, height, [&]( auto ) { return true; }, &phFeatures ), "Could not create device" );
-	*/
+
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR phRenderingFeatures = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+		.pNext = nullptr,
+		.dynamicRendering = VK_TRUE
+	};
+
+	VkPhysicalDeviceVulkan12Features ph12Features{};
+	ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	ph12Features.pNext = &phRenderingFeatures;
+	ph12Features.bufferDeviceAddress = VK_TRUE;
+
+	VkPhysicalDeviceVulkan11Features ph11Features{};
+	ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	ph11Features.pNext = &ph12Features;
+
+	VkPhysicalDeviceFeatures2 phFeatures = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+		.pNext = &ph11Features,
+		.features = {
+			.samplerAnisotropy = VK_TRUE,
+		}
+	};
+
+	std::vector<const char *> deviceExtensions{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+	};
+
+	TRACE(DebugLevel::Log, "Before device creation\n");
+	CHECK_LOG_RETURN( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
+
+	TRACE(DebugLevel::Log, "Before render device creation\n");
+	vkGetDeviceQueue( vkDev.device, graphicsQueue.family, 0, &graphicsQueue.queue );
+	CHECK_LOG_RETURN( InitVulkanRenderDevice( vk, vkDev, graphicsQueue, kScreenWidth, kScreenHeight, vkRDev ), "Could not create reander device" );
+
+	TRACE(DebugLevel::Log, "Before pipeline layout creation\n");
+	CHECK_LOG_RETURN( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
+	CHECK_LOG_RETURN( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ), 
+		"Could not create pipeline layout" );
+
+	TRACE(DebugLevel::Log, "Before shader creation\n");
+	res = VK_SUCCESS;
+	VkShaderModule vertShader = VK_NULL_HANDLE, fragShader = VK_NULL_HANDLE;
+	if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.vert", 0, nullptr, &vertShader );
+	if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.frag", 0, nullptr, &fragShader );
+	if( res >= 0 ) 
+	{
+		TRACE(DebugLevel::Log, "Before pipeline creation\n");
+		VkGraphicsPipelineCreateInfo gpci{};
+		FillGraphicsPipelineDefaults( &gpci );
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaders{
+			FillShaderStage( VK_SHADER_STAGE_VERTEX_BIT, vertShader, "main" ),
+			FillShaderStage( VK_SHADER_STAGE_FRAGMENT_BIT, fragShader, "main" ),
+		};
+		
+		VkDynamicState dyncamicStates[] = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		VkPipelineDynamicStateCreateInfo dsci{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.dynamicStateCount = (uint32_t)size(dyncamicStates),
+			.pDynamicStates = data(dyncamicStates)
+		};
+
+		VkFormat colorFromats[] = {
+			VK_FORMAT_B8G8R8A8_UNORM
+		};
+
+		VkPipelineRenderingCreateInfo prci{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.pNext = nullptr,
+			.viewMask = 0,
+			.colorAttachmentCount = (uint32_t)size(colorFromats),
+			.pColorAttachmentFormats = data(colorFromats),
+			.depthAttachmentFormat = VK_FORMAT_D16_UNORM_S8_UINT,
+			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+		};
+		
+		gpci.stageCount = (uint32_t)size(shaders);
+		gpci.pStages = data(shaders);
+		gpci.pDynamicState = &dsci;
+		gpci.layout = vkState.layout;
+
+		gpci.pNext = &prci;
+
+		TRACE(DebugLevel::Log, "Before vkCreateGraphicsPipelines\n");
+		res = vkCreateGraphicsPipelines( vkDev.device, nullptr, 1, &gpci, nullptr, &vkState.graphicsPipeline );
+	}
+	if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
+	if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
+
+	CHECK_LOG_RETURN( res, "Couldn't create pipeline" );
+
+	CHECK_LOG_RETURN( CreateDescriptorSetHelper( vkDev.device, 0, 
+		(uint32_t)vkRDev.swapchainImages.size(),
+		10, 10, 10, 
+		&vkState.descriptorPool ), "Could not create descriptor pool" );
+
+	const VkPhysicalDeviceProperties *props;
+	vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+
+	VkDeviceSize uniformSize = 0;
+	GetSuballocatedBufferSize( 
+		std::vector<VkDeviceSize>(vkRDev.swapchainImages.size(), sizeof(glm::mat4) ),
+		props->limits.minUniformBufferOffsetAlignment,
+		&uniformSize,
+		vkState.uniformBuffers
+	);
+
+	CHECK_LOG_RETURN( CreateBuffer( vkDev.allocator, uniformSize, 0,
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VMA_MEMORY_USAGE_AUTO,
+		&vkState.uniformBufferMemory.buffer, &vkState.uniformBufferMemory.bufferAllocation,
+		nullptr ), "Could not create unifrom buffers" );
+	
+	{
+		void *BufferMemory;
+			CHECK_LOG_RETURN( vmaMapMemory( vkDev.allocator, 
+				vkState.uniformBufferMemory.bufferAllocation, &BufferMemory ), "could not map uniform buffer" );
+
+
+		for( uint32_t imageIdx = 0; imageIdx < (uint32_t)vkRDev.swapchainImages.size(); imageIdx++ )
+		{
+			
+			void *memory = (char*)BufferMemory + vkState.uniformBuffers[ imageIdx ].offset;
+
+
+			glm::mat4 persp = glm::infinitePerspective( glm::pi<float>() * 0.6f, (float)kScreenHeight / kScreenHeight, 0.001f );
+			glm::mat4 view = glm::lookAt( glm::vec3(10.f, 10.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
+			glm::mat4 model = glm::identity<glm::mat4>();
+
+			glm::mat4 mvp = persp * view * model;
+
+			*( (glm::mat4*)memory ) = mvp;
+
+		}
+
+		vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
+		CHECK_LOG_RETURN( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 0, VK_WHOLE_SIZE ),
+			"Could not flush unifrom buffers" );
+	}
+
+	CHECK_LOG_RETURN( CreateSSBOVertexBuffer( vkRDev, 
+		"data/3dModels/SpaceShuttle.obj", 
+		&vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
+		&vkState.vertexBuffer, &vkState.indexBuffer ), "Could not crate model" );
+
+	CHECK_LOG_RETURN( CreateTextureSampler( vkDev.device, VK_FILTER_LINEAR, 
+		VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		props->limits.maxSamplerAnisotropy, &vkState.textureSampler ), 
+		"Could not create sampler" );
+	
+	CHECK_LOG_RETURN( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png", 
+		&vkState.texture ), "Could not create texture" );
+
+	CHECK_LOG_RETURN( CreateImageView( vkDev.device, vkState.texture.image, 
+		VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &vkState.texture.imageView ),
+		"Could not create image view" );
+
+	CHECK_LOG_RETURN( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+
+	CHECK_LOG_RETURN( CreateDepthResource( vkRDev, kScreenWidth, kScreenHeight, &vkState.depthResource ),
+		"Could not create depth resource" );
+
+	for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
+		CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
+
 	return true;
 }
 
 void GameRenderHandler::OnDraw(const void* )
 {
+	VkResult res;
+	uint32_t imageIdx;
+	CHECK_LOG_RETURN_NOVAL( res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain, UINT64_MAX,
+		vkRDev.semophore, VK_NULL_HANDLE, &imageIdx ), "Cannot acquire image" );
+
+	OutputDebug(DebugLevel::Log, "%d ", imageIdx);
+	
+	VkPipelineStageFlags waitFalgs[] = {
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+	};
+
+	CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
+
+	vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
+	CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 
+		vkState.uniformBuffers[ imageIdx ].offset, vkState.uniformBuffers[ imageIdx ].size ), "Could not flush unifrom buffer" );
+
+	VkSubmitInfo si{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &vkRDev.semophore,
+		.pWaitDstStageMask = data(waitFalgs),
+		.commandBufferCount = 1,
+		.pCommandBuffers = &vkRDev.commandBuffers[ imageIdx ],
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &vkRDev.renderSemaphore,
+	};
+	CHECK_LOG_RETURN_NOVAL( res = vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si, VK_NULL_HANDLE), "Cannot enqueue cmdBuffers" );
+
+	VkPresentInfoKHR pi{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &vkRDev.renderSemaphore,
+		.swapchainCount = 1,
+		.pSwapchains = &vkRDev.swapchain,
+		.pImageIndices = &imageIdx,
+		.pResults = nullptr,
+	};
+
+	CHECK_LOG_RETURN_NOVAL( res = vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi ), "Cannot enqueue present" );
 }
 
 void GameRenderHandler::OnDestroy()
@@ -114,13 +448,15 @@ void GameRenderHandler::OnDestroy()
 
 GameRenderHandler::~GameRenderHandler()
 {
-	//DestroyVulkanRendererDevice( vkDev );
-	//DestroyVulkanInstance( vk );
+	if( vkDev.device ) vkDeviceWaitIdle( vkDev.device );
+	DestroyVulkanState( vkDev, vkState );
+	DestroyVulkanRendererDevice( vkRDev );
+	DestroyVulkanDevice( vkDev );
+	DestroyVulkanInstance( vk );
 }
 
-VkResult fillCommandBuffers( VulkanRenderDevice &/* vkDev */, size_t /* index */ )
+VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 {
-	/*
 	const VkCommandBufferBeginInfo bi = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.pNext = nullptr,
@@ -128,38 +464,95 @@ VkResult fillCommandBuffers( VulkanRenderDevice &/* vkDev */, size_t /* index */
 		.pInheritanceInfo = nullptr
 	};
 
-	const VkClearColorValue clearValueColor = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } };
-
-	const VkClearValue clearValues[] = {
-		VkClearValue{.color = clearValueColor },
-		VkClearValue{.depthStencil = {1.0f, 0 } }
-	};
-
-	const VkRect2D screenRect = {
-		.offset = { 0, 0 },
-		.extent = {	.width = kScreenWidth,
-					.height = kScreenHeight }
-	};
-
-	VkCommandBuffer CmdBuffer = vkDev.commandBuffers[ index ];
+	VkCommandBuffer CmdBuffer = vkRDev.commandBuffers[ index ];
 	VK_CHECK_RET( vkBeginCommandBuffer( CmdBuffer, &bi ) );
-	const VkRenderPassBeginInfo renderPassInfo = {
-		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+
+	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_FORMAT_B8G8R8A8_UNORM,
+		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
+
+	VkBufferMemoryBarrier bmb{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
 		.pNext = nullptr,
-		.renderPass = vkState.renderPass,
-		.framebuffer = vkState.swapchainFramebuffers[ index ],
-		.renderArea = screenRect,
-		.clearValueCount = (uint32_t)size( clearValues ),
-		.pClearValues = data( clearValues )
+		.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT,
+		.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.buffer = vkState.uniformBufferMemory.buffer,
+		.offset = vkState.uniformBuffers[ index ].offset,
+		.size = vkState.uniformBuffers[ index ].size,
 	};
-	vkCmdBeginRenderPass( CmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
-	vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkState.graphicsPipeline );
-	vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		vkState.pipelineLayout, 0, 1, vkState.descriptorSets[ index ], 0, nullptr );
-	vkCmdDraw( CmdBuffer, (uint32_t)( indexBufferSize / sizeof( uint32_t ) ), 1, 0, 0 );
-	vkCmdEndRenderPass( CmdBuffer );
+
+	vkCmdPipelineBarrier( CmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+		0, 0, nullptr, 1, &bmb, 0, nullptr );
+	
+	VkRenderingAttachmentInfo colorAttachment = {
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.pNext = nullptr,
+		.imageView = vkRDev.swapchainImageViews[ index ],
+		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.resolveMode = VK_RESOLVE_MODE_NONE,
+		.resolveImageView = VK_NULL_HANDLE,
+		.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = { .color = { .float32 = { 1.0f, 0.0f, 1.0f, 1.0f } } },
+	};
+
+	VkRenderingAttachmentInfo depthAttachment = {
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.pNext = nullptr,
+		.imageView = vkState.depthResource.imageView,
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.resolveMode = VK_RESOLVE_MODE_NONE,
+		.resolveImageView = VK_NULL_HANDLE,
+		.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.clearValue = { .depthStencil = { .depth = 0.0f, .stencil = 0 } },
+	};
+
+	VkRenderingInfo rinfo = {
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.renderArea = { {0, 0}, {kScreenWidth, kScreenHeight} },
+		.layerCount = 1,
+		.viewMask = 0,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachment,
+		.pDepthAttachment = &depthAttachment,
+		.pStencilAttachment = nullptr
+	};
+	
+	vkCmdBeginRenderingKHR( CmdBuffer, &rinfo );
+
+		VkViewport vp{ 
+			.x = 0, .y = 0,
+			.width = kScreenWidth, .height = kScreenHeight,	
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+		vkCmdSetViewport( CmdBuffer, 0, 1, &vp );
+
+		VkRect2D sc{
+			.offset = {0,0},
+			.extent = {kScreenWidth, kScreenHeight}
+		};
+		vkCmdSetScissor( CmdBuffer, 0, 1, &sc );
+
+		vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkState.graphicsPipeline );
+		vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			vkState.layout, 0, 1, &vkState.descriptorSets[ index ], 0, nullptr );
+		vkCmdDraw( CmdBuffer, (uint32_t)( vkState.indexBuffer.size / sizeof( uint32_t ) ), 1, 0, 0 );
+
+	vkCmdEndRenderingKHR( CmdBuffer );
+
+	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_FORMAT_B8G8R8A8_UNORM,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0 );
 	
 	return vkEndCommandBuffer( CmdBuffer );
-	*/
-	return VK_SUCCESS;
 }
