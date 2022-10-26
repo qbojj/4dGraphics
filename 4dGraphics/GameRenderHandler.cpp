@@ -230,18 +230,16 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	ph12Features.pNext = &phRenderingFeatures;
 	ph12Features.bufferDeviceAddress = VK_TRUE;
+	ph12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
 
 	VkPhysicalDeviceVulkan11Features ph11Features{};
 	ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
 	ph11Features.pNext = &ph12Features;
 
-	VkPhysicalDeviceFeatures2 phFeatures = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-		.pNext = &ph11Features,
-		.features = {
-			.samplerAnisotropy = VK_TRUE,
-		}
-	};
+	VkPhysicalDeviceFeatures2 phFeatures{};
+	phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+	phFeatures.pNext = &ph11Features,
+	phFeatures.features.samplerAnisotropy = VK_TRUE;
 
 	std::vector<const char *> deviceExtensions{
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -317,7 +315,8 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 
 	CHECK_LOG_RETURN( res, "Couldn't create pipeline" );
 
-	CHECK_LOG_RETURN( CreateDescriptorSetHelper( vkDev.device, 0, 
+	CHECK_LOG_RETURN( CreateDescriptorSetHelper( vkDev.device, 
+		VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, 
 		(uint32_t)vkRDev.swapchainImages.size(),
 		10, 10, 10, 
 		&vkState.descriptorPool ), "Could not create descriptor pool" );
@@ -339,33 +338,6 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		&vkState.uniformBufferMemory.buffer, &vkState.uniformBufferMemory.bufferAllocation,
 		nullptr ), "Could not create unifrom buffers" );
 	
-	{
-		void *BufferMemory;
-			CHECK_LOG_RETURN( vmaMapMemory( vkDev.allocator, 
-				vkState.uniformBufferMemory.bufferAllocation, &BufferMemory ), "could not map uniform buffer" );
-
-
-		for( uint32_t imageIdx = 0; imageIdx < (uint32_t)vkRDev.swapchainImages.size(); imageIdx++ )
-		{
-			
-			void *memory = (char*)BufferMemory + vkState.uniformBuffers[ imageIdx ].offset;
-
-
-			glm::mat4 persp = glm::infinitePerspective( glm::pi<float>() * 0.6f, (float)kScreenHeight / kScreenHeight, 0.001f );
-			glm::mat4 view = glm::lookAt( glm::vec3(10.f, 10.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
-			glm::mat4 model = glm::identity<glm::mat4>();
-
-			glm::mat4 mvp = persp * view * model;
-
-			*( (glm::mat4*)memory ) = mvp;
-
-		}
-
-		vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
-		CHECK_LOG_RETURN( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 0, VK_WHOLE_SIZE ),
-			"Could not flush unifrom buffers" );
-	}
-
 	CHECK_LOG_RETURN( CreateSSBOVertexBuffer( vkRDev, 
 		"data/3dModels/SpaceShuttle.obj", 
 		&vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
@@ -404,15 +376,45 @@ void GameRenderHandler::OnDraw(const void* )
 
 	OutputDebug(DebugLevel::Log, "%d ", imageIdx);
 	
-	VkPipelineStageFlags waitFalgs[] = {
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-	};
+	//CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
 
-	CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
+	{
+		void *BufferMemory;
+		CHECK_LOG_RETURN_NOVAL( vmaMapMemory( vkDev.allocator, 
+			vkState.uniformBufferMemory.bufferAllocation, &BufferMemory ), "could not map uniform buffer" );
+
+
+		//for( uint32_t imageIdx = 0; imageIdx < (uint32_t)vkRDev.swapchainImages.size(); imageIdx++ )
+		{
+			
+			void *memory = (char*)BufferMemory + vkState.uniformBuffers[ imageIdx ].offset;
+
+
+			glm::mat4 persp = glm::infinitePerspective( glm::pi<float>() * 0.3f, ( (float)kScreenWidth / kScreenHeight ), 0.1f );
+			glm::mat4 view = glm::lookAt( glm::vec3(20.f, 20.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
+			glm::mat4 model = 
+			glm::rotate( 
+				glm::scale( glm::identity<glm::mat4>(), glm::vec3(0.3f) ),
+				(float)glfwGetTime(), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+
+			glm::mat4 mvp = persp * view * model;
+
+			*( (glm::mat4*)memory ) = mvp;
+
+		}
+
+		vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
+		CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 0, VK_WHOLE_SIZE ),
+			"Could not flush unifrom buffers" );
+	}
 
 	vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
 	CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 
 		vkState.uniformBuffers[ imageIdx ].offset, vkState.uniformBuffers[ imageIdx ].size ), "Could not flush unifrom buffer" );
+
+	VkPipelineStageFlags waitFalgs[] = {
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+	};
 
 	VkSubmitInfo si{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -471,21 +473,6 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
-
-	VkBufferMemoryBarrier bmb{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-		.pNext = nullptr,
-		.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT,
-		.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT,
-		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		.buffer = vkState.uniformBufferMemory.buffer,
-		.offset = vkState.uniformBuffers[ index ].offset,
-		.size = vkState.uniformBuffers[ index ].size,
-	};
-
-	vkCmdPipelineBarrier( CmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-		0, 0, nullptr, 1, &bmb, 0, nullptr );
 	
 	VkRenderingAttachmentInfo colorAttachment = {
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -530,7 +517,7 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 
 		VkViewport vp{ 
 			.x = 0, .y = 0,
-			.width = kScreenWidth, .height = kScreenHeight,	
+			.width = (float)kScreenWidth, .height = (float)kScreenHeight,	
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		};

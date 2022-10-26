@@ -624,10 +624,24 @@ VkResult CreateEngineDescriptorSetLayout( VkDevice device, VkDescriptorSetLayout
 			VK_SHADER_STAGE_FRAGMENT_BIT ),
 	};
 
+	const VkDescriptorBindingFlags bindingFlags[] = {
+		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+		0,
+		0,
+		0,	
+	};
+
+	const VkDescriptorSetLayoutBindingFlagsCreateInfo lbfci{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+		.pNext = nullptr,
+		.bindingCount = (uint32_t)size( bindingFlags ),
+		.pBindingFlags = data( bindingFlags )
+	};
+
 	const VkDescriptorSetLayoutCreateInfo ci = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = 0,
+		.pNext = &lbfci,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
 		.bindingCount = (uint32_t)size( bindings ),
 		.pBindings = bindings
 	};
@@ -1098,7 +1112,7 @@ VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKHR> &ava
 		if( mode == VK_PRESENT_MODE_MAILBOX_KHR )
 			return mode;
 
-	return VK_PRESENT_MODE_FIFO_KHR;
+	return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 }
 
 uint32_t ChooseSwapImageCount( const VkSurfaceCapabilitiesKHR &capabilities )
@@ -1592,8 +1606,8 @@ VkResult CreatePipelineLayout(
 		.depthClampEnable = VK_FALSE,
 		.rasterizerDiscardEnable = VK_FALSE,
 		.polygonMode = VK_POLYGON_MODE_FILL,
-		.cullMode = VK_CULL_MODE_BACK_BIT,
-		.frontFace = VK_FRONT_FACE_CLOCKWISE,
+		.cullMode = VK_CULL_MODE_NONE,//VK_CULL_MODE_BACK_BIT,
+		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 		.depthBiasEnable = VK_FALSE,
 		.depthBiasConstantFactor = 0.0f,
 		.depthBiasClamp = 0.0f,
@@ -1633,8 +1647,8 @@ VkResult CreatePipelineLayout(
 		.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 		.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 		.colorBlendOp = VK_BLEND_OP_ADD,
-		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+		.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 		.alphaBlendOp = VK_BLEND_OP_ADD,
 		.colorWriteMask = 
 			VK_COLOR_COMPONENT_R_BIT |
