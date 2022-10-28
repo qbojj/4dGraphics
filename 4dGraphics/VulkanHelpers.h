@@ -39,7 +39,6 @@ struct VulkanInstance {
 	uint32_t apiVersion;
 	VkSurfaceKHR surface;
 	VkDebugUtilsMessengerEXT messenger;
-	VkDebugReportCallbackEXT reportCallback;
 };
 
 struct VulkanQueue {
@@ -174,7 +173,7 @@ VkResult CreateInstance(
 	const std::vector<const char *> &extensions, 
 	const VkApplicationInfo *pAppInfo, // may be NULL
 	bool enumeratePortability,
-	void *pCreateInstanceNext,
+	const void *pCreateInstanceNext,
 	VkInstance *pInstance 
 );
 VkResult CreateDevice( VkPhysicalDevice physicalDevice,
@@ -189,10 +188,6 @@ VkResult FindSuitablePhysicalDevice( VkInstance instance,
 uint32_t FindQueueFamilies( VkPhysicalDevice device, VkQueueFlags desiredFlags );
 
 // debug functions
-VkResult SetupDebugCallbacks( VkInstance instance,
-	VkDebugUtilsMessengerEXT *messenger, PFN_vkDebugUtilsMessengerCallbackEXT messengerCallback, void *messengerUserData,
-	VkDebugReportCallbackEXT *reportCallback, PFN_vkDebugReportCallbackEXT reportMessageCallback, void *reportUserData
-);
 VkResult SetVkObjectName( VkDevice vkDev, uint64_t object, VkObjectType objType, const char *name );
 
 // swapchain creation functions

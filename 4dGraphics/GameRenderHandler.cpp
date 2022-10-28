@@ -37,7 +37,6 @@ using namespace std;
 	}												\
 }while(0)
 
-#if IS_DEBUG || 1
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 VulkanDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT Severity,
@@ -45,44 +44,24 @@ VulkanDebugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT * CallbackData,
 	void *UserData )
 {
-	(void)Severity;
-	(void)Type;
-	(void)CallbackData;
 	(void)UserData;
 
-	OutputDebug( DebugLevel::PrintAlways, "Layer %s", CallbackData->pMessage );
+	DebugLevel lev = DebugLevel::Debug;
+	const char *sev = "unknown";
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT ) lev = DebugLevel::Debug, sev = "verbose log";
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ) lev = DebugLevel::Log, sev = "info";
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) lev = DebugLevel::Warning, sev = "warning";
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ) lev = DebugLevel::Error, sev = "error";
+
+	std::string type;
+	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT ) type += "general ";
+	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT ) type += "validation ";
+	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT ) type += "performance ";
+
+	OutputDebug( lev, "%s%s: %s\n", type.c_str(), sev, CallbackData->pMessage );
+	VK_ASSERT( !( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) );
 	return VK_FALSE;
 }
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-VulkanDebugReportCallback(
-	VkDebugReportFlagsEXT flags,
-	VkDebugReportObjectTypeEXT objectType,
-	uint64_t object, size_t location, int32_t messageCode,
-	const char *pLayerPrefix,
-	const char *pMessage,
-	void *UserData )
-{
-	(void)flags;
-	(void)objectType;
-	(void)object;
-	(void)location;
-	(void)messageCode;
-	(void)pLayerPrefix;
-	(void)pMessage;
-	(void)UserData;
-
-	DebugLevel lv = DebugLevel::PrintAlways;
-	if( flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT ) lv = DebugLevel::Debug;
-	if( flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT ) lv = DebugLevel::Log;
-	if( flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT ) lv = DebugLevel::Log;
-	if( flags & VK_DEBUG_REPORT_WARNING_BIT_EXT ) lv = DebugLevel::Warning;
-	if( flags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) lv = DebugLevel::Error;
-
-	OutputDebug( lv, "Debug callback (%s): %s\n", pLayerPrefix, pMessage );
-	return VK_FALSE;
-}
-#endif
 
 bool GameRenderHandler::OnCreate(GLFWwindow* window)
 {
@@ -96,17 +75,31 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	};
 
 	std::vector<const char *> instanceExtensions{
-		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
-	CHECK_LOG_RETURN(CreateInstance(instanceLayers, instanceExtensions, nullptr, false, nullptr, &vk.instance), "Could not create vulkan instance");
+	const VkDebugUtilsMessengerCreateInfoEXT messengerCI = {
+		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+		.pNext = nullptr,
+		.flags = 0,
+		.messageSeverity =
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+			0,
+		.messageType =
+			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+			0,
+		.pfnUserCallback = VulkanDebugCallback,
+		.pUserData = nullptr
+	};
 
-#if IS_DEBUG || 1
-	CHECK_LOG_RETURN(SetupDebugCallbacks( vk.instance,
-		&vk.messenger, VulkanDebugCallback, nullptr,
-		&vk.reportCallback, VulkanDebugReportCallback, nullptr ), "Could not setup debug callbacks");
-#endif
+	CHECK_LOG_RETURN( CreateInstance(instanceLayers, instanceExtensions, nullptr, false, &messengerCI, &vk.instance), "Could not create vulkan instance");
+
+	CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks");
 
 	CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
 	
@@ -296,7 +289,7 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 			.viewMask = 0,
 			.colorAttachmentCount = (uint32_t)size(colorFromats),
 			.pColorAttachmentFormats = data(colorFromats),
-			.depthAttachmentFormat = VK_FORMAT_D16_UNORM_S8_UINT,
+			.depthAttachmentFormat = VK_FORMAT_D24_UNORM_S8_UINT, // TODO:
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
 		};
 		
@@ -383,7 +376,7 @@ void GameRenderHandler::OnDraw(const void* )
 	CHECK_LOG_RETURN_NOVAL( res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain, UINT64_MAX,
 		vkRDev.semophore, VK_NULL_HANDLE, &imageIdx ), "Cannot acquire image" );
 
-	OutputDebug(DebugLevel::Log, "%2d: %8.4fms (%6.2f)\n", imageIdx, dt*1000, 1. / filteredDT );
+	//OutputDebug(DebugLevel::Log, "%2d: %8.4fms (%6.2f)\n", imageIdx, dt*1000, 1. / filteredDT );
 	
 	//CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
 
@@ -460,9 +453,12 @@ void GameRenderHandler::OnDestroy()
 
 GameRenderHandler::~GameRenderHandler()
 {
-	if( vkDev.device ) vkDeviceWaitIdle( vkDev.device );
-	DestroyVulkanState( vkDev, vkState );
-	DestroyVulkanRendererDevice( vkRDev );
+	if( vkDev.device )
+	{
+		vkDeviceWaitIdle( vkDev.device );
+		DestroyVulkanState( vkDev, vkState );
+		DestroyVulkanRendererDevice( vkRDev );
+	}
 	DestroyVulkanDevice( vkDev );
 	DestroyVulkanInstance( vk );
 }
@@ -472,7 +468,7 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 	const VkCommandBufferBeginInfo bi = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.pNext = nullptr,
-		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT, // TODO:
 		.pInheritanceInfo = nullptr
 	};
 

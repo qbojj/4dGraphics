@@ -17,19 +17,59 @@
 using namespace std;
 using namespace vulkan_helpers;
 
-// out must be at least len*2 in size
-static void GetValueStreamHex( char *out, const void *data, size_t len )
+static std::string FormatUUID( const uint8_t data[ VK_UUID_SIZE ] )
 {
-	constexpr char valToHex[] = "0123456789ABCDEF";
-	const void *end = (char*)data + len;
+	constexpr char valToHex[] = "0123456789abcdef";
+	std::string res( VK_UUID_SIZE * 2 + 4, '\0' );
+	char *out = res.data();
 
-	while( data < end )
+	for( size_t i = 0; i < VK_UUID_SIZE; i++ )
 	{
-		*(out++) = valToHex[ (*(uint8_t*)data) >> 4 ];
-		*(out++) = valToHex[ (*(uint8_t*)data) & 0x0F ];
+		*out++ = valToHex[ data[i] >> 4  ];
+		*out++ = valToHex[ data[i] & 0x0F];
 
-		data = (char*)data + 1;
+		if( i == 3 || i == 5 || i == 7 || i == 9 ) *out++ = '-';
 	}
+
+	return res;
+}
+
+static std::string FormatLUID( const uint8_t data[ VK_LUID_SIZE ] )
+{
+	constexpr char valToHex[] = "0123456789abcdef";
+	std::string res( VK_LUID_SIZE * 2 + 1, '\0' );
+	char *out = res.data();
+
+	for( size_t i = 0; i < VK_LUID_SIZE; i++ )
+	{
+		*out++ = valToHex[ data[ i ] >> 4 ];
+		*out++ = valToHex[ data[ i ] & 0x0F ];
+
+		if( i == 3 ) *out++ = '-';
+	}
+
+	return res;
+}
+
+static std::string GetUniqueDeviceName( VkPhysicalDevice physicalDev )
+{
+	if( !physicalDev ) return "";
+	
+	VkPhysicalDeviceVulkan11Properties v11props{};
+	v11props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+	v11props.pNext = nullptr;
+
+	VkPhysicalDeviceProperties2 props{};
+	props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	props.pNext = &v11props;
+
+	vkGetPhysicalDeviceProperties2( physicalDev, &props );
+	std::string device = 
+		v11props.deviceLUIDValid ? 
+			FormatLUID( v11props.deviceLUID ) :
+			FormatUUID( v11props.deviceUUID );
+
+	return device + "-" + std::to_string( sizeof( void * ) );
 }
 
 VkResult InitVulkanDevice(
@@ -44,6 +84,8 @@ VkResult InitVulkanDevice(
 	VmaAllocatorCreateInfo aci{};
 	VmaVulkanFunctions functions{};
 	VkPipelineCacheCreateInfo pci{};
+	std::string cache{};
+	VkResult res{};
 
 	VK_CHECK_GOTO_INIT;
 	vkDev = {};
@@ -64,20 +106,14 @@ VkResult InitVulkanDevice(
 	
 	VK_CHECK_GOTO( vmaCreateAllocator( &aci, &vkDev.allocator ) );
 	
-	{
-		std::filesystem::path cacheDir = 
-			std::filesystem::current_path() / "cache";
+	{		
+		auto cachePath = 
+			( std::filesystem::current_path() / 
+				"cache" / 
+				( GetUniqueDeviceName( vkDev.physicalDevice ) + ".pcache" )
+				).string();
 
-		const VkPhysicalDeviceProperties *props;
-		vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
-		
-		char tmp[VK_UUID_SIZE*2+sizeof(".pcache")];
-		GetValueStreamHex( tmp, props->pipelineCacheUUID, VK_UUID_SIZE );
-		memcpy( &tmp[VK_UUID_SIZE*2], ".pcache", sizeof(".pcache") );
-
-		auto cachePath = ( cacheDir / tmp ).string();
-
-		std::string cache = GetFileString( cachePath.c_str(), true );
+		cache = GetFileString( cachePath.c_str(), true );
 
 		pci = VkPipelineCacheCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -88,7 +124,13 @@ VkResult InitVulkanDevice(
 		};
 	}
 
-	VK_CHECK_GOTO( vkCreatePipelineCache( vkDev.device, &pci, nullptr, &vkDev.pipelineCache ) );
+	res = vkCreatePipelineCache( vkDev.device, &pci, nullptr, &vkDev.pipelineCache );
+	if( res < 0 )
+	{
+		pci.initialDataSize = 0;
+		pci.pInitialData = nullptr;
+		VK_CHECK_GOTO( vkCreatePipelineCache( vkDev.device, &pci, nullptr, &vkDev.pipelineCache ) );
+	}
 
 	return VK_SUCCESS;
 
@@ -831,21 +873,15 @@ void DestroyVulkanDevice( VulkanDevice &vkDev )
 
 		if( err == VK_SUCCESS )
 		{
-			std::filesystem::path cacheDir = 
+			std::filesystem::path cacheDir =
 				std::filesystem::current_path() / "cache";
 
 			std::filesystem::create_directories( cacheDir );
 
-			const VkPhysicalDeviceProperties *props;
-			vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+			auto cachePath =
+				( cacheDir / ( GetUniqueDeviceName( vkDev.physicalDevice ) + ".pcache" ) ).string();
 
-			char tmp[VK_UUID_SIZE*2+sizeof(".pcache")];
-			GetValueStreamHex( tmp, props->pipelineCacheUUID, VK_UUID_SIZE );
-			strcpy( &tmp[VK_UUID_SIZE*2], ".pcache" );
-
-			auto cachePath = ( cacheDir / tmp ).string();
-
-			FILE *fh = fopen( cachePath.c_str(), "w" );
+			FILE *fh = fopen( cachePath.c_str(), "wb" );
 			if( fh )
 			{
 				fwrite( cacheData.data(), sizeof(uint8_t), cacheData.size(), fh );
@@ -864,10 +900,12 @@ void DestroyVulkanDevice( VulkanDevice &vkDev )
 
 void DestroyVulkanInstance( VulkanInstance &vk )
 {
-	vkDestroySurfaceKHR( vk.instance, vk.surface, nullptr );
-	if( vk.reportCallback ) vkDestroyDebugReportCallbackEXT( vk.instance, vk.reportCallback, nullptr );
-	if( vk.messenger ) vkDestroyDebugUtilsMessengerEXT( vk.instance, vk.messenger, nullptr );
-	vkDestroyInstance( vk.instance, nullptr );
+	if( vk.instance )
+	{
+		vkDestroySurfaceKHR( vk.instance, vk.surface, nullptr );
+		if( vk.messenger ) vkDestroyDebugUtilsMessengerEXT( vk.instance, vk.messenger, nullptr );
+		vkDestroyInstance( vk.instance, nullptr );
+	}
 
 	vk = VulkanInstance{};
 }
@@ -999,7 +1037,7 @@ VkResult CreateInstance(
 	const std::vector<const char *> &extensions,
 	const VkApplicationInfo *pAppInfo,
 	bool enumeratePortability,
-	void *pCreateInstanceNext,
+	const void *pCreateInstanceNext,
 	VkInstance* pInstance )
 {
 	uint32_t SurfaceExtCnt;
@@ -1112,54 +1150,6 @@ uint32_t FindQueueFamilies(VkPhysicalDevice device, VkQueueFlags desiredFlags)
 	}
 
 	return UINT32_MAX;
-}
-
-VkResult SetupDebugCallbacks( VkInstance instance,
-	VkDebugUtilsMessengerEXT *messenger, PFN_vkDebugUtilsMessengerCallbackEXT messengerCallback, void *messengerUserData, 
-	VkDebugReportCallbackEXT *reportCallback, PFN_vkDebugReportCallbackEXT reportMessageCallback, void *reportUserData )
-{
-	*messenger = VK_NULL_HANDLE;
-	*reportCallback = VK_NULL_HANDLE;
-
-	const VkDebugUtilsMessengerCreateInfoEXT MessCI = {
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.pNext = nullptr,
-		.flags = 0,
-		.messageSeverity =
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-		.messageType =
-			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-		.pfnUserCallback = messengerCallback,
-		.pUserData = messengerUserData
-	};
-
-	VK_CHECK_RET( vkCreateDebugUtilsMessengerEXT( instance, &MessCI, nullptr, messenger ) );
-
-	const VkDebugReportCallbackCreateInfoEXT RepCI = {
-		.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-		.pNext = nullptr,
-		.flags =
-			VK_DEBUG_REPORT_ERROR_BIT_EXT |
-			VK_DEBUG_REPORT_WARNING_BIT_EXT |
-			VK_DEBUG_REPORT_DEBUG_BIT_EXT |
-			VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT,
-		.pfnCallback = reportMessageCallback,
-		.pUserData = reportUserData
-	};
-
-	VkResult res = vkCreateDebugReportCallbackEXT( instance, &RepCI, nullptr, reportCallback );
-	if( res < 0 ) 
-	{ 
-		VK_ASSERT( false );
-		vkDestroyDebugUtilsMessengerEXT( instance, *messenger, nullptr ); 
-		*messenger = VK_NULL_HANDLE; 
-		return res;
-	}
-
-	return VK_SUCCESS;
 }
 
 VkResult SetVkObjectName( VkDevice device, uint64_t object, VkObjectType objType, const char *name )
