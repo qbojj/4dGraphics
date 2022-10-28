@@ -51,6 +51,7 @@ struct VulkanDevice {
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;
 	VmaAllocator allocator;
+	VkPipelineCache pipelineCache;
 };
 
 struct VulkanRenderDevice {

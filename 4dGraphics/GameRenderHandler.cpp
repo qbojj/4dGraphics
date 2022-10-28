@@ -308,7 +308,7 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		gpci.pNext = &prci;
 
 		TRACE(DebugLevel::Log, "Before vkCreateGraphicsPipelines\n");
-		res = vkCreateGraphicsPipelines( vkDev.device, nullptr, 1, &gpci, nullptr, &vkState.graphicsPipeline );
+		res = vkCreateGraphicsPipelines( vkDev.device, vkDev.pipelineCache, 1, &gpci, nullptr, &vkState.graphicsPipeline );
 	}
 	if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
 	if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
@@ -364,17 +364,26 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
 		CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
 
+	lt = glfwGetTime();
+
 	return true;
 }
 
 void GameRenderHandler::OnDraw(const void* )
 {
+	static double filteredDT = 0;
+	auto t = glfwGetTime();
+	auto dt = t - lt;
+	lt = t;
+	constexpr double alpha = 0.01;
+	filteredDT = filteredDT * (1-alpha) + dt * alpha;
+
 	VkResult res;
 	uint32_t imageIdx;
 	CHECK_LOG_RETURN_NOVAL( res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain, UINT64_MAX,
 		vkRDev.semophore, VK_NULL_HANDLE, &imageIdx ), "Cannot acquire image" );
 
-	OutputDebug(DebugLevel::Log, "%d ", imageIdx);
+	OutputDebug(DebugLevel::Log, "%2d: %8.4fms (%6.2f)\n", imageIdx, dt*1000, 1. / filteredDT );
 	
 	//CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
 
@@ -389,13 +398,18 @@ void GameRenderHandler::OnDraw(const void* )
 			
 			void *memory = (char*)BufferMemory + vkState.uniformBuffers[ imageIdx ].offset;
 
-
-			glm::mat4 persp = glm::infinitePerspective( glm::pi<float>() * 0.3f, ( (float)kScreenWidth / kScreenHeight ), 0.1f );
-			glm::mat4 view = glm::lookAt( glm::vec3(20.f, 20.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
+			const glm::mat4 reverseDepthMatrrix(
+				1.f, 0.f, 0.f, 0.f,
+				0.f, 1.f, 0.f, 0.f,
+				0.f, 0.f,-1.f, 0.f,
+				0.f, 0.f, 1.f, 1.f
+			);
+			glm::mat4 persp = reverseDepthMatrrix * glm::infinitePerspective( glm::pi<float>() * .5f, ( (float)kScreenWidth / kScreenHeight ), 1.f );
+			glm::mat4 view = glm::lookAt( glm::vec3(100.f, 100.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
 			glm::mat4 model = 
 			glm::rotate( 
-				glm::scale( glm::identity<glm::mat4>(), glm::vec3(0.3f) ),
-				(float)glfwGetTime(), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+				glm::scale( glm::identity<glm::mat4>(), glm::vec3(0.8f) ),
+				(float)glfwGetTime() / 60.f * glm::pi<float>() * 2.f, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
 			glm::mat4 mvp = persp * view * model;
 
@@ -407,10 +421,6 @@ void GameRenderHandler::OnDraw(const void* )
 		CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 0, VK_WHOLE_SIZE ),
 			"Could not flush unifrom buffers" );
 	}
-
-	vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
-	CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 
-		vkState.uniformBuffers[ imageIdx ].offset, vkState.uniformBuffers[ imageIdx ].size ), "Could not flush unifrom buffer" );
 
 	VkPipelineStageFlags waitFalgs[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -484,7 +494,7 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 		.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.clearValue = { .color = { .float32 = { 1.0f, 0.0f, 1.0f, 1.0f } } },
+		.clearValue = { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } },
 	};
 
 	VkRenderingAttachmentInfo depthAttachment = {

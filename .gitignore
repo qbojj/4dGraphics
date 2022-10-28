@@ -3,7 +3,7 @@
 out/
 build/
 
-*spv
+*.spv
 
 imgui.ini
 log.txt

@@ -16,7 +16,7 @@ namespace glslang
 {
     // from glslang::glslang-default-resource-limits
     extern const TBuiltInResource DefaultTBuiltInResource;
-};
+}
 
 using namespace std;
 

@@ -17,6 +17,21 @@
 using namespace std;
 using namespace vulkan_helpers;
 
+// out must be at least len*2 in size
+static void GetValueStreamHex( char *out, const void *data, size_t len )
+{
+	constexpr char valToHex[] = "0123456789ABCDEF";
+	const void *end = (char*)data + len;
+
+	while( data < end )
+	{
+		*(out++) = valToHex[ (*(uint8_t*)data) >> 4 ];
+		*(out++) = valToHex[ (*(uint8_t*)data) & 0x0F ];
+
+		data = (char*)data + 1;
+	}
+}
+
 VkResult InitVulkanDevice(
 	VulkanInstance &vk,
 	VkPhysicalDevice device,
@@ -28,7 +43,8 @@ VkResult InitVulkanDevice(
 {
 	VmaAllocatorCreateInfo aci{};
 	VmaVulkanFunctions functions{};
-	
+	VkPipelineCacheCreateInfo pci{};
+
 	VK_CHECK_GOTO_INIT;
 	vkDev = {};
 
@@ -47,6 +63,33 @@ VkResult InitVulkanDevice(
 	aci.pVulkanFunctions = &functions;
 	
 	VK_CHECK_GOTO( vmaCreateAllocator( &aci, &vkDev.allocator ) );
+	
+	{
+		std::filesystem::path cacheDir = 
+			std::filesystem::current_path() / "cache";
+
+		const VkPhysicalDeviceProperties *props;
+		vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+		
+		char tmp[VK_UUID_SIZE*2+sizeof(".pcache")];
+		GetValueStreamHex( tmp, props->pipelineCacheUUID, VK_UUID_SIZE );
+		memcpy( &tmp[VK_UUID_SIZE*2], ".pcache", sizeof(".pcache") );
+
+		auto cachePath = ( cacheDir / tmp ).string();
+
+		std::string cache = GetFileString( cachePath.c_str(), true );
+
+		pci = VkPipelineCacheCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.initialDataSize = cache.size(),
+			.pInitialData = cache.data(),
+		};
+	}
+
+	VK_CHECK_GOTO( vkCreatePipelineCache( vkDev.device, &pci, nullptr, &vkDev.pipelineCache ) );
+
 	return VK_SUCCESS;
 
 	VK_CHECK_GOTO_HANDLE( ret );
@@ -772,6 +815,47 @@ void DestroyVulkanRendererDevice( VulkanRenderDevice &vkDev )
 
 void DestroyVulkanDevice( VulkanDevice &vkDev )
 {
+
+	if( vkDev.pipelineCache )
+	{
+		size_t dataSize = 0;
+		std::vector<uint8_t> cacheData;
+		VkResult err;
+		do {
+			err = vkGetPipelineCacheData( vkDev.device, vkDev.pipelineCache, &dataSize, nullptr );
+			if( err != VK_SUCCESS ) break;
+			cacheData.resize( dataSize );
+			err = vkGetPipelineCacheData( vkDev.device, vkDev.pipelineCache, &dataSize, cacheData.data() );
+			cacheData.resize( dataSize );
+		} while( err == VK_INCOMPLETE );
+
+		if( err == VK_SUCCESS )
+		{
+			std::filesystem::path cacheDir = 
+				std::filesystem::current_path() / "cache";
+
+			std::filesystem::create_directories( cacheDir );
+
+			const VkPhysicalDeviceProperties *props;
+			vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+
+			char tmp[VK_UUID_SIZE*2+sizeof(".pcache")];
+			GetValueStreamHex( tmp, props->pipelineCacheUUID, VK_UUID_SIZE );
+			strcpy( &tmp[VK_UUID_SIZE*2], ".pcache" );
+
+			auto cachePath = ( cacheDir / tmp ).string();
+
+			FILE *fh = fopen( cachePath.c_str(), "w" );
+			if( fh )
+			{
+				fwrite( cacheData.data(), sizeof(uint8_t), cacheData.size(), fh );
+				fclose( fh );
+			}
+		}
+
+		vkDestroyPipelineCache( vkDev.device, vkDev.pipelineCache, nullptr );
+	}
+
 	vmaDestroyAllocator( vkDev.allocator );
 	vkDestroyDevice( vkDev.device, nullptr );
 
@@ -1103,16 +1187,19 @@ VkResult QuerySwapchainSupport( VkPhysicalDevice device, VkSurfaceKHR surface, S
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector<VkSurfaceFormatKHR> &avaiableFormats )
 {
 	(void)avaiableFormats;
+
+
 	return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 }
 
 VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKHR> &avaiablePresentModes )
 {
+	(void)avaiablePresentModes;
 	for( const auto mode : avaiablePresentModes )
-		if( mode == VK_PRESENT_MODE_MAILBOX_KHR )
+		if( mode == VK_PRESENT_MODE_MAILBOX_KHR ) // no tearing (low latency) and 
 			return mode;
 
-	return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+	return VK_PRESENT_MODE_FIFO_RELAXED_KHR; // no tearing if full framerate (if frame arrives late it still tears)
 }
 
 uint32_t ChooseSwapImageCount( const VkSurfaceCapabilitiesKHR &capabilities )
@@ -1537,7 +1624,7 @@ VkResult CreateShaderModule(
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 		.pNext = pNext,
 		.flags = flags,
-		.codeSize = (uint32_t)SPIRV.size() * sizeof(uint32_t),
+		.codeSize = SPIRV.size() * sizeof(uint32_t),
 		.pCode = SPIRV.data()
 	};
 

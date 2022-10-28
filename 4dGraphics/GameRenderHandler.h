@@ -24,6 +24,7 @@ protected:
 
 	uint32_t kScreenWidth, kScreenHeight;
 
+	double lt;
 	VkResult FillCommandBuffers( uint32_t index );
 };
 
