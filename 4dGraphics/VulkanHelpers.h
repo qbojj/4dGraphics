@@ -58,6 +58,7 @@ struct VulkanRenderDevice {
 	VulkanQueue graphicsQueue;
 	VkSemaphore semophore;
 	VkSemaphore renderSemaphore;
+	VkFence fence;
 	VkSwapchainKHR swapchain;
 	std::vector<VkImage> swapchainImages;
 	std::vector<VkImageView> swapchainImageViews;
@@ -84,7 +85,7 @@ struct VulkanBufferSuballocation {
 struct VulkanState {
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
-	std::vector<VkDescriptorSet> descriptorSets;
+	VkDescriptorSet descriptorSet;
 
 	VulkanBuffer uniformBufferMemory;
 	std::vector<VulkanBufferSuballocation> uniformBuffers;
@@ -128,11 +129,6 @@ VkResult InitVulkanRenderDevice(
 	VulkanQueue graphicsQueue,
 	uint32_t width, uint32_t height,
 	VulkanRenderDevice &vkRDev
-);
-
-VkResult CreateDepthResource( VulkanRenderDevice &vkDev,
-	uint32_t width, uint32_t height,
-	VulkanTexture *depth 
 );
 
 VkResult CreateTextureImage( VulkanRenderDevice &vkDev,
@@ -232,6 +228,16 @@ VkResult CreateBuffer(
 
 // image manipulation functions
 
+VkResult CreateImageResource(
+	VulkanDevice &vkDev,
+	VkFormat format, VkImageType imageType,
+	VkExtent3D size, uint32_t mipLevels, uint32_t arrayLayers,
+	VkSampleCountFlagBits samples, VkImageTiling tiling,
+	VkImageCreateFlags flags, VkImageUsageFlags usage,
+	VmaAllocationCreateFlags allocationFlags, VmaMemoryUsage vmaUsage,
+	VulkanTexture *imageResource
+);
+
 VkResult CreateImage(
 	VmaAllocator allocator,
 	VkFormat format, VkImageType imageType,
@@ -258,7 +264,7 @@ void CopyBufferToImageCmd(
 );
 void TransitionImageLayoutCmd(
 	VkCommandBuffer cmdBuffer,
-	VkImage image, VkFormat format,
+	VkImage image, VkImageAspectFlags aspects,
 	VkImageLayout oldLayout, VkImageLayout newLayout,
 	VkPipelineStageFlags srcStageMask, VkAccessFlags srcAccessMask,
 	VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask
@@ -271,8 +277,7 @@ VkFormat FindSupportedFormat(
 	VkImageTiling tiling, VkFormatFeatureFlags features
 );
 VkFormat FindDepthFormat( VkPhysicalDevice device );
-bool FormatHasDepthComponent( VkFormat fmt );
-bool FormatHasStencilComponent( VkFormat fmt );
+VkImageAspectFlags FormatGetAspects( VkFormat fmt );
 // synchronization functions
 
 VkResult CreateSemophore( VkDevice device, VkSemaphore *semaphore );

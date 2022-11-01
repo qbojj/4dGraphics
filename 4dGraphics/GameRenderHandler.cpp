@@ -45,30 +45,24 @@ VulkanDebugCallback(
 	void *UserData )
 {
 	(void)UserData;
+	(void)Type;
 
 	DebugLevel lev = DebugLevel::Debug;
-	const char *sev = "unknown";
-	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT ) lev = DebugLevel::Debug, sev = "verbose log";
-	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ) lev = DebugLevel::Log, sev = "info";
-	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) lev = DebugLevel::Warning, sev = "warning";
-	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ) lev = DebugLevel::Error, sev = "error";
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT ) lev = DebugLevel::Debug;
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ) lev = DebugLevel::Log;
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) lev = DebugLevel::Warning;
+	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ) lev = DebugLevel::Error;
 
-	std::string type;
-	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT ) type += "general ";
-	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT ) type += "validation ";
-	if( Type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT ) type += "performance ";
-
-	OutputDebug( lev, "%s%s: %s\n", type.c_str(), sev, CallbackData->pMessage );
+	OutputDebug( lev, "%s\n", CallbackData->pMessage );
 	VK_ASSERT( !( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) );
 	return VK_FALSE;
 }
 
 bool GameRenderHandler::OnCreate(GLFWwindow* window)
 {
-	VkResult res = VK_SUCCESS;
 	ASSERT_LOG_RETURN(glfwVulkanSupported(), "Vulkan not supported");
 
-	volkInitializeCustom(glfwGetInstanceProcAddress);
+	CHECK_LOG_RETURN( volkInitialize(), "Could not initialize volk" );//volkInitializeCustom(glfwGetInstanceProcAddress);
 
 	std::vector<const char *> instanceLayers{
 		"VK_LAYER_KHRONOS_validation"
@@ -223,7 +217,6 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	ph12Features.pNext = &phRenderingFeatures;
 	ph12Features.bufferDeviceAddress = VK_TRUE;
-	ph12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
 
 	VkPhysicalDeviceVulkan11Features ph11Features{};
 	ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
@@ -251,65 +244,70 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	CHECK_LOG_RETURN( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ), 
 		"Could not create pipeline layout" );
 
+	VkFormat depthFormat = FindDepthFormat( vkDev.physicalDevice );
+
 	TRACE(DebugLevel::Log, "Before shader creation\n");
-	res = VK_SUCCESS;
-	VkShaderModule vertShader = VK_NULL_HANDLE, fragShader = VK_NULL_HANDLE;
-	if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.vert", 0, nullptr, &vertShader );
-	if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.frag", 0, nullptr, &fragShader );
-	if( res >= 0 ) 
 	{
-		TRACE(DebugLevel::Log, "Before pipeline creation\n");
-		VkGraphicsPipelineCreateInfo gpci{};
-		FillGraphicsPipelineDefaults( &gpci );
+		VkResult res = VK_SUCCESS;
 
-		std::vector<VkPipelineShaderStageCreateInfo> shaders{
-			FillShaderStage( VK_SHADER_STAGE_VERTEX_BIT, vertShader, "main" ),
-			FillShaderStage( VK_SHADER_STAGE_FRAGMENT_BIT, fragShader, "main" ),
-		};
-		
-		VkDynamicState dyncamicStates[] = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dsci{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.dynamicStateCount = (uint32_t)size(dyncamicStates),
-			.pDynamicStates = data(dyncamicStates)
-		};
+		VkShaderModule vertShader = VK_NULL_HANDLE, fragShader = VK_NULL_HANDLE;
+		if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.vert", 0, nullptr, &vertShader );
+		if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.frag", 0, nullptr, &fragShader );
+		if( res >= 0 )
+		{
+			TRACE( DebugLevel::Log, "Before pipeline creation\n" );
+			VkGraphicsPipelineCreateInfo gpci{};
+			FillGraphicsPipelineDefaults( &gpci );
 
-		VkFormat colorFromats[] = {
-			VK_FORMAT_B8G8R8A8_UNORM
-		};
+			std::vector<VkPipelineShaderStageCreateInfo> shaders{
+				FillShaderStage( VK_SHADER_STAGE_VERTEX_BIT, vertShader, "main" ),
+				FillShaderStage( VK_SHADER_STAGE_FRAGMENT_BIT, fragShader, "main" ),
+			};
 
-		VkPipelineRenderingCreateInfo prci{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-			.pNext = nullptr,
-			.viewMask = 0,
-			.colorAttachmentCount = (uint32_t)size(colorFromats),
-			.pColorAttachmentFormats = data(colorFromats),
-			.depthAttachmentFormat = VK_FORMAT_D24_UNORM_S8_UINT, // TODO:
-			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
-		};
-		
-		gpci.stageCount = (uint32_t)size(shaders);
-		gpci.pStages = data(shaders);
-		gpci.pDynamicState = &dsci;
-		gpci.layout = vkState.layout;
+			VkDynamicState dyncamicStates[] = {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR
+			};
+			VkPipelineDynamicStateCreateInfo dsci{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.dynamicStateCount = (uint32_t)size( dyncamicStates ),
+				.pDynamicStates = data( dyncamicStates )
+			};
 
-		gpci.pNext = &prci;
+			VkFormat colorFromats[] = {
+				VK_FORMAT_B8G8R8A8_UNORM
+			};
 
-		TRACE(DebugLevel::Log, "Before vkCreateGraphicsPipelines\n");
-		res = vkCreateGraphicsPipelines( vkDev.device, vkDev.pipelineCache, 1, &gpci, nullptr, &vkState.graphicsPipeline );
+			VkPipelineRenderingCreateInfo prci{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+				.pNext = nullptr,
+				.viewMask = 0,
+				.colorAttachmentCount = (uint32_t)size( colorFromats ),
+				.pColorAttachmentFormats = data( colorFromats ),
+				.depthAttachmentFormat = depthFormat,
+				.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+			};
+
+			gpci.stageCount = (uint32_t)size( shaders );
+			gpci.pStages = data( shaders );
+			gpci.pDynamicState = &dsci;
+			gpci.layout = vkState.layout;
+
+			gpci.pNext = &prci;
+
+			TRACE( DebugLevel::Log, "Before vkCreateGraphicsPipelines\n" );
+			res = vkCreateGraphicsPipelines( vkDev.device, vkDev.pipelineCache, 1, &gpci, nullptr, &vkState.graphicsPipeline );
+		}
+		if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
+		if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
+
+		CHECK_LOG_RETURN( res, "Couldn't create pipeline" );
 	}
-	if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
-	if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
-
-	CHECK_LOG_RETURN( res, "Couldn't create pipeline" );
 
 	CHECK_LOG_RETURN( CreateDescriptorSetHelper( vkDev.device, 
-		VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, 
+		0, 
 		(uint32_t)vkRDev.swapchainImages.size(),
 		10, 10, 10, 
 		&vkState.descriptorPool ), "Could not create descriptor pool" );
@@ -351,8 +349,39 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 
 	CHECK_LOG_RETURN( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
 
-	CHECK_LOG_RETURN( CreateDepthResource( vkRDev, kScreenWidth, kScreenHeight, &vkState.depthResource ),
-		"Could not create depth resource" );
+	{
+		VkResult res = CreateImageResource( vkDev,
+			depthFormat, VK_IMAGE_TYPE_2D, { kScreenWidth, kScreenHeight, 1 },
+			1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, 0,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			0, VMA_MEMORY_USAGE_AUTO,
+			&vkState.depthResource );
+
+		if( res >= 0 )
+		{
+			VkCommandBuffer cmdBuffer;
+			res = BeginSingleTimeCommands(
+				vkDev.device, vkRDev.commandPool, &cmdBuffer
+			);
+
+			if( res >= 0 )
+			{
+				TransitionImageLayoutCmd(
+					cmdBuffer, vkState.depthResource.image, FormatGetAspects( depthFormat ),
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+					VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+					VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+				);
+
+				res = EndSingleTimeCommands( vkDev.device, vkRDev.commandPool, vkRDev.graphicsQueue.queue, cmdBuffer );
+			}
+		}
+
+		CHECK_LOG_RETURN( res, "Could not create depth resource" );
+	}
 
 	for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
 		CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
@@ -364,29 +393,24 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 
 void GameRenderHandler::OnDraw(const void* )
 {
-	static double filteredDT = 0;
+	static double filteredDT = 1;
 	auto t = glfwGetTime();
 	auto dt = t - lt;
 	lt = t;
-	constexpr double alpha = 0.01;
+	constexpr double alpha = 0.1;
 	filteredDT = filteredDT * (1-alpha) + dt * alpha;
 
-	VkResult res;
 	uint32_t imageIdx;
-	CHECK_LOG_RETURN_NOVAL( res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain, UINT64_MAX,
+	CHECK_LOG_RETURN_NOVAL( vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain, UINT64_MAX,
 		vkRDev.semophore, VK_NULL_HANDLE, &imageIdx ), "Cannot acquire image" );
 
-	//OutputDebug(DebugLevel::Log, "%2d: %8.4fms (%6.2f)\n", imageIdx, dt*1000, 1. / filteredDT );
+	OutputDebug(DebugLevel::Log, "%2d: %8.4fms (%6.2f)\n", imageIdx, dt*1000, 1. / filteredDT );
 	
-	//CHECK_LOG_RETURN_NOVAL( vkQueueWaitIdle( vkRDev.graphicsQueue.queue ), "Could not wait for idle" );
-
 	{
 		void *BufferMemory;
 		CHECK_LOG_RETURN_NOVAL( vmaMapMemory( vkDev.allocator, 
 			vkState.uniformBufferMemory.bufferAllocation, &BufferMemory ), "could not map uniform buffer" );
 
-
-		//for( uint32_t imageIdx = 0; imageIdx < (uint32_t)vkRDev.swapchainImages.size(); imageIdx++ )
 		{
 			
 			void *memory = (char*)BufferMemory + vkState.uniformBuffers[ imageIdx ].offset;
@@ -402,7 +426,7 @@ void GameRenderHandler::OnDraw(const void* )
 			glm::mat4 model = 
 			glm::rotate( 
 				glm::scale( glm::identity<glm::mat4>(), glm::vec3(0.8f) ),
-				(float)glfwGetTime() / 60.f * glm::pi<float>() * 2.f, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+				(float)glfwGetTime() * glm::pi<float>() * 2.f, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
 			glm::mat4 mvp = persp * view * model;
 
@@ -411,9 +435,12 @@ void GameRenderHandler::OnDraw(const void* )
 		}
 
 		vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
-		CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 0, VK_WHOLE_SIZE ),
+		CHECK_LOG_RETURN_NOVAL( vmaFlushAllocation( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation, 
+			vkState.uniformBuffers[imageIdx].offset, vkState.uniformBuffers[imageIdx].size ),
 			"Could not flush unifrom buffers" );
 	}
+
+	//CHECK_LOG_RETURN_NOVAL( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
 
 	VkPipelineStageFlags waitFalgs[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -430,8 +457,9 @@ void GameRenderHandler::OnDraw(const void* )
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &vkRDev.renderSemaphore,
 	};
-	CHECK_LOG_RETURN_NOVAL( res = vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si, VK_NULL_HANDLE), "Cannot enqueue cmdBuffers" );
+	CHECK_LOG_RETURN_NOVAL( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si, vkRDev.fence ), "Cannot enqueue cmdBuffers" );
 
+	VkResult res;
 	VkPresentInfoKHR pi{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.pNext = nullptr,
@@ -440,10 +468,13 @@ void GameRenderHandler::OnDraw(const void* )
 		.swapchainCount = 1,
 		.pSwapchains = &vkRDev.swapchain,
 		.pImageIndices = &imageIdx,
-		.pResults = nullptr,
+		.pResults = &res,
 	};
 
-	CHECK_LOG_RETURN_NOVAL( res = vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi ), "Cannot enqueue present" );
+	CHECK_LOG_RETURN_NOVAL( vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi ), "Cannot enqueue present" );
+	CHECK_LOG_RETURN_NOVAL( vkWaitForFences( vkDev.device, 1, &vkRDev.fence, VK_TRUE, UINT64_MAX ), "Cannot wait for fence" );
+	CHECK_LOG_RETURN_NOVAL( vkResetFences( vkDev.device, 1, &vkRDev.fence ), "Cannot reset fence" );
+	CHECK_LOG_RETURN_NOVAL( res, "Cannot present" );
 }
 
 void GameRenderHandler::OnDestroy()
@@ -468,14 +499,14 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 	const VkCommandBufferBeginInfo bi = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.pNext = nullptr,
-		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT, // TODO:
+		.flags = 0,
 		.pInheritanceInfo = nullptr
 	};
 
 	VkCommandBuffer CmdBuffer = vkRDev.commandBuffers[ index ];
 	VK_CHECK_RET( vkBeginCommandBuffer( CmdBuffer, &bi ) );
 
-	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_FORMAT_B8G8R8A8_UNORM,
+	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
@@ -535,14 +566,15 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 		};
 		vkCmdSetScissor( CmdBuffer, 0, 1, &sc );
 
+		uint32_t offset = (uint32_t)vkState.uniformBuffers[index].offset;
 		vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkState.graphicsPipeline );
 		vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vkState.layout, 0, 1, &vkState.descriptorSets[ index ], 0, nullptr );
+			vkState.layout, 0, 1, &vkState.descriptorSet, 1, &offset );//&vkState.descriptorSets[ index ], 0, nullptr );
 		vkCmdDraw( CmdBuffer, (uint32_t)( vkState.indexBuffer.size / sizeof( uint32_t ) ), 1, 0, 0 );
 
 	vkCmdEndRenderingKHR( CmdBuffer );
 
-	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_FORMAT_B8G8R8A8_UNORM,
+	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0 );

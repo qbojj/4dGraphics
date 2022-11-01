@@ -17,7 +17,7 @@ find_package( imgui REQUIRED )
 find_package( glslang REQUIRED )
 find_package( unofficial-portable-snippets REQUIRED )
 find_package( unofficial-vulkan-memory-allocator REQUIRED )
-    
+find_package( SPIRV-Tools-opt REQUIRED )
 
 find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 
@@ -36,6 +36,7 @@ target_link_libraries(SharedUtils PUBLIC
     unofficial::portable-snippets::debug-trap unofficial::portable-snippets::builtin
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits
+    SPIRV-Tools-opt
 ) # freetype
 target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})
 

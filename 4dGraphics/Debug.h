@@ -18,7 +18,15 @@
 #define DEBUG_ONLY(a)
 #endif
 
-enum class DebugLevel : unsigned { Debug, Log, Warning, Error, FatalError, PrintAlways = (unsigned)-1 };
+enum class DebugLevel : unsigned 
+{
+    Debug, 
+    Log, 
+    Warning, 
+    Error, 
+    FatalError, 
+    PrintAlways = (unsigned)-1 
+};
 extern DebugLevel LogLevel;
     
 void OutputDebugV( DebugLevel, const char*, va_list );

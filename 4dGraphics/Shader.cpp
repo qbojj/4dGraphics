@@ -11,6 +11,7 @@
 
 // for export to SPIRV
 #include <glslang/SPIRV/GlslangToSpv.h>
+#include <spirv-tools/optimizer.hpp>
 
 namespace glslang
 {
@@ -142,10 +143,30 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
         return std::vector<uint32_t>();
     }
 
-    std::vector<uint32_t> result;
-    glslang::GlslangToSpv( *program.getIntermediate( stage ), result );
+    spv::SpvBuildLogger logger{};
 
-    return result;
+    std::vector<uint32_t> spv;
+    glslang::GlslangToSpv( *program.getIntermediate(stage), spv, &logger );
+
+    std::string log = logger.getAllMessages();
+    if( log != "" ) 
+        OutputDebug( spv.size() == 0 ? DebugLevel::Error : DebugLevel::Warning,
+            "spirv compilation log: %s\n", log.c_str());
+
+    if( spv.size() == 0 )
+    {
+        OutputDebug( DebugLevel::Error,
+            "Compilation to SPIR-V failed (%s): %s\n%s", absolutePath
+        );
+
+        return std::vector<uint32_t>();
+    }
+
+    spvtools::Optimizer opt( SPV_ENV_VULKAN_1_2 );
+    bool ok = opt.RegisterPerformancePasses().Run( spv.data(), spv.size(), &spv );
+    if( !ok ) spv = {};
+
+    return spv;
 }
 
 std::vector<uint32_t> compileShaderToSPIRVFromFile( EShLanguage stage, const char *fileName )

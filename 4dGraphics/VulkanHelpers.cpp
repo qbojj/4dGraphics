@@ -148,6 +148,7 @@ VkResult InitVulkanRenderDevice(
 	uint32_t imageCount;
 	VkCommandPoolCreateInfo cpCI;
 	VkCommandBufferAllocateInfo cbAI;
+	const VkFenceCreateInfo fci{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
 	
 	VK_CHECK_GOTO_INIT;
 
@@ -169,6 +170,8 @@ VkResult InitVulkanRenderDevice(
 
 	VK_CHECK_GOTO( CreateSemophore( vkDev.device, &vkRDev.semophore ) );
 	VK_CHECK_GOTO( CreateSemophore( vkDev.device, &vkRDev.renderSemaphore ) );
+	VK_CHECK_GOTO( vkCreateFence( vkDev.device, &fci, nullptr, &vkRDev.fence ) );
+
 
 	cpCI = VkCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -444,52 +447,6 @@ void GetVulkanPNextChainStructureCount( VulkanPNextChainManager manager, VkStruc
 	*pCount = idx != manager->end() ? idx->second.second : 0;
 }
 
-VkResult CreateDepthResource(
-	VulkanRenderDevice &vkDev, 
-	uint32_t width, uint32_t height, 
-	VulkanTexture *depth )
-{
-	*depth = {};
-	VkResult ret = VK_SUCCESS;
-
-	VkFormat depthFormat = FindDepthFormat( vkDev.device.physicalDevice );
-	if( depthFormat == VK_FORMAT_UNDEFINED ) return VK_ERROR_INITIALIZATION_FAILED;
-
-	ret = CreateImage( vkDev.device.allocator, depthFormat, VK_IMAGE_TYPE_2D,
-		{ .width = width, .height = height, .depth = 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
-		VK_IMAGE_TILING_OPTIMAL, 0, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, VMA_MEMORY_USAGE_AUTO,
-		&depth->image, &depth->imageMemory, nullptr );
-	if( ret >= 0 )
-	{
-		ret = CreateImageView( vkDev.device.device, depth->image,
-			depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &depth->imageView );
-
-		if( ret >= 0 )
-		{
-			VkCommandBuffer cmdBuffer;
-			ret = BeginSingleTimeCommands( vkDev.device.device, vkDev.commandPool, &cmdBuffer );
-			if( ret >= 0 )
-			{
-				TransitionImageLayoutCmd( cmdBuffer, depth->image, depthFormat,
-					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-					VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-					VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT );
-
-				ret = EndSingleTimeCommands( vkDev.device.device, vkDev.commandPool,
-					vkDev.graphicsQueue.queue, cmdBuffer );
-			}
-		}
-	}
-
-	if( ret < 0 ) DestroyVulkanTexture( vkDev.device, *depth );
-
-	return ret;
-}
-
 VkResult CreateTextureImage( VulkanRenderDevice &vkDev, 
 	const char *filename, VulkanTexture *texture )
 {
@@ -543,13 +500,13 @@ VkResult CreateTextureImage( VulkanRenderDevice &vkDev,
 					ret = BeginSingleTimeCommands( vkDev.device.device, vkDev.commandPool, &cmdBuffer );
 					if( ret >= 0 )
 					{
-						TransitionImageLayoutCmd( cmdBuffer, texture->image, imageFormat,
+						TransitionImageLayoutCmd( cmdBuffer, texture->image, VK_IMAGE_ASPECT_COLOR_BIT,
 							VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 							VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
 							VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT );
 						CopyBufferToImageCmd( cmdBuffer, stagingBuffer, 0, texture->image,
 							imageExtent, { 0, 0, 0 } );
-						TransitionImageLayoutCmd( cmdBuffer, texture->image, imageFormat,
+						TransitionImageLayoutCmd( cmdBuffer, texture->image, VK_IMAGE_ASPECT_COLOR_BIT,
 							VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 							VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
 							VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT );
@@ -696,7 +653,7 @@ VkResult CreateEngineDescriptorSetLayout( VkDevice device, VkDescriptorSetLayout
 
 	const VkDescriptorSetLayoutBinding bindings[] = {
 		DescriptorSetBinding( 0, 
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 
 			VK_SHADER_STAGE_VERTEX_BIT ),
 		DescriptorSetBinding( 1,
 			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -710,7 +667,7 @@ VkResult CreateEngineDescriptorSetLayout( VkDevice device, VkDescriptorSetLayout
 	};
 
 	const VkDescriptorBindingFlags bindingFlags[] = {
-		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+		0,
 		0,
 		0,
 		0,	
@@ -726,7 +683,7 @@ VkResult CreateEngineDescriptorSetLayout( VkDevice device, VkDescriptorSetLayout
 	const VkDescriptorSetLayoutCreateInfo ci = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		.pNext = &lbfci,
-		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+		.flags = 0,
 		.bindingCount = (uint32_t)size( bindings ),
 		.pBindings = bindings
 	};
@@ -738,33 +695,33 @@ VkResult CreateEngineDescriptorSets( VulkanRenderDevice &vkDev, VulkanState &vkS
 {
 	VkResult res = VK_SUCCESS;
 
-	std::vector<VkDescriptorSetLayout> layouts( 
-		vkDev.swapchainImages.size(), 
-		vkState.descriptorSetLayout
-	);
+	//std::vector<VkDescriptorSetLayout> layouts( 
+	//	vkDev.swapchainImages.size(), 
+	//	vkState.descriptorSetLayout
+	//);
 
 	const VkDescriptorSetAllocateInfo ai = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 		.pNext = nullptr,
 		.descriptorPool = vkState.descriptorPool,
-		.descriptorSetCount = (uint32_t)layouts.size(),
-		.pSetLayouts = layouts.data()
+		.descriptorSetCount = 1,//(uint32_t)layouts.size(),
+		.pSetLayouts = &vkState.descriptorSetLayout//layouts.data()
 	};
 
-	vkState.descriptorSets.resize( layouts.size() );
+	//vkState.descriptorSets.resize( layouts.size() );
 
-	res = vkAllocateDescriptorSets( vkDev.device.device, &ai, vkState.descriptorSets.data() );
+	res = vkAllocateDescriptorSets( vkDev.device.device, &ai, &vkState.descriptorSet );//descriptorSets.data() );
 
 	if( res >= 0 )
 	{
 		std::vector<VkWriteDescriptorSet> writes;
 
-		for( size_t i = 0; i < layouts.size(); i++ )
+		//for( size_t i = 0; i < layouts.size(); i++ )
 		{
 			const VkDescriptorBufferInfo uniformBufferInfo = {
 				.buffer = vkState.uniformBufferMemory.buffer,
-				.offset = vkState.uniformBuffers[ i ].offset,
-				.range = vkState.uniformBuffers[ i ].size
+				.offset = 0,//vkState.uniformBuffers[ i ].offset,
+				.range = vkState.uniformBuffers[ 0 ].size // [ i ].size
 			};
 
 			const VkDescriptorBufferInfo vertexBufferInfo = {
@@ -796,7 +753,7 @@ VkResult CreateEngineDescriptorSets( VulkanRenderDevice &vkDev, VulkanState &vkS
 				writes.push_back( VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
-					.dstSet = vkState.descriptorSets[ i ],
+					.dstSet = vkState.descriptorSet,//vkState.descriptorSets[ i ],
 					.dstBinding = binding,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
@@ -807,7 +764,7 @@ VkResult CreateEngineDescriptorSets( VulkanRenderDevice &vkDev, VulkanState &vkS
 					} );
 			};
 
-			WriteDescriptorSet( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &uniformBufferInfo, nullptr );
+			WriteDescriptorSet( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, nullptr, &uniformBufferInfo, nullptr );
 			WriteDescriptorSet( 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr, &vertexBufferInfo, nullptr );
 			WriteDescriptorSet( 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr, &indexBufferInfo, nullptr );
 			WriteDescriptorSet( 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &textureInfo, nullptr, nullptr );
@@ -851,6 +808,7 @@ void DestroyVulkanRendererDevice( VulkanRenderDevice &vkDev )
 	vkDestroyCommandPool( vkDev.device.device, vkDev.commandPool, nullptr );
 	vkDestroySemaphore( vkDev.device.device, vkDev.semophore, nullptr );
 	vkDestroySemaphore( vkDev.device.device, vkDev.renderSemaphore, nullptr );
+	vkDestroyFence( vkDev.device.device, vkDev.fence, nullptr );
 
 	vkDev = VulkanRenderDevice{};
 }
@@ -1118,7 +1076,7 @@ VkResult CreateDevice( VkPhysicalDevice physicalDevice,
 		.ppEnabledExtensionNames = extensions.data(),
 		.pEnabledFeatures = nullptr
 	};
-
+	
 	return vkCreateDevice(physicalDevice, &dCI, nullptr, pDevice);
 }
 
@@ -1303,7 +1261,36 @@ VkResult CreateBuffer(
 	return vmaCreateBuffer( allocator, &bufferInfo, &ai, buffer, bufferMemory, allocationInfo );
 }
 
-VkResult CreateImage( 
+VkResult CreateImageResource(
+	VulkanDevice &vkDev, 
+	VkFormat format, VkImageType imageType, VkExtent3D size, uint32_t mipLevels, uint32_t arrayLayers, VkSampleCountFlagBits samples, 
+	VkImageTiling tiling, VkImageCreateFlags flags, VkImageUsageFlags usage, 
+	VmaAllocationCreateFlags allocationFlags, VmaMemoryUsage vmaUsage, 
+	VulkanTexture *imageResource 
+)
+{
+	*imageResource = {};
+	VK_CHECK_GOTO_INIT;
+
+	VK_CHECK_GOTO( CreateImage(
+		vkDev.allocator, format, imageType, size, mipLevels, arrayLayers, samples,
+		tiling, flags, usage, allocationFlags, vmaUsage,
+		&imageResource->image, &imageResource->imageMemory, nullptr
+	) );
+
+	VK_CHECK_GOTO( CreateImageView(
+		vkDev.device, imageResource->image, format, FormatGetAspects( format ),
+		&imageResource->imageView
+	) );
+	
+	return VK_SUCCESS;
+
+	VK_CHECK_GOTO_HANDLE( res );
+	DestroyVulkanTexture( vkDev, *imageResource );
+	return res;
+}
+
+VkResult CreateImage(
 	VmaAllocator allocator, 
 	VkFormat format, VkImageType imageType, VkExtent3D size, uint32_t mipLevels, uint32_t arrayLayers, VkSampleCountFlagBits samples,
 	VkImageTiling tiling, VkImageCreateFlags flags, VkImageUsageFlags usage, 
@@ -1416,7 +1403,7 @@ void CopyBufferToImageCmd(
 
 void TransitionImageLayoutCmd(
 	VkCommandBuffer cmdBuffer,
-	VkImage image, VkFormat format,
+	VkImage image, VkImageAspectFlags aspects,
 	VkImageLayout oldLayout, VkImageLayout newLayout,
 	VkPipelineStageFlags srcStageMask, VkAccessFlags srcAccessMask,
 	VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask )
@@ -1432,18 +1419,13 @@ void TransitionImageLayoutCmd(
 		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		.image = image,
 		.subresourceRange = {
-			.aspectMask = 0,
+			.aspectMask = aspects,
 			.baseMipLevel = 0,
 			.levelCount = VK_REMAINING_MIP_LEVELS,
 			.baseArrayLayer = 0,
 			.layerCount = VK_REMAINING_ARRAY_LAYERS
 		}
 	};
-
-	bool depth = FormatHasDepthComponent( format ), stencil = FormatHasStencilComponent( format );
-	if( depth ) barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-	if( stencil ) barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-	if( !depth && !stencil ) barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
 
 	vkCmdPipelineBarrier( cmdBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier );
 }
@@ -1486,9 +1468,9 @@ VkFormat FindDepthFormat( VkPhysicalDevice device )
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
 }
 
-bool FormatHasDepthComponent( VkFormat fmt )
+VkImageAspectFlags FormatGetAspects( VkFormat fmt )
 {
-	const VkFormat depthFormats[] = { 
+	const VkFormat depthFormats[] = {
 		VK_FORMAT_D32_SFLOAT,
 		VK_FORMAT_D32_SFLOAT_S8_UINT,
 		VK_FORMAT_X8_D24_UNORM_PACK32,
@@ -1497,12 +1479,6 @@ bool FormatHasDepthComponent( VkFormat fmt )
 		VK_FORMAT_D16_UNORM_S8_UINT
 	};
 
-	for( VkFormat d : depthFormats ) if( d == fmt ) return true;
-	return false;
-}
-
-bool FormatHasStencilComponent( VkFormat fmt )
-{
 	const VkFormat stencilFormats[] = {
 		VK_FORMAT_D32_SFLOAT_S8_UINT,
 		VK_FORMAT_D24_UNORM_S8_UINT,
@@ -1510,8 +1486,14 @@ bool FormatHasStencilComponent( VkFormat fmt )
 		VK_FORMAT_S8_UINT
 	};
 
-	for( VkFormat s : stencilFormats ) if( s == fmt ) return true;
-	return false;
+	const bool hasDepth = find( begin( depthFormats ), end( depthFormats ), fmt ) != end( depthFormats );
+	const bool hasStencil = find( begin( stencilFormats ), end( stencilFormats ), fmt ) != end( stencilFormats );
+
+	return 
+		( !hasDepth && !hasStencil ? VK_IMAGE_ASPECT_COLOR_BIT : 0 ) |
+		( hasDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0 ) | 
+		( hasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0 ) | 
+		0;
 }
 
 VkResult CreateSemophore( VkDevice device, VkSemaphore *semaphore )

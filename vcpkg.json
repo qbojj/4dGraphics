@@ -14,7 +14,8 @@
     "volk",
     "vulkan-memory-allocator",
     "portable-snippets",
-    "glslang"
+    "glslang",
+    "spirv-tools"
   ],
   "$unusedOldDeps": [
     "meshoptimizer",

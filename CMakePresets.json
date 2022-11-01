@@ -14,10 +14,33 @@
             "name": "default",
             "configurePreset": "default",
             "configuration": "RelWithDebInfo",
-            "targets": [
-                "4dGraphics",
-                "install"
-            ]
+            "targets": [ "install" ]
+        },
+        {
+            "name": "generic-build",
+            "hidden": true,
+            "configurePreset": "default",
+            "targets": [ "4dGraphics" ]
+        },
+        {
+            "name": "debug",
+            "inherits": [ "generic-build" ],
+            "configuration": "Debug"
+        },
+        {
+            "name": "release",
+            "inherits": [ "generic-build" ],
+            "configuration": "Release"
+        },
+        {
+            "name": "rel-with-deb-info",
+            "inherits": [ "generic-build" ],
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "min-size-rel",
+            "inherits": [ "generic-build" ],
+            "configuration": "MinSizeRel"
         }
     ]
 }
