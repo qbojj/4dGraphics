@@ -107,10 +107,9 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
 
     std::string path = std::filesystem::absolute( fileName ).string();
     const char *absolutePath = path.c_str();
-    int sourceLen = (int)strlen( shaderSource );
-
+    
     shader.setStringsWithLengthsAndNames(
-        &shaderSource, &sourceLen, &absolutePath, 1
+        &shaderSource, nullptr, &absolutePath, 1
     );
 
     shader.setEnvInput( glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100 );
@@ -127,7 +126,7 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
             shader.getInfoDebugLog()
         );
 
-        return std::vector<uint32_t>();
+        return std::vector<uint32_t>{};
     }
 
     glslang::TProgram program;
@@ -140,31 +139,35 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
             program.getInfoDebugLog()
         );
 
-        return std::vector<uint32_t>();
+        return std::vector<uint32_t>{};
     }
 
     spv::SpvBuildLogger logger{};
+    glslang::SpvOptions options{};
+    options.disableOptimizer = false;
+    options.disassemble = false;
+    options.generateDebugInfo = true;
+    options.optimizeSize = false;
+    options.stripDebugInfo = false;
+    options.validate = false;
+
+    glslang::TIntermediate *interm = program.getIntermediate(stage);
+    interm->setSourceFile(absolutePath);
+    interm->addSourceText( shaderSource, strlen(shaderSource) );
 
     std::vector<uint32_t> spv;
-    glslang::GlslangToSpv( *program.getIntermediate(stage), spv, &logger );
+    glslang::GlslangToSpv( *interm, spv, &logger, &options );
 
     std::string log = logger.getAllMessages();
     if( log != "" ) 
-        OutputDebug( spv.size() == 0 ? DebugLevel::Error : DebugLevel::Warning,
-            "spirv compilation log: %s\n", log.c_str());
+        OutputDebug( spv.size() == 0 ? DebugLevel::Error : DebugLevel::Warning, 
+            "spirv compilation log (%s): %s\n", absolutePath, log.c_str() );
 
-    if( spv.size() == 0 )
-    {
-        OutputDebug( DebugLevel::Error,
-            "Compilation to SPIR-V failed (%s): %s\n%s", absolutePath
-        );
-
-        return std::vector<uint32_t>();
-    }
+    if( spv.size() == 0 ) return std::vector<uint32_t>{};
 
     spvtools::Optimizer opt( SPV_ENV_VULKAN_1_2 );
     bool ok = opt.RegisterPerformancePasses().Run( spv.data(), spv.size(), &spv );
-    if( !ok ) spv = {};
+    if( !ok ) return std::vector<uint32_t>{};
 
     return spv;
 }

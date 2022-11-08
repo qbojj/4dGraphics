@@ -37,7 +37,7 @@ const vertex triangle[3] = {
 
 void main()
 {
-    uint idx = indences[gl_VertexIndex];
+    uint idx = gl_VertexIndex;//indences[gl_VertexIndex];
     vertex v = verteces[idx];
     vec3 V = vec3( v.x, v.y, v.z );
     gl_Position = MVP * vec4( V + vec3( 10 * gl_InstanceIndex,0,0), 1 );//vec4( V / 50.f + vec3( 0, 0, .8 ), 1 ); 

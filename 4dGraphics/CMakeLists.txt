@@ -25,6 +25,8 @@ set( 4DGSources
 	"VulkanHelpers.h"
 	"VulkanHelpers.cpp"
 	"Constants.h"
+	"RenderGraph.h"
+	"RenderGraph.cpp"
 )
 
 add_executable( 4dGraphics WIN32 ${4DGSources} )

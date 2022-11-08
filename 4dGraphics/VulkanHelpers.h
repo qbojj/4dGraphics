@@ -1,5 +1,6 @@
 #pragma once
 
+#define VK_ENABLE_BETA_EXTENSIONS
 #include <volk.h>
 #include <vector>
 #include <functional>
@@ -31,6 +32,11 @@ namespace vulkan_helpers {
 		results.resize( count );
 		return results;
 	}
+
+	VkResult enumerate_instance_extensions( std::vector<VkExtensionProperties> &exts, const std::vector<const char *> &layers );
+	VkResult enumerate_device_extensions( std::vector<VkExtensionProperties> &exts, VkPhysicalDevice phDev, const std::vector<const char *> &layers );
+	uint32_t is_extension_present( const std::vector<VkExtensionProperties> &exts, const char *pName ); // returns found spec version or 0 if not present
+	bool is_extension_present( const std::vector<const char *> &exts, const char *pName );
 }
 
 // high level interfaces
@@ -38,6 +44,8 @@ struct VulkanInstance {
 	VkInstance instance;
 	uint32_t apiVersion;
 	VkSurfaceKHR surface;
+	std::vector<const char *> enabledLayers;
+	std::vector<const char *> enabledExts;
 	VkDebugUtilsMessengerEXT messenger;
 };
 
@@ -50,6 +58,7 @@ struct VulkanDevice {
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;
 	VmaAllocator allocator;
+	std::vector<const char *> enabledExts;
 	VkPipelineCache pipelineCache;
 };
 
@@ -116,7 +125,7 @@ void FreeVulkanPNextChain( VulkanPNextChainManager manager, VkBaseOutStructure *
 void GetVulkanPNextChainStructureCount( VulkanPNextChainManager manager, VkStructureType type, uint32_t *pCount );
 
 VkResult InitVulkanDevice(
-	VulkanInstance &vk,
+	const VulkanInstance &vk,
 	VkPhysicalDevice device,
 	const std::vector<VkDeviceQueueCreateInfo> &families,
 	const std::vector<const char *> &extensions,
@@ -200,7 +209,7 @@ VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKHR> &ava
 uint32_t ChooseSwapImageCount( const VkSurfaceCapabilitiesKHR &capabilities );
 
 VkResult CreateSwapchain(
-	VkDevice device, VkPhysicalDevice physicalDevice, uint32_t graphicsFamily,
+	VkDevice device, VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface, uint32_t width, uint32_t height,
 	VkSwapchainKHR *swapchain
 );

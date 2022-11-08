@@ -16,6 +16,72 @@
 
 using namespace std;
 using namespace vulkan_helpers;
+ 
+template <typename F>
+static VkResult enumerate_extensions_generic( 
+	std::vector<VkExtensionProperties> &exts_, 
+	const std::vector<const char *> &layers,
+	F &&f )
+{
+	std::vector<VkExtensionProperties> exts;
+	VK_CHECK_RET( get_vector( exts, f, nullptr ) );
+
+	for( const char *layer : layers ) 
+	{
+		std::vector<VkExtensionProperties> layerExts;
+
+		VK_CHECK_RET( get_vector( layerExts, f, layer ) );
+
+		for( const VkExtensionProperties &ext : layerExts )
+		{
+			size_t i = 0;
+			while(	i < exts.size() && 
+					strcmp( ext.extensionName, exts[i].extensionName ) != 0 ) {};
+			
+			if( i == exts.size() ) exts.push_back( ext );					
+		}
+
+	}
+
+	exts_ = std::move( exts );
+	return VK_SUCCESS;
+}
+
+VkResult vulkan_helpers::enumerate_instance_extensions( 
+	std::vector<VkExtensionProperties> &exts, 
+	const std::vector<const char *> &layers )
+{
+	return enumerate_extensions_generic( exts, layers, vkEnumerateInstanceExtensionProperties );
+}
+	
+
+VkResult vulkan_helpers::enumerate_device_extensions( 
+	std::vector<VkExtensionProperties> &exts, 
+	VkPhysicalDevice phDev, 
+	const std::vector<const char *> &layers )
+{
+	return enumerate_extensions_generic( exts, layers, std::bind_front( vkEnumerateDeviceExtensionProperties, phDev ) );
+}
+
+uint32_t vulkan_helpers::is_extension_present( 
+	const std::vector<VkExtensionProperties> &exts, 
+	const char *pName )
+{
+	for( const VkExtensionProperties &ext : exts )
+		if( strcmp( pName, ext.extensionName ) == 0 )
+			return ext.specVersion;
+	
+	return 0;
+}
+
+bool vulkan_helpers::is_extension_present( const std::vector<const char *> &exts, const char *pName )
+{
+	for( const char *ext : exts )
+		if( strcmp( pName, ext ) == 0 )
+			return true;
+	
+	return false;
+}
 
 static std::string FormatUUID( const uint8_t data[ VK_UUID_SIZE ] )
 {
@@ -73,7 +139,7 @@ static std::string GetUniqueDeviceName( VkPhysicalDevice physicalDev )
 }
 
 VkResult InitVulkanDevice(
-	VulkanInstance &vk,
+	const VulkanInstance &vk,
 	VkPhysicalDevice device,
 	const std::vector<VkDeviceQueueCreateInfo> &families,
 	const std::vector<const char *> &extensions,
@@ -132,6 +198,8 @@ VkResult InitVulkanDevice(
 		VK_CHECK_GOTO( vkCreatePipelineCache( vkDev.device, &pci, nullptr, &vkDev.pipelineCache ) );
 	}
 
+	vkDev.enabledExts = extensions;
+
 	return VK_SUCCESS;
 
 	VK_CHECK_GOTO_HANDLE( ret );
@@ -157,7 +225,7 @@ VkResult InitVulkanRenderDevice(
 	vkRDev.graphicsQueue = graphicsQueue;
 
 	VK_CHECK_GOTO( CreateSwapchain(
-		vkDev.device, vkDev.physicalDevice, vkRDev.graphicsQueue.family, vk.surface,
+		vkDev.device, vkDev.physicalDevice, vk.surface,
 		width, height, &vkRDev.swapchain ) );
 
 
@@ -309,24 +377,11 @@ private:
 	}
 };
 
-constexpr bool VulkanBudgetAllocatorFitsInHandle = 
-	sizeof( VulkanBudgetAllocator_T ) <= sizeof( VulkanBudgetAllocator );
-
 VkResult CreateVulkanBudgetAllocator( VkDeviceSize size, VulkanBudgetAllocator *pBudgetAllocator )
 {
 	try
 	{
-		VulkanBudgetAllocator_T *dest;
-		if constexpr( VulkanBudgetAllocatorFitsInHandle )
-		{
-			dest = reinterpret_cast<VulkanBudgetAllocator_T *>( pBudgetAllocator );
-			new( dest ) VulkanBudgetAllocator_T( size );
-		}
-		else
-		{
-			dest = new VulkanBudgetAllocator_T( size );
-			reinterpret_cast<VulkanBudgetAllocator_T *&>( *pBudgetAllocator ) = dest;
-		}
+		*pBudgetAllocator = new VulkanBudgetAllocator_T( size );
 	}
 	catch( const std::bad_alloc & )
 	{
@@ -338,21 +393,12 @@ VkResult CreateVulkanBudgetAllocator( VkDeviceSize size, VulkanBudgetAllocator *
 
 void DestroyVulkanBudgetAllocator( VulkanBudgetAllocator budgetAllocator )
 {
-	if constexpr( !VulkanBudgetAllocatorFitsInHandle )
-	{
-		delete reinterpret_cast<VulkanBudgetAllocator_T *>(budgetAllocator);
-	}
+	delete budgetAllocator;
 }
 
 void GetVulkanBudgetCallbacks( VulkanBudgetAllocator budgetAllocator, VkAllocationCallbacks *pCallbacks )
 {
-	if constexpr( VulkanBudgetAllocatorFitsInHandle )
-	{
-		void *pAllocator = reinterpret_cast<void *>( &budgetAllocator );
-		*pCallbacks = reinterpret_cast<VulkanBudgetAllocator_T *>( pAllocator )->GetCallbacks();
-	}
-	else
-		*pCallbacks = reinterpret_cast<VulkanBudgetAllocator_T *>( budgetAllocator )->GetCallbacks();
+	*pCallbacks = budgetAllocator->GetCallbacks();
 }
 
 // VkStructureType -> structure size, count
@@ -487,12 +533,12 @@ VkResult CreateTextureImage( VulkanRenderDevice &vkDev,
 					.depth = 1
 				};
 
-				ret = CreateImage( vkDev.device.allocator, imageFormat,
+				ret = CreateImageResource( vkDev.device, imageFormat,
 					VK_IMAGE_TYPE_2D, imageExtent,
 					1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL,
 					0, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 					0, VMA_MEMORY_USAGE_AUTO,
-					&texture->image, &texture->imageMemory, nullptr );
+					texture );
 
 				if( ret >= 0 )
 				{
@@ -558,7 +604,8 @@ VkResult CreateSSBOVertexBuffer(
 
 	res = CreateBuffer( vkDev.device.allocator, bufferSize, 0,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		0,
 		VMA_MEMORY_USAGE_AUTO,
 		storageBuffer, storageBufferMemory, nullptr );
@@ -615,6 +662,22 @@ VkResult CreateSSBOVertexBuffer(
 					};
 
 					vkCmdCopyBuffer( cmdBuffer, stagingBuffer, *storageBuffer, 1, &copyParam );
+
+					const VkBufferMemoryBarrier bmb{
+						.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+						.pNext = nullptr,
+						.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+						.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDEX_READ_BIT,
+						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.buffer = *storageBuffer,
+						.offset = 0,
+						.size = VK_WHOLE_SIZE
+					};
+
+					vkCmdPipelineBarrier( cmdBuffer,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+						0, 0, nullptr, 1, &bmb, 0, nullptr );
 
 					res = EndSingleTimeCommands(
 						vkDev.device.device, vkDev.commandPool, vkDev.graphicsQueue.queue, cmdBuffer );
@@ -1038,8 +1101,7 @@ VkResult CreateInstance(
 	VkInstanceCreateFlags flags = 0;
 
 	if( enumeratePortability && 
-		exts.end() != std::find( exts.begin(), exts.end(),
-			std::string_view( VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME ) ) )
+		is_extension_present( extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME ) )
 		flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 	
 	VkInstanceCreateInfo InstanceCI{
@@ -1160,7 +1222,7 @@ uint32_t ChooseSwapImageCount( const VkSurfaceCapabilitiesKHR &capabilities )
 		max( wantedImageCount, capabilities.maxImageCount );
 }
 
-VkResult CreateSwapchain( VkDevice device, VkPhysicalDevice physicalDevice, uint32_t graphicsFamily, VkSurfaceKHR surface, uint32_t width, uint32_t height, VkSwapchainKHR *swapchain )
+VkResult CreateSwapchain( VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t width, uint32_t height, VkSwapchainKHR *swapchain )
 {
 	SwapchainSupportDetails swapchainSupport;
 
@@ -1182,8 +1244,8 @@ VkResult CreateSwapchain( VkDevice device, VkPhysicalDevice physicalDevice, uint
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 		.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-		.queueFamilyIndexCount = 1,
-		.pQueueFamilyIndices = &graphicsFamily,
+		.queueFamilyIndexCount = 0,
+		.pQueueFamilyIndices = nullptr,
 		.preTransform = swapchainSupport.capabilities.currentTransform,
 		.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 		.presentMode = presentMode,

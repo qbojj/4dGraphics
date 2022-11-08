@@ -64,13 +64,38 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 
 	CHECK_LOG_RETURN( volkInitialize(), "Could not initialize volk" );//volkInitializeCustom(glfwGetInstanceProcAddress);
 
-	std::vector<const char *> instanceLayers{
-		"VK_LAYER_KHRONOS_validation"
-	};
+	std::vector<const char *> instanceLayers;
+	std::vector<const char *> instanceExtensions;
 
-	std::vector<const char *> instanceExtensions{
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-	};
+	{
+		const char *wantedLayers[]{
+			"VK_LAYER_KHRONOS_synchronization2",
+			"VK_LAYER_KHRONOS_validation",
+		};
+
+		std::vector<VkLayerProperties> layerProps;
+		CHECK_LOG_RETURN( vulkan_helpers::get_vector( layerProps, vkEnumerateInstanceLayerProperties ), "Cannot enumerate layers" );
+
+		for( const char *layer : wantedLayers )
+			for( const auto &prop : layerProps )
+				if( strcmp( layer, prop.layerName ) == 0 )
+				{
+					instanceLayers.push_back( layer );
+					break;
+				}
+
+		const char *wantedExts[]{
+			VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+			VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+		};
+
+		std::vector<VkExtensionProperties> instanceExts;
+		CHECK_LOG_RETURN( vulkan_helpers::enumerate_instance_extensions( instanceExts, instanceLayers ), "Cannot enumerate instance extensions" );
+
+		for( const char *ext : wantedExts )
+			if( vulkan_helpers::is_extension_present( instanceExts, ext ) )
+				instanceExtensions.push_back( ext );
+	}
 
 	const VkDebugUtilsMessengerCreateInfoEXT messengerCI = {
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -91,10 +116,19 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		.pUserData = nullptr
 	};
 
-	CHECK_LOG_RETURN( CreateInstance(instanceLayers, instanceExtensions, nullptr, false, &messengerCI, &vk.instance), "Could not create vulkan instance");
+	bool debUtils = vulkan_helpers::is_extension_present( instanceExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 
-	CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks");
+	const void *pCreateInstancePNext = debUtils ? &messengerCI : nullptr;
 
+	CHECK_LOG_RETURN( CreateInstance(instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance), "Could not create vulkan instance");
+	vk.enabledLayers = move(instanceLayers);
+	vk.enabledExts = move(instanceExtensions);
+
+	if( debUtils )
+		CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks");
+	else
+		vk.messenger = VK_NULL_HANDLE;
+	
 	CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
 	
 	glfwGetFramebufferSize( window, (int*)&kScreenWidth, (int*)&kScreenHeight );
@@ -207,30 +241,63 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		}
 	};
 
+	std::vector<VkExtensionProperties> devExtensions; 
+	CHECK_LOG_RETURN( vulkan_helpers::enumerate_device_extensions( devExtensions, best, instanceLayers ), "Could not enumerate extensions" );
+	
+	std::vector<const char *> deviceExtensions{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
+	void *lastFeatures = nullptr;
+
+#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+	VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};
+	phPortSubset.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
+	phPortSubset.pNext = lastFeatures;
+	phPortSubset.events = VK_TRUE;
+
+	if( vulkan_helpers::is_extension_present( devExtensions, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME ) )
+	{
+		lastFeatures = &phPortSubset;
+		deviceExtensions.push_back( VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME );
+	}
+#endif // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+
+	VkPhysicalDeviceSynchronization2FeaturesKHR phSynchronization2{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
+		.pNext = lastFeatures,
+		.synchronization2 = VK_TRUE
+	};
+
+	lastFeatures = &phSynchronization2;
+	deviceExtensions.push_back( VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME );
+
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR phRenderingFeatures = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-		.pNext = nullptr,
+		.pNext = lastFeatures,
 		.dynamicRendering = VK_TRUE
 	};
 
+	lastFeatures = &phRenderingFeatures;
+	deviceExtensions.push_back( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
+
 	VkPhysicalDeviceVulkan12Features ph12Features{};
 	ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	ph12Features.pNext = &phRenderingFeatures;
+	ph12Features.pNext = lastFeatures;
 	ph12Features.bufferDeviceAddress = VK_TRUE;
 
+	lastFeatures = &ph12Features;
+	
 	VkPhysicalDeviceVulkan11Features ph11Features{};
 	ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-	ph11Features.pNext = &ph12Features;
+	ph11Features.pNext = lastFeatures;
+
+	lastFeatures = &ph11Features;
 
 	VkPhysicalDeviceFeatures2 phFeatures{};
 	phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-	phFeatures.pNext = &ph11Features,
+	phFeatures.pNext = lastFeatures,
 	phFeatures.features.samplerAnisotropy = VK_TRUE;
-
-	std::vector<const char *> deviceExtensions{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
-	};
 
 	TRACE(DebugLevel::Log, "Before device creation\n");
 	CHECK_LOG_RETURN( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
@@ -343,10 +410,6 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	CHECK_LOG_RETURN( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png", 
 		&vkState.texture ), "Could not create texture" );
 
-	CHECK_LOG_RETURN( CreateImageView( vkDev.device, vkState.texture.image, 
-		VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &vkState.texture.imageView ),
-		"Could not create image view" );
-
 	CHECK_LOG_RETURN( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
 
 	{
@@ -386,6 +449,8 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
 		CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
 
+	getShaderOrGenerate( EShLangFragment, "Shaders/shadow.frag" );
+
 	lt = glfwGetTime();
 
 	return true;
@@ -422,16 +487,15 @@ void GameRenderHandler::OnDraw(const void* )
 				0.f, 0.f, 1.f, 1.f
 			);
 			glm::mat4 persp = reverseDepthMatrrix * glm::infinitePerspective( glm::pi<float>() * .5f, ( (float)kScreenWidth / kScreenHeight ), 1.f );
-			glm::mat4 view = glm::lookAt( glm::vec3(100.f, 100.f, 0.f ), {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
+			glm::mat4 view = glm::lookAt( glm::vec3{100.f, 100.f, 0.f }, {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f} );
 			glm::mat4 model = 
 			glm::rotate( 
-				glm::scale( glm::identity<glm::mat4>(), glm::vec3(0.8f) ),
+				glm::scale( glm::mat4(1.0f), glm::vec3(0.8f) ),
 				(float)glfwGetTime() * glm::pi<float>() * 2.f, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
 			glm::mat4 mvp = persp * view * model;
 
 			*( (glm::mat4*)memory ) = mvp;
-
 		}
 
 		vmaUnmapMemory( vkDev.allocator, vkState.uniformBufferMemory.bufferAllocation );
@@ -570,7 +634,9 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 		vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkState.graphicsPipeline );
 		vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			vkState.layout, 0, 1, &vkState.descriptorSet, 1, &offset );//&vkState.descriptorSets[ index ], 0, nullptr );
-		vkCmdDraw( CmdBuffer, (uint32_t)( vkState.indexBuffer.size / sizeof( uint32_t ) ), 1, 0, 0 );
+		
+		vkCmdBindIndexBuffer( CmdBuffer, vkState.modelBuffer.buffer, vkState.indexBuffer.offset, VK_INDEX_TYPE_UINT32 );
+		vkCmdDrawIndexed( CmdBuffer, (uint32_t)( vkState.indexBuffer.size / sizeof( uint32_t ) ), 1, 0, 0, 0 );
 
 	vkCmdEndRenderingKHR( CmdBuffer );
 

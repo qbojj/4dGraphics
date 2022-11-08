@@ -1,6 +1,7 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
+#define VK_ENABLE_BETA_EXTENSIONS
 
 #include <volk.h>
 #include <glslang/Public/ShaderLang.h>
