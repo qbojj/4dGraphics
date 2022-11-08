@@ -2,24 +2,24 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define VK_ENABLE_BETA_EXTENSIONS
+#define VMA_STATS_STRING_ENABLED 0
+#define GLFW_INCLUDE_NONE
 
 #include <volk.h>
 #include <glslang/Public/ShaderLang.h>
+#include <vk_mem_alloc.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#undef APIENTRY
 
 #include "optick.h"
 
 #include "GlmHeaders.h"
 
 #include "Collisions.h"
-using namespace collisions;
 
 #include <thread>
 #include <string>

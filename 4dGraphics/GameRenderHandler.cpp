@@ -64,73 +64,75 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 
 	CHECK_LOG_RETURN( volkInitialize(), "Could not initialize volk" );//volkInitializeCustom(glfwGetInstanceProcAddress);
 
-	std::vector<const char *> instanceLayers;
-	std::vector<const char *> instanceExtensions;
-
 	{
-		const char *wantedLayers[]{
-			"VK_LAYER_KHRONOS_synchronization2",
-			"VK_LAYER_KHRONOS_validation",
+		std::vector<const char *> instanceLayers;
+		std::vector<const char *> instanceExtensions;
+
+		{
+			const char *wantedLayers[]{
+				"VK_LAYER_KHRONOS_synchronization2",
+				"VK_LAYER_KHRONOS_validation",
+			};
+
+			std::vector<VkLayerProperties> layerProps;
+			CHECK_LOG_RETURN( vulkan_helpers::get_vector( layerProps, vkEnumerateInstanceLayerProperties ), "Cannot enumerate layers" );
+
+			for( const char *layer : wantedLayers )
+				for( const auto &prop : layerProps )
+					if( strcmp( layer, prop.layerName ) == 0 )
+					{
+						instanceLayers.push_back( layer );
+						break;
+					}
+
+			const char *wantedExts[]{
+				VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			};
+
+			std::vector<VkExtensionProperties> instanceExts;
+			CHECK_LOG_RETURN( vulkan_helpers::enumerate_instance_extensions( instanceExts, instanceLayers ), "Cannot enumerate instance extensions" );
+
+			for( const char *ext : wantedExts )
+				if( vulkan_helpers::is_extension_present( instanceExts, ext ) )
+					instanceExtensions.push_back( ext );
+		}
+
+		const VkDebugUtilsMessengerCreateInfoEXT messengerCI = {
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			.pNext = nullptr,
+			.flags = 0,
+			.messageSeverity =
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+				0,
+			.messageType =
+				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+				0,
+			.pfnUserCallback = VulkanDebugCallback,
+			.pUserData = nullptr
 		};
 
-		std::vector<VkLayerProperties> layerProps;
-		CHECK_LOG_RETURN( vulkan_helpers::get_vector( layerProps, vkEnumerateInstanceLayerProperties ), "Cannot enumerate layers" );
+		bool debUtils = vulkan_helpers::is_extension_present( instanceExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 
-		for( const char *layer : wantedLayers )
-			for( const auto &prop : layerProps )
-				if( strcmp( layer, prop.layerName ) == 0 )
-				{
-					instanceLayers.push_back( layer );
-					break;
-				}
+		const void *pCreateInstancePNext = debUtils ? &messengerCI : nullptr;
 
-		const char *wantedExts[]{
-			VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-		};
+		CHECK_LOG_RETURN( CreateInstance(instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance), "Could not create vulkan instance");
+		vk.enabledLayers = move(instanceLayers);
+		vk.enabledExts = move(instanceExtensions);
 
-		std::vector<VkExtensionProperties> instanceExts;
-		CHECK_LOG_RETURN( vulkan_helpers::enumerate_instance_extensions( instanceExts, instanceLayers ), "Cannot enumerate instance extensions" );
-
-		for( const char *ext : wantedExts )
-			if( vulkan_helpers::is_extension_present( instanceExts, ext ) )
-				instanceExtensions.push_back( ext );
+		if( debUtils )
+			CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks");
+		else
+			vk.messenger = VK_NULL_HANDLE;
+		
+		CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
 	}
 
-	const VkDebugUtilsMessengerCreateInfoEXT messengerCI = {
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.pNext = nullptr,
-		.flags = 0,
-		.messageSeverity =
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-			0,
-		.messageType =
-			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-			0,
-		.pfnUserCallback = VulkanDebugCallback,
-		.pUserData = nullptr
-	};
-
-	bool debUtils = vulkan_helpers::is_extension_present( instanceExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
-
-	const void *pCreateInstancePNext = debUtils ? &messengerCI : nullptr;
-
-	CHECK_LOG_RETURN( CreateInstance(instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance), "Could not create vulkan instance");
-	vk.enabledLayers = move(instanceLayers);
-	vk.enabledExts = move(instanceExtensions);
-
-	if( debUtils )
-		CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks");
-	else
-		vk.messenger = VK_NULL_HANDLE;
-	
-	CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
-	
 	glfwGetFramebufferSize( window, (int*)&kScreenWidth, (int*)&kScreenHeight );
 	
 	std::vector<VkPhysicalDevice> devices;
@@ -242,13 +244,16 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	};
 
 	std::vector<VkExtensionProperties> devExtensions; 
-	CHECK_LOG_RETURN( vulkan_helpers::enumerate_device_extensions( devExtensions, best, instanceLayers ), "Could not enumerate extensions" );
+	CHECK_LOG_RETURN( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
 	
 	std::vector<const char *> deviceExtensions{
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
 	void *lastFeatures = nullptr;
+
+	if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
+		deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
 
 #ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
 	VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};

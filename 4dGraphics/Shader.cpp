@@ -200,20 +200,20 @@ EShLanguage stageFromFilename( const char *fileName )
     };
 
     const ExtToLang langs[] = {
-        "vert", EShLangVertex,
-        "tesc", EShLangTessControl,
-        "tese", EShLangTessEvaluation,
-        "geom", EShLangGeometry,
-        "frag", EShLangFragment,
-        "comp", EShLangCompute,
-        "rgen", EShLangRayGen,
-        "rint", EShLangIntersect,
-        "rahit",EShLangAnyHit,
-        "rchit",EShLangClosestHit,
-        "rmiss",EShLangMiss,
-        "rcall",EShLangCallable,
-        "task", EShLangTaskNV,
-        "mesh", EShLangMeshNV
+        { "vert", EShLangVertex         },
+        { "tesc", EShLangTessControl    },
+        { "tese", EShLangTessEvaluation },
+        { "geom", EShLangGeometry       },
+        { "frag", EShLangFragment       },
+        { "comp", EShLangCompute        },
+        { "rgen", EShLangRayGen         },
+        { "rint", EShLangIntersect      },
+        { "rahit",EShLangAnyHit         },
+        { "rchit",EShLangClosestHit     },
+        { "rmiss",EShLangMiss           },
+        { "rcall",EShLangCallable       },
+        { "task", EShLangTaskNV         },
+        { "mesh", EShLangMeshNV         },
     };
 
     for( const ExtToLang &lang : langs )

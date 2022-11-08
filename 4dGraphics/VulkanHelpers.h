@@ -1,6 +1,7 @@
 #pragma once
 
 #define VK_ENABLE_BETA_EXTENSIONS
+#define VMA_STATS_STRING_ENABLED 0
 #include <volk.h>
 #include <vector>
 #include <functional>

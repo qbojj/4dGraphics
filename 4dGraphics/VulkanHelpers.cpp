@@ -60,7 +60,9 @@ VkResult vulkan_helpers::enumerate_device_extensions(
 	VkPhysicalDevice phDev, 
 	const std::vector<const char *> &layers )
 {
-	return enumerate_extensions_generic( exts, layers, std::bind_front( vkEnumerateDeviceExtensionProperties, phDev ) );
+	using namespace std::placeholders;
+	return enumerate_extensions_generic( exts, layers, 
+		std::bind( vkEnumerateDeviceExtensionProperties, phDev, _1, _2, _3 ) );
 }
 
 uint32_t vulkan_helpers::is_extension_present( 
