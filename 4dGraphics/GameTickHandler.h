@@ -6,11 +6,12 @@
 
 struct FrameData
 {
-	glm::uvec2 WndSize;
-	bool bVSync;
-	float fTime;
-
-	ImDrawDataBuffered ImGuiDrawData;
+	glm::dvec2 start, increment;
+	//glm::uvec2 WndSize;
+	//bool bVSync;
+	//float fTime;
+//
+	//ImDrawDataBuffered ImGuiDrawData;
 };
 
 class GameTickHandler : public GameHandler
@@ -26,6 +27,11 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	quat CamRot = glm::identity<quat>();
 	vec3 CamPos = vec3( 0, 0, 10 );
+
+	struct computePushConstants{
+		glm::dvec2 start;
+		glm::dvec2 increment;
+	} pc;
 	
 	vec2 eulerCameraRot = vec2( 0, 0 );
 

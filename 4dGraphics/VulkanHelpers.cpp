@@ -246,7 +246,7 @@ VkResult InitVulkanRenderDevice(
 	cpCI = VkCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
-		.flags = 0,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		.queueFamilyIndex = vkRDev.graphicsQueue.family
 	};
 
@@ -1244,7 +1244,8 @@ VkResult CreateSwapchain( VkDevice device, VkPhysicalDevice physicalDevice, VkSu
 		.imageArrayLayers = 1, // for stereoscopic 3d this should be 2
 		.imageUsage =
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+			VK_IMAGE_USAGE_STORAGE_BIT,
 		.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		.queueFamilyIndexCount = 0,
 		.pQueueFamilyIndices = nullptr,

@@ -22,6 +22,19 @@ protected:
 
 	VulkanState vkState;
 
+	struct computePushConstants{
+		glm::dvec2 start;
+		glm::dvec2 increment;
+	};
+
+	const computePushConstants *pPC;
+
+	VkDescriptorSetLayout computeSetLayout;
+	VkPipelineLayout computeLayout;
+	VkDescriptorPool computePool;
+	std::vector<VkDescriptorSet> computeDescriptors;
+	VkPipeline compute;
+
 	uint32_t kScreenWidth, kScreenHeight;
 
 	double lt;

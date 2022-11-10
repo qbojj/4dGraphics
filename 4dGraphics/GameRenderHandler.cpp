@@ -3,6 +3,7 @@
 
 #include "Debug.h"
 #include "VulkanHelpers.h"
+#include <CommonUtility.h>
 
 using namespace std;
 
@@ -303,6 +304,7 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 	phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 	phFeatures.pNext = lastFeatures,
 	phFeatures.features.samplerAnisotropy = VK_TRUE;
+	phFeatures.features.shaderFloat64 = VK_TRUE;
 
 	TRACE(DebugLevel::Log, "Before device creation\n");
 	CHECK_LOG_RETURN( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
@@ -451,17 +453,137 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		CHECK_LOG_RETURN( res, "Could not create depth resource" );
 	}
 
-	for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
-		CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
+	// tmp
+	{
+		const VkDescriptorSetLayoutBinding binding{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+			.pImmutableSamplers = nullptr
+		};
 
-	getShaderOrGenerate( EShLangFragment, "Shaders/shadow.frag" );
+		const VkDescriptorSetLayoutCreateInfo dslci{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.bindingCount = 1,
+			.pBindings = &binding,
+		};
+
+		CHECK_LOG_RETURN( vkCreateDescriptorSetLayout( vkDev.device, &dslci, nullptr, &computeSetLayout ),
+			"Cannot create compute set layout" );
+
+		const VkPushConstantRange pcr{
+			.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+			.offset = 0,
+			.size = sizeof( computePushConstants ),
+		};
+
+		const VkPipelineLayoutCreateInfo plci{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.setLayoutCount = 1,
+			.pSetLayouts = &computeSetLayout,
+			.pushConstantRangeCount = 1,
+			.pPushConstantRanges = &pcr
+		};
+		CHECK_LOG_RETURN( vkCreatePipelineLayout( vkDev.device, &plci, nullptr, &computeLayout ), 
+			"Cannot create compute layout" );
+
+		VkShaderModule compModule = VK_NULL_HANDLE;
+		CHECK_LOG_RETURN( CreateShaderModule( vkDev.device, "Shaders/Mandelbrot.comp", 0, nullptr, &compModule ),
+			"Cannot create compute shader module" );
+
+		const VkComputePipelineCreateInfo cpci{
+			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.stage = {
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.stage = VK_SHADER_STAGE_COMPUTE_BIT,
+				.module = compModule,
+				.pName = "main",
+				.pSpecializationInfo = nullptr
+			},
+			.layout = computeLayout,
+			.basePipelineHandle = VK_NULL_HANDLE,
+			.basePipelineIndex = -1
+		};
+
+		VkResult res = vkCreateComputePipelines( vkDev.device,
+			vkDev.pipelineCache, 1, &cpci, nullptr, &compute );
+
+		vkDestroyShaderModule( vkDev.device, compModule, nullptr );
+		CHECK_LOG_RETURN( res, "Cannot compile compute pipeline" );
+
+		const VkDescriptorPoolSize dps{
+			.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			.descriptorCount = 10,
+		};
+
+		CHECK_LOG_RETURN( CreateDescriptorPool( vkDev.device, nullptr, 0, 
+			(uint32_t)vkRDev.swapchainImages.size(), 1, &dps, &computePool ),
+			"Cannot create compute pool" );
+
+		computeDescriptors.resize( vkRDev.swapchainImages.size() );
+		std::vector<VkDescriptorSetLayout> layout( computeDescriptors.size(), computeSetLayout );
+		const VkDescriptorSetAllocateInfo dsai{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.descriptorPool = computePool,
+			.descriptorSetCount = (uint32_t)computeDescriptors.size(),
+			.pSetLayouts = layout.data()
+		};
+
+		CHECK_LOG_RETURN( vkAllocateDescriptorSets( vkDev.device, &dsai, computeDescriptors.data() ), 
+			"Cannot allocate compute ds" );
+		
+		std::vector<VkWriteDescriptorSet> writes;
+		std::vector<VkDescriptorImageInfo> imageInfos;
+		for( uint32_t i = 0; i < (uint32_t)computeDescriptors.size(); i++ )
+		{
+			imageInfos.push_back( VkDescriptorImageInfo{
+				.sampler = VK_NULL_HANDLE,
+				.imageView = vkRDev.swapchainImageViews[i],
+				.imageLayout = VK_IMAGE_LAYOUT_GENERAL
+			} );
+		}
+
+		TRACE( DebugLevel::PrintAlways, "%d %d\n", (int)imageInfos.size(), (int)computeDescriptors.size() );
+
+		for( uint32_t i = 0; i < (uint32_t)computeDescriptors.size(); i++ )
+		{
+			writes.push_back( VkWriteDescriptorSet{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.pNext = nullptr,
+				.dstSet = computeDescriptors[ i ],
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.pImageInfo = &imageInfos[i],
+				.pBufferInfo = nullptr,
+				.pTexelBufferView = nullptr
+			} );
+		}
+		
+		vkUpdateDescriptorSets( vkDev.device, (uint32_t)writes.size(), writes.data(), 0, nullptr );
+	}
+	//
+
+	//for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
+	//	CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
 
 	lt = glfwGetTime();
 
 	return true;
 }
 
-void GameRenderHandler::OnDraw(const void* )
+void GameRenderHandler::OnDraw(const void*dat )
 {
 	static double filteredDT = 1;
 	auto t = glfwGetTime();
@@ -509,7 +631,9 @@ void GameRenderHandler::OnDraw(const void* )
 			"Could not flush unifrom buffers" );
 	}
 
-	//CHECK_LOG_RETURN_NOVAL( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
+	pPC = (const computePushConstants *)dat;
+
+	CHECK_LOG_RETURN_NOVAL( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
 
 	VkPipelineStageFlags waitFalgs[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -556,6 +680,11 @@ GameRenderHandler::~GameRenderHandler()
 	if( vkDev.device )
 	{
 		vkDeviceWaitIdle( vkDev.device );
+		vkDestroyDescriptorSetLayout( vkDev.device, computeSetLayout, nullptr );
+		vkDestroyPipelineLayout( vkDev.device, computeLayout, nullptr );
+		vkDestroyPipeline( vkDev.device, compute, nullptr );
+		vkDestroyDescriptorPool( vkDev.device, computePool, nullptr );
+
 		DestroyVulkanState( vkDev, vkState );
 		DestroyVulkanRendererDevice( vkRDev );
 	}
@@ -568,18 +697,19 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 	const VkCommandBufferBeginInfo bi = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.pNext = nullptr,
-		.flags = 0,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
 		.pInheritanceInfo = nullptr
 	};
 
 	VkCommandBuffer CmdBuffer = vkRDev.commandBuffers[ index ];
 	VK_CHECK_RET( vkBeginCommandBuffer( CmdBuffer, &bi ) );
-
-	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
-		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
 	
+	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT );
+		//VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
+	/*
 	VkRenderingAttachmentInfo colorAttachment = {
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 		.pNext = nullptr,
@@ -644,10 +774,25 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 		vkCmdDrawIndexed( CmdBuffer, (uint32_t)( vkState.indexBuffer.size / sizeof( uint32_t ) ), 1, 0, 0, 0 );
 
 	vkCmdEndRenderingKHR( CmdBuffer );
+	*/
+
+	vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute );
+	vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computeLayout, 0, 1,
+		&computeDescriptors[ index ], 0, nullptr );
+
+	//computePushConstants pc{
+	//	.start = glm::dvec2( -2, -2 ),
+	//	.increment = glm::dvec2( 4, 4 ) / glm::dvec2( kScreenWidth, kScreenHeight ) 
+	//};
+	vkCmdPushConstants( CmdBuffer, computeLayout, VK_SHADER_STAGE_COMPUTE_BIT, 
+		0, sizeof(*pPC), pPC );
+	vkCmdDispatch( CmdBuffer, AlignUp(kScreenWidth, 16) / 16, AlignUp(kScreenHeight, 16) / 16, 1 );
 
 	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_IMAGE_LAYOUT_GENERAL,//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+		//VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0 );
 	
 	return vkEndCommandBuffer( CmdBuffer );

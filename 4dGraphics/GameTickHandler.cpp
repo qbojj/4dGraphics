@@ -18,7 +18,7 @@ void GameTickHandler::DeleteFData( void *FData )
 	delete (FrameData *)FData;
 }
 
-bool GameTickHandler::OnCreate(GLFWwindow*)
+bool GameTickHandler::OnCreate(GLFWwindow*wnd)
 {
 	lastTimer = glfwGetTimerValue();
 	timerInvFreq = 1.f / glfwGetTimerFrequency();
@@ -27,8 +27,14 @@ bool GameTickHandler::OnCreate(GLFWwindow*)
 
 	if( !IMGUI_CHECKVERSION() ) return false;
 
-	//ImGui::GetIO().Fonts->AddFontDefault();
-	//ImGui::GetIO().Fonts->Build();
+	ImGui::GetIO().Fonts->AddFontDefault();
+	ImGui::GetIO().Fonts->Build();
+
+	int width, height;
+	glfwGetFramebufferSize( wnd, &width, &height );
+
+	pc.start = glm::dvec2( -2, -2 );
+	pc.increment = glm::dvec2( 4, 4 ) / glm::dvec2( width, height );
 
 	return true;
 }
@@ -78,9 +84,9 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 	return 0;
 }
 
-void GameTickHandler::OnTick( void *, InputHandler * )
+void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 {
-	/*
+	
 	OPTICK_EVENT();
 	ImGui::NewFrame();
 	ImGuiIO &io = ImGui::GetIO();
@@ -95,10 +101,40 @@ void GameTickHandler::OnTick( void *, InputHandler * )
 	const auto KeyDown = []( char c ) { return ImGui::IsKeyDown(ImGuiASCIIidx(c) ); };
 	const auto KeyPressed = []( char c ) { return ImGui::IsKeyPressed(ImGuiASCIIidx(c),false); };
 
+	ImVec2 mousePos2 = ImGui::GetMousePos();
+	glm::dvec2 mousePos = glm::dvec2( mousePos2.x, mousePos2.y );
+
+	static glm::dvec2 mouseLast = mousePos; 
+
+	glm::dvec2 mouseDelta = mousePos - mouseLast;
+	
+	if( ImGui::IsMouseDown(ImGuiMouseButton_Left) ) 
+		pc.start -= pc.increment * mouseDelta;
+	
+	mouseLast = mousePos;
+
+	float wheelDelta = io.MouseWheel;
+	if( wheelDelta != 0 )
+	{
+		glm::dvec2 mouseCenter = pc.start + pc.increment * mousePos;
+
+		double scale = pow( 2.0, (double)wheelDelta * 0.05 );
+
+		pc.start = mouseCenter + (pc.start - mouseCenter) * scale;
+		pc.increment *= scale;
+	}
+
+	FData->start = pc.start;
+	FData->increment = pc.increment;
+
+	ImGui::Render();
+
+	/*
 	dt = glm::clamp( dt, 0.00000001f, 1.0f );
 
 	float dist = dt * 4.f;
 
+	
 	{
 		if( io.KeyShift ) dist *= 4;
 
@@ -109,7 +145,7 @@ void GameTickHandler::OnTick( void *, InputHandler * )
 		if( KeyDown( ' ' ) ) Move( vUp * dist );
 		if( io.KeyCtrl ) Move( vDown * dist );
 	}
-
+	
 	lightForce = glm::clamp( lightForce + dt * (KeyDown( 'P' ) ? 1 : -1), 0.f, 1.f );
 
 
@@ -135,6 +171,7 @@ void GameTickHandler::OnTick( void *, InputHandler * )
 	if( KeyDown('Q') ) CamRot *= glm::angleAxis( -dt * 2, vFront );
 	if( KeyDown('E') ) CamRot *= glm::angleAxis( dt * 2, vFront );
 
+	
 	//bTextureView ^= pressed['T'];
 	bVSync ^= KeyPressed( 'V' );
 	bBoundingBoxes ^= KeyPressed( 'B' );
