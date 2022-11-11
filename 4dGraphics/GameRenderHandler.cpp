@@ -786,7 +786,8 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 	//};
 	vkCmdPushConstants( CmdBuffer, computeLayout, VK_SHADER_STAGE_COMPUTE_BIT, 
 		0, sizeof(*pPC), pPC );
-	vkCmdDispatch( CmdBuffer, AlignUp(kScreenWidth, 16) / 16, AlignUp(kScreenHeight, 16) / 16, 1 );
+	const int blockSize = 8;
+	vkCmdDispatch( CmdBuffer, AlignUp(kScreenWidth, blockSize) / blockSize, AlignUp(kScreenHeight, blockSize) / blockSize, 1 );
 
 	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchainImages[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_GENERAL,//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
