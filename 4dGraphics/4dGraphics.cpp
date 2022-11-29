@@ -51,6 +51,7 @@ int Entry()
 
 		TRACE( DebugLevel::Log, "Program started (%s)\n", buffer );
 		TRACE( DebugLevel::Log, "Compiled with: %u\n", __cplusplus );
+		TRACE( DebugLevel::Log, "Debug: %s\n", IS_DEBUG ? "true" : "false");
 	}
 
 	TRACE( DebugLevel::Log, "working dir: %s\n", std::filesystem::current_path().string().c_str() );

@@ -15,7 +15,8 @@
     "vulkan-memory-allocator",
     "portable-snippets",
     "glslang",
-    "spirv-tools"
+    "spirv-tools",
+    "shaderc"
   ],
   "$unusedOldDeps": [
     "meshoptimizer",

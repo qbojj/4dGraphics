@@ -4,9 +4,22 @@
 #define VMA_STATS_STRING_ENABLED 0
 #include <volk.h>
 #include <vector>
+#include <queue>
 #include <functional>
 #include <vk_mem_alloc.h>
+#include <Debug.h>
 
+enum EndOfFrameQueueItemFlags{
+	END_OF_FRAME_CALLBACK,
+	WAIT_BEGIN_FRAME
+};
+struct EndOfFrameQueueItem{
+	EndOfFrameQueueItemFlags type;
+	union payload_t{
+		struct endOfFrame_t{ void (*callback)(void*user); void *userPtr; } EndOfFrameCallback;
+		struct waitForNext_t{ uint64_t frameIdx; } waitBeginFrame;
+	} payload;
+};
 namespace vulkan_helpers {
 	template <typename T, typename F, typename... Ts> auto get_vector( std::vector<T> &out, F &&f, Ts&&... ts ) -> VkResult
 	{
@@ -38,6 +51,9 @@ namespace vulkan_helpers {
 	VkResult enumerate_device_extensions( std::vector<VkExtensionProperties> &exts, VkPhysicalDevice phDev, const std::vector<const char *> &layers );
 	uint32_t is_extension_present( const std::vector<VkExtensionProperties> &exts, const char *pName ); // returns found spec version or 0 if not present
 	bool is_extension_present( const std::vector<const char *> &exts, const char *pName );
+	const VkBaseOutStructure *get_vk_structure( const void *pNextChain, VkStructureType sType );
+
+	EndOfFrameQueueItem make_eofCallback( std::function<void()> &&fn );
 }
 
 // high level interfaces
@@ -63,17 +79,35 @@ struct VulkanDevice {
 	VkPipelineCache pipelineCache;
 };
 
+struct VulkanSwapchain {
+	VkSwapchainKHR swapchain;
+	std::vector<VkImage> images;
+	std::vector<VkImageView> imageViews;
+
+	VkExtent2D extent;
+	VkSurfaceFormatKHR format;
+	VkImageUsageFlags usages;
+};
+
 struct VulkanRenderDevice {
 	VulkanDevice device; // non owning
 	VulkanQueue graphicsQueue;
-	VkSemaphore semophore;
-	VkSemaphore renderSemaphore;
-	VkFence fence;
-	VkSwapchainKHR swapchain;
-	std::vector<VkImage> swapchainImages;
-	std::vector<VkImageView> swapchainImageViews;
+
+	uint32_t framesInFlight;
+	uint32_t frameId;
+
+	uint64_t currentFrameId;
+
+	std::vector<VkSemaphore> imageReadySemaphores;
+	std::vector<VkSemaphore> renderingFinishedSemaphores;
+	VkSemaphore GPUframeIdxSemaphore; // timeline semaphore (counts what frame GPU completed)
+
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
+
+	std::queue<EndOfFrameQueueItem> EndOfUsageHandlers;
+
+	VulkanSwapchain swapchain;
 };
 
 struct VulkanTexture {
@@ -136,8 +170,9 @@ VkResult InitVulkanDevice(
 
 VkResult InitVulkanRenderDevice( 
 	const VulkanInstance &vk, VulkanDevice &vkDev,
-	VulkanQueue graphicsQueue,
-	uint32_t width, uint32_t height,
+	VulkanQueue graphicsQueue, uint32_t framesInFlight,
+	VkExtent2D extent, 
+	VkImageUsageFlags usage, VkFormatFeatureFlags features,
 	VulkanRenderDevice &vkRDev
 );
 
@@ -167,6 +202,8 @@ void DestroyVulkanRendererDevice( VulkanRenderDevice &vkDev );
 void DestroyVulkanDevice( VulkanDevice &vkDev );
 void DestroyVulkanInstance( VulkanInstance &vk );
 
+void DestroyVulkanSwapchain( VkDevice device, VulkanSwapchain &swapchain );
+
 void DestroyVulkanTexture( const VulkanDevice &device, VulkanTexture &texture );
 
 VkResult BeginSingleTimeCommands( VkDevice device, VkCommandPool commandPool, VkCommandBuffer *commandBuffer );
@@ -194,29 +231,31 @@ VkResult FindSuitablePhysicalDevice( VkInstance instance,
 uint32_t FindQueueFamilies( VkPhysicalDevice device, VkQueueFlags desiredFlags );
 
 // debug functions
-VkResult SetVkObjectName( VkDevice vkDev, uint64_t object, VkObjectType objType, const char *name );
+
+#if IS_DEBUG
+VkResult SetVkObjectName( VkDevice vkDev, uint64_t object, VkObjectType objType, const char *format, ... );
+#define SET_VK_NAME( device, object, type, ... ) SetVkObjectName( device, (uint64_t)object, type, __VA_ARGS__ )
+#else
+#define SET_VK_NAME( device, object, type, ... ) VK_SUCCESS
+#endif
 
 // swapchain creation functions
-
-struct SwapchainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities = {};
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};
-
-VkResult QuerySwapchainSupport( VkPhysicalDevice device, VkSurfaceKHR surface, SwapchainSupportDetails *details );
-VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector<VkSurfaceFormatKHR> &avaiableFormats );
-VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKHR> &avaiablePresentModes );
+VkSurfaceFormatKHR ChooseSwapchainFormat( VkPhysicalDevice pd, VkSurfaceKHR surf, VkFormatFeatureFlags features );
+VkPresentModeKHR ChooseSwapPresentMode( VkPhysicalDevice pd, VkSurfaceKHR surf, bool VSync, bool limitFramerate );
 uint32_t ChooseSwapImageCount( const VkSurfaceCapabilitiesKHR &capabilities );
+VkExtent2D ChooseSwapchainExtent( VkExtent2D defaultSize, const VkSurfaceCapabilitiesKHR &capabilities );
 
 VkResult CreateSwapchain(
-	VkDevice device, VkPhysicalDevice physicalDevice,
-	VkSurfaceKHR surface, uint32_t width, uint32_t height,
-	VkSwapchainKHR *swapchain
+	VkDevice device, VkSurfaceKHR surface, 
+	VkExtent2D swapchainSize, uint32_t swapchainLayers, uint32_t minImageCount,
+	VkSurfaceFormatKHR surfaceFormat, VkImageUsageFlags swapchainUsage, 
+	VkSurfaceTransformFlagBitsKHR preTransform, VkCompositeAlphaFlagBitsKHR compositeAlpha,
+	VkPresentModeKHR presentMode, VkBool32 clipped,
+	VkSwapchainKHR oldSwapchain, VkSwapchainKHR *swapchain
 );
 
 VkResult CreateSwapchainImages( VkDevice device, VkSwapchainKHR swapchain,
-	uint32_t *swapchainImagesCount,
+	uint32_t *swapchainImagesCount, VkFormat imageFormat,
 	std::vector<VkImage> &swapchainImages, std::vector<VkImageView> &swapchainImageViews
 );
 

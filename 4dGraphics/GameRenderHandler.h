@@ -35,10 +35,12 @@ protected:
 	std::vector<VkDescriptorSet> computeDescriptors;
 	VkPipeline compute;
 
-	uint32_t kScreenWidth, kScreenHeight;
-
 	double lt;
 	VkResult FillCommandBuffers( uint32_t index );
+	VkResult AdvanceFrame( uint32_t *imageIdx );
+	VkResult EndFrame( uint32_t imageIdx );
+	VkResult RecreateSwapchain();
+	void ClearDestructionQueue( uint64_t until );
 };
 
 template<typename RH >

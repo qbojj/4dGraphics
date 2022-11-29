@@ -8,14 +8,14 @@
 #define USE_WIN_DEBUG 
 #endif
 
-#if !defined(PSNIP_NDEBUG) || (PSNIP_NDEBUG == 0)
+#if 1 || !defined(PSNIP_NDEBUG) || (PSNIP_NDEBUG == 0)
 #define IS_DEBUG 1
 #define IS_NOT_DEBUG 0
 #define DEBUG_ONLY(a) a
 #else
 #define IS_DEBUG 0
 #define IS_NOT_DEBUG 1
-#define DEBUG_ONLY(a)
+#define DEBUG_ONLY(a) 
 #endif
 
 enum class DebugLevel : unsigned 
