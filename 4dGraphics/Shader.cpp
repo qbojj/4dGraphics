@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <bit>
 
 // for endianness conversions
 #include <builtin/builtin.h>
@@ -249,16 +250,16 @@ std::vector<uint32_t> getShaderOrGenerate( EShLanguage stage, const char *shader
         {
             std::vector<uint32_t> SPIRV( FileData.size() / sizeof(uint32_t) );
             memcpy(SPIRV.data(), FileData.data(), FileData.size() );
-            uint32_t currnetEndianMagicNumber = 0x07230203;
-
+            constexpr uint32_t correctMagicNumber = 0x07230203;
+            
             uint32_t magicNumber = SPIRV[ 0 ];
-            if( magicNumber == psnip_builtin_bswap32( currnetEndianMagicNumber ) )
+            if( magicNumber == psnip_builtin_bswap32( correctMagicNumber ) )
             {
                 for( uint32_t &v : SPIRV )
                     v = psnip_builtin_bswap32( v );
             }
 
-            if( magicNumber == currnetEndianMagicNumber )
+            if( magicNumber == correctMagicNumber )
             {
                 // we have SPIRV in native endianness
                 

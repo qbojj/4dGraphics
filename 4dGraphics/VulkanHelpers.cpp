@@ -301,13 +301,11 @@ VkResult InitVulkanRenderDevice(
 	VkCommandPoolCreateInfo cpCI;
 	VkCommandBufferAllocateInfo cbAI;
 	
-	const VkSemaphoreTypeCreateInfo stci{ 
-		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR,
+	const VkFenceCreateInfo fci{
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 		.pNext = nullptr,
-    	.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-        .initialValue = 0,
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT
 	};
-	const VkSemaphoreCreateInfo sci{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, &stci, 0 };
 
 	VkSurfaceCapabilitiesKHR capabilities;
 	VkCompositeAlphaFlagBitsKHR compositeAlpha;
@@ -320,6 +318,7 @@ VkResult InitVulkanRenderDevice(
 	vkRDev.framesInFlight = framesInFlight;
 	vkRDev.device = vkDev;
 	vkRDev.graphicsQueue = graphicsQueue;
+	vkRDev.currentFrameId = 0;
 
 	VK_CHECK_GOTO( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( vkDev.physicalDevice, vk.surface, &capabilities ) );
 
@@ -348,16 +347,17 @@ VkResult InitVulkanRenderDevice(
 		&imageCount, swapchain.format.format,
 		swapchain.images, swapchain.imageViews ) );
 
-	VK_CHECK_GOTO( vkCreateSemaphore( vkDev.device, &sci, nullptr, &vkRDev.GPUframeIdxSemaphore ) );
 
 	vkRDev.imageReadySemaphores.resize( vkRDev.framesInFlight, VK_NULL_HANDLE );
 	vkRDev.renderingFinishedSemaphores.resize( vkRDev.framesInFlight, VK_NULL_HANDLE );
+	vkRDev.resourcesUnusedFence.resize( vkRDev.framesInFlight, VK_NULL_HANDLE );
 	vkRDev.commandBuffers.resize( vkRDev.framesInFlight, VK_NULL_HANDLE );
 
 	for( uint32_t i = 0; i < vkRDev.framesInFlight; i++ )
 	{
 		VK_CHECK_GOTO( CreateSemophore( vkDev.device, &vkRDev.imageReadySemaphores[i] ) );
 		VK_CHECK_GOTO( CreateSemophore( vkDev.device, &vkRDev.renderingFinishedSemaphores[i] ) );
+		VK_CHECK_GOTO( vkCreateFence( vkDev.device, &fci, nullptr, &vkRDev.resourcesUnusedFence[i] ));
 	}
 	
 	cpCI = VkCommandPoolCreateInfo{
@@ -385,6 +385,7 @@ VkResult InitVulkanRenderDevice(
 	{
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.imageReadySemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev image %d ready", i));
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.renderingFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev image %d finished", i));
+		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.renderingFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev resources unused %d", i));
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.commandBuffers[i], VK_OBJECT_TYPE_COMMAND_BUFFER, "rdev command buffer %i", i));
 	}
 
@@ -1006,7 +1007,8 @@ void DestroyVulkanRendererDevice( VulkanRenderDevice &vkDev )
 		for( VkSemaphore s : vkDev.renderingFinishedSemaphores )
 			vkDestroySemaphore( dev, s, nullptr );
 		
-		vkDestroySemaphore( dev, vkDev.GPUframeIdxSemaphore, nullptr );
+		for( VkFence f : vkDev.resourcesUnusedFence )
+			vkDestroyFence( dev, f, nullptr );
 	}
 	vkDev = VulkanRenderDevice{};
 }

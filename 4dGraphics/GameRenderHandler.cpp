@@ -670,27 +670,12 @@ VkResult GameRenderHandler::AdvanceFrame( uint32_t *imageIdx )
 	filteredDT = filteredDT * (1-alpha) + dt * alpha;
 
 	OutputDebug(DebugLevel::Log, "%8.4fms (%6.2f)\n", dt*1000, 1. / filteredDT );
-
+	VK_CHECK_RET( vkWaitForFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId], VK_FALSE, UINT64_MAX ) );
+	VK_CHECK_RET( vkResetFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId]) );
+	 
 	vkRDev.currentFrameId++;
 	vkRDev.frameId = ( vkRDev.frameId + 1 ) % vkRDev.framesInFlight;
-
-	if( vkRDev.currentFrameId >= vkRDev.framesInFlight )
-	{
-		uint64_t waitFrameId = vkRDev.currentFrameId - vkRDev.framesInFlight;
-
-		OutputDebug( DebugLevel::Log, "%d: wait %d\n", vkRDev.currentFrameId, waitFrameId );
-		VkSemaphoreWaitInfo swi{
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.semaphoreCount = 1,
-			.pSemaphores = &vkRDev.GPUframeIdxSemaphore,
-			.pValues = &waitFrameId
-		};
-
-		VK_CHECK_RET( vkWaitSemaphores( vkRDev.device.device, &swi, UINT64_MAX ) );
-		ClearDestructionQueue( waitFrameId );
-	}
+	ClearDestructionQueue( vkRDev.currentFrameId - vkRDev.framesInFlight );
 
 	VkResult res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain.swapchain, UINT64_MAX,
 		vkRDev.imageReadySemaphores[vkRDev.frameId], VK_NULL_HANDLE, imageIdx );
@@ -776,40 +761,21 @@ void GameRenderHandler::OnDraw(const void*dat )
 
 	CHECK_LOG_RETURN_NOVAL( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
 
-	uint64_t waits[2] = { 0, vkRDev.currentFrameId - 1 };
-	uint64_t signals[2] = { 0, vkRDev.currentFrameId };
-
-	VkTimelineSemaphoreSubmitInfo tssi{
-		.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-		.pNext = nullptr,
-		.waitSemaphoreValueCount = 2,
-    	.pWaitSemaphoreValues = waits,
-    	.signalSemaphoreValueCount = 2,
-    	.pSignalSemaphoreValues = signals
-	};
-
-	VkSemaphore waitSemaphores[2] = { vkRDev.imageReadySemaphores[vkRDev.frameId], vkRDev.GPUframeIdxSemaphore };
-	VkSemaphore signalSemaphores[2] = { vkRDev.renderingFinishedSemaphores[vkRDev.frameId], vkRDev.GPUframeIdxSemaphore };
-
-	VkPipelineStageFlags waitFlags[2] = {
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-	};
-
+	const VkPipelineStageFlags waitFlags[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
 	VkSubmitInfo si{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.pNext = &tssi,
-		.waitSemaphoreCount = 2,
-		.pWaitSemaphores = waitSemaphores,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &vkRDev.imageReadySemaphores[vkRDev.frameId],
 		.pWaitDstStageMask = waitFlags,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &vkRDev.commandBuffers[ vkRDev.frameId ],
-		.signalSemaphoreCount = 2,
-		.pSignalSemaphores = signalSemaphores,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &vkRDev.renderingFinishedSemaphores[vkRDev.frameId],
 	};
-	CHECK_LOG_RETURN_NOVAL( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si, VK_NULL_HANDLE ), "Cannot enqueue cmdBuffers" );
-	OutputDebug( DebugLevel::Log, "GPU %d: wait %d, signal %d\n", vkRDev.currentFrameId, waits[1], signals[1] );
-
+	CHECK_LOG_RETURN_NOVAL( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si, 
+		vkRDev.resourcesUnusedFence[vkRDev.frameId] ), "Cannot enqueue cmdBuffers" );
+	
 	CHECK_LOG_RETURN_NOVAL( EndFrame( imageIdx ), "Cannot present" );
 }
 

@@ -92,22 +92,20 @@ struct VulkanSwapchain {
 struct VulkanRenderDevice {
 	VulkanDevice device; // non owning
 	VulkanQueue graphicsQueue;
+	VulkanSwapchain swapchain;
 
 	uint32_t framesInFlight;
 	uint32_t frameId;
 
 	uint64_t currentFrameId;
+	std::queue<EndOfFrameQueueItem> EndOfUsageHandlers;
 
 	std::vector<VkSemaphore> imageReadySemaphores;
 	std::vector<VkSemaphore> renderingFinishedSemaphores;
-	VkSemaphore GPUframeIdxSemaphore; // timeline semaphore (counts what frame GPU completed)
+	std::vector<VkFence> resourcesUnusedFence;
 
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
-
-	std::queue<EndOfFrameQueueItem> EndOfUsageHandlers;
-
-	VulkanSwapchain swapchain;
 };
 
 struct VulkanTexture {
