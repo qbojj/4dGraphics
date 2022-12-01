@@ -9,7 +9,7 @@
 #include <vk_mem_alloc.h>
 #include <Debug.h>
 
-enum EndOfFrameQueueItemFlags{
+enum EndOfFrameQueueItemFlags {
 	END_OF_FRAME_CALLBACK,
 	WAIT_BEGIN_FRAME
 };

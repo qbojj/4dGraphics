@@ -637,23 +637,22 @@ void GameRenderHandler::ClearDestructionQueue( uint64_t until )
 	while( !vkRDev.EndOfUsageHandlers.empty() )
 	{
 		const EndOfFrameQueueItem &item = vkRDev.EndOfUsageHandlers.front();
+		const EndOfFrameQueueItemFlags type = item.type;
 		const EndOfFrameQueueItem::payload_t &payload = item.payload;
 
-		if( item.type == WAIT_BEGIN_FRAME )
+		if( type == WAIT_BEGIN_FRAME )
 		{
-			OutputDebug(DebugLevel::Log, "eof wait %d ---------------------------------------------\n", payload.waitBeginFrame.frameIdx);
 			// don't advance if there is wait flag for greater frame and 
 			// leave it there for next frames
 			if( payload.waitBeginFrame.frameIdx > until ) break;
 		}
-		else if( item.type == END_OF_FRAME_CALLBACK )
+		else if( type == END_OF_FRAME_CALLBACK )
 		{
-			OutputDebug(DebugLevel::Log, "eof callback ---------------------------------------------\n");
 			payload.EndOfFrameCallback.callback( payload.EndOfFrameCallback.userPtr );
 		}
 		else 
 		{
-			OutputDebug(DebugLevel::Error, "eof unknown --------------------------------------------\n");
+			OutputDebug(DebugLevel::Error, "eof unknown flag %d\n", type);
 		}
 
 		vkRDev.EndOfUsageHandlers.pop();
@@ -669,14 +668,15 @@ VkResult GameRenderHandler::AdvanceFrame( uint32_t *imageIdx )
 	constexpr double alpha = 0.1;
 	filteredDT = filteredDT * (1-alpha) + dt * alpha;
 
-	OutputDebug(DebugLevel::Log, "%8.4fms (%6.2f)\n", dt*1000, 1. / filteredDT );
-	VK_CHECK_RET( vkWaitForFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId], VK_FALSE, UINT64_MAX ) );
-	VK_CHECK_RET( vkResetFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId]) );
-	 
 	vkRDev.currentFrameId++;
 	vkRDev.frameId = ( vkRDev.frameId + 1 ) % vkRDev.framesInFlight;
+	
+	OutputDebug(DebugLevel::Log, "%llu: %8.4fms (%6.2f)\n", vkRDev.currentFrameId, dt*1000, 1. / filteredDT );
+	VK_CHECK_RET( vkWaitForFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId], VK_FALSE, UINT64_MAX ) );
 	ClearDestructionQueue( vkRDev.currentFrameId - vkRDev.framesInFlight );
 
+	VK_CHECK_RET( vkResetFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[vkRDev.frameId]) );
+	
 	VkResult res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain.swapchain, UINT64_MAX,
 		vkRDev.imageReadySemaphores[vkRDev.frameId], VK_NULL_HANDLE, imageIdx );
 
@@ -702,9 +702,6 @@ VkResult GameRenderHandler::EndFrame( uint32_t imageIdx )
 
 	VkResult res = vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi );
 
-	if( res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR )
-		res = RecreateSwapchain();
-
 	vkRDev.EndOfUsageHandlers.push(
 		EndOfFrameQueueItem{
 			.type = WAIT_BEGIN_FRAME,
@@ -713,6 +710,10 @@ VkResult GameRenderHandler::EndFrame( uint32_t imageIdx )
 			}
 		}
 	);
+
+	// recreate swapchain AFTER frame
+	if( res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR )
+		res = RecreateSwapchain();
 	
 	return res;
 }
