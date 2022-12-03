@@ -10,10 +10,6 @@
 #include <chrono>
 #include <thread>
 
-#ifdef _WIN32
-#include "Windows.h"
-#endif
-
 #include "Shader.h"
 
 void* ImGuiAlloc(size_t size, void* dat)
@@ -31,11 +27,41 @@ void ImGuiFree(void* ptr, void* dat)
 	}
 }
 
-int Entry()
+int Entry( int argc, const char *argv[] )
 {
 	OPTICK_APP( "4dGraphics" );
 
-	//LogLevel = DebugLevel::Warning;
+	for( int i = 1; i < argc; i++ )
+	{
+		std::string_view s{ argv[i] };
+
+		if( s == "-d" || s == "--debug-level" )
+		{
+			DebugLevel lev = DebugLevel::Log;
+			if( i+1 < argc )
+			{
+				i++;
+				
+				switch( argv[i][0] )
+				{
+				case 'd': lev = DebugLevel::Debug; break;
+				case 'l': lev = DebugLevel::Log; break;
+				case 'w': lev = DebugLevel::Warning; break;
+				case 'e': lev = DebugLevel::Error; break;
+				case 'f': lev = DebugLevel::FatalError; break;
+				case 'q': lev = DebugLevel::PrintAlways; break;
+				default: break;
+				}
+			}
+			
+			LogLevel = lev;
+		}
+		else 
+		{
+			OutputDebug(DebugLevel::PrintAlways, "Unknown option %s\n", argv[i]);
+			return -1;
+		}
+	}
 
 	srand( (unsigned int)time( NULL ) );
 
@@ -95,21 +121,64 @@ int Entry()
 	return ok ? 0 : 1;
 }
 
-#if defined(REQUIRE_WINMAIN)
-int WINAPI WinMain(
-	_In_ HINSTANCE hInstance,
-	_In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPSTR lpCmdLine,
-	_In_ int nShowCmd
+#ifdef _WIN32
+typedef struct HINSTANCE__ *HINSTANCE;
+typedef char CHAR;
+typedef CHAR *LPSTR;
+
+int __stdcall WinMain(
+	HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPSTR lpCmdLine,
+	int nShowCmd
 )
 {
 	(void)hInstance, hPrevInstance, lpCmdLine, nShowCmd;
-	return Entry();
-}
+	
+	std::vector<std::string> argvMem;
+	char sep = '\0';
+	char *start = nullptr;
 
-#else
-int main()
-{
-	return Entry();
+	char *s = lpCmdLine;
+
+	const char *separators = "\'\""
+
+	while( *s )
+	{
+		bool endStr = false;
+		if( *s == sep ) endStr = true;
+		else if( isblank(*s) )
+		{
+			if( !sep && start ) endStr = true;
+		}
+		else if( !start ) // not blank and not separator
+		{
+			if( strchr( separators, *s ) )
+			{
+				start = s+1;
+				sep = *s
+			}
+			else start = s;
+		}
+
+		if( endStr )
+		{
+			if( start != s ) argvMem.push_back(std::string(start,s));
+			start = nullptr;
+			sep = '\0';
+		}
+
+		s++;
+	}
+
+	std::vector<const char *> argv{"{binpath}"};	
+	for( auto &s : argvMem ) { argv.push_back(s.data()); };
+	
+	return Entry( (int)argv.size(), argv.data() );
 }
 #endif
+
+int main(int argc, const char *argv[])
+{
+	return Entry( argc, argv );
+}
