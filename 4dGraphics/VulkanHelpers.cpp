@@ -38,7 +38,7 @@ static VkResult enumerate_extensions_generic(
 		{
 			size_t i = 0;
 			while(	i < exts.size() && 
-					strcmp( ext.extensionName, exts[i].extensionName ) != 0 ) {};
+					strcmp( ext.extensionName, exts[i].extensionName ) != 0 ) i++;
 			
 			if( i == exts.size() ) exts.push_back( ext );					
 		}
@@ -385,7 +385,7 @@ VkResult InitVulkanRenderDevice(
 	{
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.imageReadySemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev image %d ready", i));
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.renderingFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev image %d finished", i));
-		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.renderingFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, "rdev resources unused %d", i));
+		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.resourcesUnusedFence[i], VK_OBJECT_TYPE_FENCE, "rdev resources unused %d", i));
 		VK_CHECK_GOTO( SET_VK_NAME( vkDev.device, vkRDev.commandBuffers[i], VK_OBJECT_TYPE_COMMAND_BUFFER, "rdev command buffer %i", i));
 	}
 
@@ -1605,7 +1605,15 @@ VkResult CreateImage(
 	ai.flags = allocationFlags;
 	ai.usage = vmaUsage;
 
-	return vmaCreateImage(allocator, &ici, &ai, image, imageMemory, allocationInfo );
+	VkResult res = vmaCreateImage(allocator, &ici, &ai, image, imageMemory, allocationInfo );
+	if( vmaUsage == VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED && res < 0 )
+	{
+		// if could not create lazily allocated image try from normal heap
+		ai.usage = VMA_MEMORY_USAGE_AUTO;
+		res = vmaCreateImage(allocator, &ici, &ai, image, imageMemory, allocationInfo );
+	}
+
+	return res;
 }
 
 VkResult CreateImageView( VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView *imageView )
