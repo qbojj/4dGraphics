@@ -425,8 +425,8 @@ bool GameRenderHandler::OnCreate(GLFWwindow* window)
 		VkResult res = CreateImageResource( vkDev,
 			depthFormat, VK_IMAGE_TYPE_2D, { kScreenWidth, kScreenHeight, 1 },
 			1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, 0,
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			0, VMA_MEMORY_USAGE_AUTO,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+			0, VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED,
 			&vkState.depthResource );
 
 		if( res >= 0 )

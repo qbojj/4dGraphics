@@ -57,9 +57,9 @@ int modulo(int v, int m)
 
 constexpr ImGuiKey ImGuiASCIIidx(char c)
 {
-	if (c >= '0' && c <= '9') return ImGuiKey_0 + (c - '0');
-	if (c >= 'a' && c <= 'z') return ImGuiKey_A + (c - 'a');
-	if (c >= 'A' && c <= 'Z') return ImGuiKey_A + (c - 'A');
+	if (c >= '0' && c <= '9') return (ImGuiKey)( (int)ImGuiKey_0 + (c - '0') );
+	if (c >= 'a' && c <= 'z') return (ImGuiKey)( (int)ImGuiKey_A + (c - 'a') );
+	if (c >= 'A' && c <= 'Z') return (ImGuiKey)( (int)ImGuiKey_A + (c - 'A') );
 
 	switch (c)
 	{
@@ -81,7 +81,7 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 	}
 
 	assert(0 && "Character given to ImGuiASCIIidx doesn't correspond to a key");
-	return 0;
+	return ImGuiKey_None;
 }
 
 void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
@@ -93,7 +93,7 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 
 	FrameData *FData = (FrameData *)_FData;
 	GameInputHandler *IData = (GameInputHandler *)_IData;
-
+	
 	uint64_t StartTickTime = glfwGetTimerValue();
 	float dt = (StartTickTime - lastTimer) * timerInvFreq;
 	lastTimer = StartTickTime;
