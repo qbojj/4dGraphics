@@ -38,7 +38,7 @@ int Entry( int argc, const char *argv[] )
 		if( s == "-d" || s == "--debug-level" )
 		{
 			DebugLevel lev = DebugLevel::Log;
-			if( i+1 < argc )
+			if( i+1 < argc && argv[i+1][0] != '-' )
 			{
 				i++;
 				
@@ -141,7 +141,7 @@ int __stdcall WinMain(
 
 	char *s = lpCmdLine;
 
-	const char *separators = "\'\""
+	const char *separators = "\'\"";
 
 	while( *s )
 	{
@@ -156,7 +156,7 @@ int __stdcall WinMain(
 			if( strchr( separators, *s ) )
 			{
 				start = s+1;
-				sep = *s
+				sep = *s;
 			}
 			else start = s;
 		}
@@ -172,7 +172,7 @@ int __stdcall WinMain(
 	}
 
 	std::vector<const char *> argv{"{binpath}"};	
-	for( auto &s : argvMem ) { argv.push_back(s.data()); };
+	for( auto &str : argvMem ) { argv.push_back(str.data()); };
 	
 	return Entry( (int)argv.size(), argv.data() );
 }

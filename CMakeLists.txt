@@ -34,6 +34,7 @@ if( 4DG_ALL_WARINGS )
 endif()
 
 set(OPTICK_ENABLED OFF CACHE BOOL "" )
+set(OPTICK_USE_VULKAN ON CACHE BOOL "")
 set(OPTICK_INSTALL_TARGETS OFF CACHE BOOL "" )
 
 add_subdirectory(deps/optick)

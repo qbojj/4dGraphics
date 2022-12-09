@@ -7,6 +7,7 @@
 #include <queue>
 #include <functional>
 #include <vk_mem_alloc.h>
+#include <shared_mutex>
 #include <Debug.h>
 
 enum EndOfFrameQueueItemFlags {
@@ -54,6 +55,30 @@ namespace vulkan_helpers {
 	const VkBaseOutStructure *get_vk_structure( const void *pNextChain, VkStructureType sType );
 
 	EndOfFrameQueueItem make_eofCallback( std::function<void()> &&fn );
+
+	class DescriptorSetLayoutCache {
+	public:
+		VkResult init(VkDevice device);
+		void cleanup();
+
+		struct DescriptorSetLayoutInfo{
+			std::vector<VkDescriptorSetLayoutBinding> bindings;
+			std::vector<VkDescriptorBindingFlags> flags;
+
+			void normalize();
+			bool operator==(const DescriptorSetLayoutInfo & ) const;
+			size_t hash() const;
+		};
+
+	private:
+		struct dsHash {
+			size_t operator()( const DescriptorSetLayoutInfo &v ) const { return v.hash(); };
+		};
+
+		mutable std::shared_mutex dslayoutMutex_;
+		std::unordered_map<DescriptorSetLayoutInfo,VkDescriptorSetLayout> dslayoutCache_;
+		VkDevice device;
+	};
 }
 
 // high level interfaces

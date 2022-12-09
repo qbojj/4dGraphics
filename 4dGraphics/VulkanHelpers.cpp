@@ -5,7 +5,6 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-
 #include <stdarg.h>
 
 #include <CommonUtility.h>
@@ -42,7 +41,6 @@ static VkResult enumerate_extensions_generic(
 			
 			if( i == exts.size() ) exts.push_back( ext );					
 		}
-
 	}
 
 	exts_ = std::move( exts );
@@ -118,6 +116,68 @@ EndOfFrameQueueItem vulkan_helpers::make_eofCallback( std::function<void()> &&fn
 
 	return res;
 };
+
+VkResult vulkan_helpers::DescriptorSetLayoutCache::init( VkDevice dev )
+{
+	device = dev;
+	return VK_SUCCESS;
+} 
+
+void vulkan_helpers::DescriptorSetLayoutCache::DescriptorSetLayoutInfo::normalize()
+{
+	std::vector<int> perm(bindings.size());
+	std::iota(perm.begin(),perm.end(),0);
+	
+	std::sort( perm.begin(), perm.end(), [this](int a, int b){
+		return bindings[a].binding < bindings[b].binding;
+	});
+
+	bool moveFlags = false;
+	for( auto &f : flags )
+		if( f != 0 )
+			moveFlags = true;
+	
+	flags.resize( moveFlags ? bindings.size() : 0, 0 );
+
+	// apply the permutation
+	for( int a = 0; a < (int)perm.size(); a++ )
+		for( int last = a, i = perm[a]; i != -1; last = i, i = perm[i], perm[last] = -1 )
+		{
+			std::swap( bindings[last], bindings[i] );
+			if( moveFlags ) std::swap( flags[last], flags[i] );
+		}
+}
+
+size_t vulkan_helpers::DescriptorSetLayoutCache::DescriptorSetLayoutInfo::hash() const
+{
+	size_t seed = bindings.size();
+
+	auto combineHash = [&seed](uint32_t x) {
+		x = ((x >> 16) ^ x) * 0x45d9f3b;
+		x = ((x >> 16) ^ x) * 0x45d9f3b;
+		x = (x >> 16) ^ x;
+		seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	};
+
+	const uint32_t *bnds = reinterpret_cast<const uint32_t *>(bindings.data());
+	for( size_t i = 0; i < bindings.size() * sizeof(VkDescriptorSetLayoutBinding)/sizeof(uint32_t); i++ )
+		combineHash( bnds[i] );
+
+	for( auto &f : flags )
+		combineHash( (uint32_t)f );
+
+	return seed;
+}
+
+bool vulkan_helpers::DescriptorSetLayoutCache::DescriptorSetLayoutInfo::operator==(const DescriptorSetLayoutInfo &o) const
+{
+	return 
+		std::equal(bindings.begin(),bindings.end(), o.bindings.begin(), o.bindings.end(), 
+		[]( auto &a, auto &b ){
+			return memcmp(&a,&b,sizeof(a)) == 0;
+		}) &&
+		std::equal(flags.begin(),flags.end(),o.flags.begin(), o.flags.end());
+}
 
 
 static std::string FormatUUID( const uint8_t data[ VK_UUID_SIZE ] )

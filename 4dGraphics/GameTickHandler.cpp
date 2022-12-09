@@ -85,8 +85,7 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 }
 
 void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
-{
-	
+{	
 	OPTICK_EVENT();
 	ImGui::NewFrame();
 	ImGuiIO &io = ImGui::GetIO();
@@ -107,7 +106,6 @@ void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 	static glm::dvec2 mouseLast = mousePos; 
 
 	glm::dvec2 mouseDelta = mousePos - mouseLast;
-	
 	if( ImGui::IsMouseDown(ImGuiMouseButton_Left) ) 
 		pc.start -= pc.increment * mouseDelta;
 	
