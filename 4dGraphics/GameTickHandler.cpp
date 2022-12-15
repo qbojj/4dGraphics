@@ -6,6 +6,9 @@
 #include "Debug.h"
 #include "CommonUtility.h"
 
+#include <imgui_impl_sdl.h>
+#include <imgui_impl_vulkan.h>
+
 using namespace std;
 
 void *GameTickHandler::NewFData()
@@ -26,7 +29,8 @@ bool GameTickHandler::OnCreate(GLFWwindow*wnd)
 	TimeStart = std::chrono::high_resolution_clock::now();
 
 	if( !IMGUI_CHECKVERSION() ) return false;
-
+	if( !ImGui_ImplSDL2_InitForVulkan( window ) ) return false;
+	
 	ImGui::GetIO().Fonts->AddFontDefault();
 	ImGui::GetIO().Fonts->Build();
 
@@ -87,6 +91,7 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
 {	
 	OPTICK_EVENT();
+	ImGui_ImplSDL2_
 	ImGui::NewFrame();
 	ImGuiIO &io = ImGui::GetIO();
 

@@ -1,7 +1,4 @@
-#include "GameCore.h"
-#include "GameInputHandler.h"
-#include "GameRenderHandler.h"
-#include "GameTickHandler.h"
+#include "GameHandler.h"
 
 #include "Debug.h"
 #include "optick.h"
@@ -10,27 +7,16 @@
 #include <chrono>
 #include <thread>
 
+#include <SDL2/SDL_main.h>
 #include "Shader.h"
 
-void* ImGuiAlloc(size_t size, void* dat)
-{
-	if( dat ) (*(int*)dat)++;
-	return malloc(size);
-}
+#include "cppHelpers.hpp"
 
-void ImGuiFree(void* ptr, void* dat)
+#ifdef __cplusplus
+extern "C"
+#endif
+int main( int argc, const char *argv[] )
 {
-	if (ptr)
-	{
-		if(dat) (*(int*)dat)--;
-		free(ptr);
-	}
-}
-
-int Entry( int argc, const char *argv[] )
-{
-	OPTICK_APP( "4dGraphics" );
-
 	for( int i = 1; i < argc; i++ )
 	{
 		std::string_view s{ argv[i] };
@@ -78,107 +64,8 @@ int Entry( int argc, const char *argv[] )
 		TRACE( DebugLevel::Log, "Program started (%s)\n", buffer );
 		TRACE( DebugLevel::Log, "Compiled with: %u\n", __cplusplus );
 		TRACE( DebugLevel::Log, "Debug: %s\n", IS_DEBUG ? "true" : "false");
+		TRACE( DebugLevel::Log, "working dir: %s\n", std::filesystem::current_path().string().c_str() );
 	}
 
-	TRACE( DebugLevel::Log, "working dir: %s\n", std::filesystem::current_path().string().c_str() );
-	GameEngine engine;
-	
-	bool ok = false;
-	
-	if( engine.Init( 
-		new GameInputHandler(),
-		new GameTickHandler(),
-		new GameRenderHandler() )
-		)
-	{
-		int allocCnt = 0;
-		ImGui::SetAllocatorFunctions(ImGuiAlloc, ImGuiFree, &allocCnt);
-
-		if (ImGui::CreateContext() == NULL)
-		{
-			TRACE(DebugLevel::FatalError, "Cannot initialize imgui context");
-			return 0;
-		}
-
-		if (!glslang::InitializeProcess())
-		{
-			ImGui::DestroyContext();
-			TRACE(DebugLevel::FatalError, "Cannot initialize glslang context");
-			return 0;
-		}
-
-		ok = engine.Start();
-		glslang::FinalizeProcess();
-		ImGui::DestroyContext();
-
-		if( allocCnt != 0 )
-			TRACE( DebugLevel::Error, "ImGui made %d %s %s than frees\n", 
-				abs( allocCnt ), 
-				abs( allocCnt ) > 1 ? "allocations" : "allocation", 
-				allocCnt > 0 ? "more" : "less" );
-	}
-
-	return ok ? 0 : 1;
-}
-
-#ifdef _WIN32
-typedef struct HINSTANCE__ *HINSTANCE;
-typedef char CHAR;
-typedef CHAR *LPSTR;
-
-int __stdcall WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpCmdLine,
-	int nShowCmd
-)
-{
-	(void)hInstance, hPrevInstance, lpCmdLine, nShowCmd;
-	
-	std::vector<std::string> argvMem;
-	char sep = '\0';
-	char *start = nullptr;
-
-	char *s = lpCmdLine;
-
-	const char *separators = "\'\"";
-
-	while( *s )
-	{
-		bool endStr = false;
-		if( *s == sep ) endStr = true;
-		else if( isblank(*s) )
-		{
-			if( !sep && start ) endStr = true;
-		}
-		else if( !start ) // not blank and not separator
-		{
-			if( strchr( separators, *s ) )
-			{
-				start = s+1;
-				sep = *s;
-			}
-			else start = s;
-		}
-
-		if( endStr )
-		{
-			if( start != s ) argvMem.push_back(std::string(start,s));
-			start = nullptr;
-			sep = '\0';
-		}
-
-		s++;
-	}
-
-	std::vector<const char *> argv{"{binpath}"};	
-	for( auto &str : argvMem ) { argv.push_back(str.data()); };
-	
-	return Entry( (int)argv.size(), argv.data() );
-}
-#endif
-
-int main(int argc, const char *argv[])
-{
-	return Entry( argc, argv );
+	return MyGameHandler{}.Run();
 }

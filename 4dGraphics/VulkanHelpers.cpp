@@ -11,6 +11,8 @@
 #include <assimp/scene.h>
 #include <assimp/cimport.h>
 
+#include <SDL2/SDL_vulkan.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #include <stb_image.h>
@@ -171,12 +173,9 @@ size_t vulkan_helpers::DescriptorSetLayoutCache::DescriptorSetLayoutInfo::hash()
 
 bool vulkan_helpers::DescriptorSetLayoutCache::DescriptorSetLayoutInfo::operator==(const DescriptorSetLayoutInfo &o) const
 {
-	return 
-		std::equal(bindings.begin(),bindings.end(), o.bindings.begin(), o.bindings.end(), 
-		[]( auto &a, auto &b ){
-			return memcmp(&a,&b,sizeof(a)) == 0;
-		}) &&
-		std::equal(flags.begin(),flags.end(),o.flags.begin(), o.flags.end());
+	return bindings.size() == o.bindings.size() && 
+		memcmp(bindings.data(),o.bindings.data(),sizeof(bindings[0])*bindings.size()) == 0 &&
+		flags == o.flags;
 }
 
 
@@ -1268,14 +1267,6 @@ VkResult CreateInstance(
 	const void *pCreateInstanceNext,
 	VkInstance* pInstance )
 {
-	uint32_t SurfaceExtCnt;
-	const char **surfaceExts = glfwGetRequiredInstanceExtensions(&SurfaceExtCnt);
-
-	std::vector<const char *> exts = extensions;
-	for (uint32_t i = 0; i < SurfaceExtCnt; i++) 
-		if( exts.end() == std::find( exts.begin(), exts.end(), std::string_view(surfaceExts[i]) ) )
-			exts.push_back( surfaceExts[i] );
-
 	uint32_t maxVer = volkGetInstanceVersion();
 	if (maxVer == 0) return VK_ERROR_INITIALIZATION_FAILED;
 
@@ -1312,14 +1303,14 @@ VkResult CreateInstance(
 		flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 	
 	VkInstanceCreateInfo InstanceCI{
-			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-			.pNext = pCreateInstanceNext,
-			.flags = flags,
-			.pApplicationInfo = &appInfo,
-			.enabledLayerCount = (uint32_t)layers.size(),
-			.ppEnabledLayerNames = layers.data(),
-			.enabledExtensionCount = (uint32_t)exts.size(),
-			.ppEnabledExtensionNames = exts.data()
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pNext = pCreateInstanceNext,
+		.flags = flags,
+		.pApplicationInfo = &appInfo,
+		.enabledLayerCount = (uint32_t)layers.size(),
+		.ppEnabledLayerNames = layers.data(),
+		.enabledExtensionCount = (uint32_t)extensions.size(),
+		.ppEnabledExtensionNames = extensions.data()
 	};
 
 	VK_CHECK_RET( vkCreateInstance(&InstanceCI, nullptr, pInstance) );

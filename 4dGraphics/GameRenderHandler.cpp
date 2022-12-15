@@ -4,6 +4,9 @@
 #include "Debug.h"
 #include "VulkanHelpers.h"
 #include <CommonUtility.h>
+#include <taskflow/taskflow.hpp>
+#include <SDL2/SDL_vulkan.h>
+#include <ranges>
 
 using namespace std;
 
@@ -61,8 +64,11 @@ VulkanDebugCallback(
 
 bool GameRenderHandler::OnCreate( GLFWwindow *window )
 {
-	ASSERT_LOG_RETURN( glfwVulkanSupported(), "Vulkan not supported" );
-	CHECK_LOG_RETURN( volkInitialize(), "Could not initialize volk" );//volkInitializeCustom(glfwGetInstanceProcAddress);
+	{
+		auto getprocaddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();
+		ASSERT_LOG_RETURN( getprocaddr, "Could not get vkGetInstanceProcAddr" );
+		volkInitializeCustom( getprocaddr );
+	}
 
 	{
 		std::vector<const char *> instanceLayers;
@@ -95,6 +101,23 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			for( const char *ext : wantedExts )
 				if( vulkan_helpers::is_extension_present( instanceExts, ext ) )
 					instanceExtensions.push_back( ext );
+			
+
+			// those are required, add them even if they are not present
+			std::vector<const char *> exts;
+			{
+				unsigned int sdlextcount = 0;
+				
+				ASSERT_LOG_RETURN( SDL_Vulkan_GetInstanceExtensions( window, &sdlextcount, nullptr), "Could not get instance surface exts" );
+				do{
+					exts.resize(sdlextcount);
+				} while( !SDL_Vulkan_GetInstanceExtensions( window, &sdlextcount, exts.data()) );
+				exts.resize(sdlextcount);
+			}
+
+			for( const char *ext : exts )
+				if( !vulkan_helpers::is_extension_present( instanceExtensions, ext ) )
+					instanceExtensions.push_back( ext );
 		}
 
 		const VkDebugUtilsMessengerCreateInfoEXT messengerCI = {
@@ -105,12 +128,13 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+				// VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 				0,
 			.messageType =
 				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
 				0,
 			.pfnUserCallback = VulkanDebugCallback,
 			.pUserData = nullptr
@@ -129,11 +153,11 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 		else
 			vk.messenger = VK_NULL_HANDLE;
 
-		CHECK_LOG_RETURN( glfwCreateWindowSurface( vk.instance, window, nullptr, &vk.surface ), "Could not create surface" );
+		ASSERT_LOG_RETURN( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
 	}
 
 	uint32_t kScreenWidth, kScreenHeight;
-	glfwGetFramebufferSize( window, (int *)&kScreenWidth, (int *)&kScreenHeight );
+	SDL_Vulkan_GetDrawableSize( window, (int *)&kScreenWidth, (int *)&kScreenHeight );
 
 	std::vector<VkPhysicalDevice> devices;
 	CHECK_LOG_RETURN( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
@@ -250,7 +274,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	void *lastFeatures = nullptr;
+	void *lastFeatures = nullptr;	
 
 	if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
 		deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
@@ -639,7 +663,7 @@ VkResult GameRenderHandler::RecreateSwapchain()
 
 		// old swapchain is retired even when CreateSwapchain failed
 		vkRDev.EndOfUsageHandlers.push( vulkan_helpers::make_eofCallback(
-			std::bind( DestroyVulkanSwapchain, vkDev.device, std::move( oldSwapchain ) )
+			[dev=vkDev.device,swapchain=std::move(oldSwapchain)]() mutable { DestroyVulkanSwapchain(dev,swapchain); }
 		) );
 
 		if( swpErr >= 0 )
@@ -826,8 +850,6 @@ GameRenderHandler::~GameRenderHandler()
 		vkDestroyPipelineLayout( vkDev.device, computeLayout, nullptr );
 		vkDestroyPipeline( vkDev.device, compute, nullptr );
 		vkDestroyDescriptorPool( vkDev.device, computePool, nullptr );
-
-		OPTICK_SHUTDOWN();
 
 		DestroyVulkanState( vkDev, vkState );
 		DestroyVulkanRendererDevice( vkRDev );

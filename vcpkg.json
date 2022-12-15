@@ -4,22 +4,25 @@
   "version-semver": "0.2.0",
   "dependencies": [
     "assimp",
-    "glfw3",
     "stb",
     "glm",
     {
       "name": "imgui",
-      "features": [ "glfw-binding" ]
+      "features": [ "sdl2-binding", "vulkan-binding" ]
     },
     "volk",
     "vulkan-memory-allocator",
     "portable-snippets",
     "glslang",
-    "spirv-tools"
+    "spirv-tools",
+    "taskflow",
+    {
+      "name": "sdl2",
+      "features": [ "vulkan" ]
+    }
   ],
   "$unusedOldDeps": [
     "meshoptimizer",
     "imguizmo"
-    
   ]
 }

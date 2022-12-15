@@ -10,12 +10,8 @@ set( 4DGSources
 	"Debug.h"
 	"GameCore.cpp"
 	"GameCore.h"
-	"GameInputHandler.cpp"
-	"GameInputHandler.h"
-	"GameRenderHandler.cpp"
-	"GameRenderHandler.h"
-	"GameTickHandler.cpp"
-	"GameTickHandler.h"
+	"GameHandler.cpp"
+	"GameHandler.h"
 	"stdafx.cpp"
 	"stdafx.h"
 	"ImguiBufferedHelper.cpp"
@@ -27,6 +23,7 @@ set( 4DGSources
 	"Constants.h"
 	"RenderGraph.h"
 	"RenderGraph.cpp"
+	"AutoDestructor.h"
 )
 
 add_executable( 4dGraphics WIN32 ${4DGSources} )

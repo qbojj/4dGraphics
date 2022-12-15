@@ -1,66 +1,49 @@
 #pragma once
 
-class GameEngine;
+#include <string>
+#include <cppHelpers.hpp>
 
-class ShutdownException {};
+struct SDL_Window;
+struct ImGuiContext;
+struct ImFontAtlas;
 
-class InputHandler
+class ImGuiRIIAContext : cpph::move_only
 {
-protected:
-	virtual bool OnCreate( GLFWwindow * ) { return true; };
-	virtual void OnDestroy( GLFWwindow * ) {};
-	virtual void OnPreTick() {};
-	virtual void OnPostTick() {};
 public:
-	virtual ~InputHandler() {};
+    ImGuiRIIAContext(ImGuiRIIAContext&&);
+	ImGuiRIIAContext(ImFontAtlas*font = nullptr);
+	~ImGuiRIIAContext();
 
-	friend GameEngine;
+    ImGuiRIIAContext &operator=(ImGuiRIIAContext&&);
+	operator ImGuiContext*();
+
+private:
+    ImGuiContext *context;
 };
 
-class GameHandler
+// DO NOT CREATE TWO OF THOSE
+class GLSLRIIAContext : cpph::move_only
 {
-protected:
-	virtual void *NewFData() = 0;
-	virtual void DeleteFData( void * ) = 0;
-
-	virtual bool OnCreate(GLFWwindow*) { return true; };
-	virtual void OnDestroy() {};
-	virtual void OnTick( void* FData, InputHandler *IData ) = 0;
 public:
-	virtual ~GameHandler() {};
+	GLSLRIIAContext(GLSLRIIAContext&&);
+    GLSLRIIAContext();
+    ~GLSLRIIAContext();
 
-	friend GameEngine;
+private:
+	bool active;
 };
-
-class RenderHandler
-{
-protected:
-	virtual bool OnCreate(GLFWwindow*) { return true; };
-	virtual void OnDestroy() {};
-	virtual void OnDraw( const void *FData ) = 0;
-public:
-	virtual ~RenderHandler() {};
-
-	friend GameEngine;
-};
-
 class GameEngine
 {
-protected:
-	bool m_bInitialized = false;
-
-	InputHandler *m_pInputHandler = NULL;
-	GameHandler *m_pGameHandler = NULL;
-	RenderHandler *m_pRenderHandler = NULL;
 public:
-	bool Init( InputHandler *, GameHandler *, RenderHandler * );
-	bool Start();
+	GameEngine( const char *pName = "4dGraphics", SDL_Window *window = nullptr );
 
-	~GameEngine();
+	virtual ~GameEngine();
 
-protected:
-	void InputLoop( void *wData );
-	void GameLoop( void *wData );
-	void RenderLoop( void *wData );
-	void EngineLoop( void *wData );
+	std::string m_szName;
+	SDL_Window *m_hWindow;
+	ImGuiRIIAContext m_hImGui;
+
+private:
+	SDL_Window *Initialize();
+	GLSLRIIAContext m_hGlsltools;
 };

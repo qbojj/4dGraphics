@@ -13,7 +13,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL.h>
 
 #include "optick.h"
 

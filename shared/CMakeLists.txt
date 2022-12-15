@@ -11,13 +11,14 @@ set( SOURCES
 find_package( Threads )
 find_package( assimp REQUIRED )
 find_package( volk REQUIRED )
-find_package( glfw3 REQUIRED )
 find_package( glm REQUIRED )
 find_package( imgui REQUIRED )
 find_package( glslang REQUIRED )
 find_package( unofficial-portable-snippets REQUIRED )
 find_package( unofficial-vulkan-memory-allocator REQUIRED )
 find_package( SPIRV-Tools-opt REQUIRED )
+find_package( Taskflow REQUIRED )
+find_package( SDL2 REQUIRED )
 
 find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 
@@ -29,7 +30,6 @@ add_library( SharedUtils ${SOURCES} )
 
 target_link_libraries(SharedUtils PUBLIC 
     OptickCore GlmHeaders
-    glfw 
     assimp::assimp 
     imgui::imgui 
     volk::volk 
@@ -37,7 +37,10 @@ target_link_libraries(SharedUtils PUBLIC
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits
     SPIRV-Tools-opt
+    Taskflow::Taskflow
+    $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main> $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
 ) # freetype
+
 target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})
 
 SETUP_COMMON( SharedUtils "SharedUtils" )
