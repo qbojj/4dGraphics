@@ -1,21 +1,31 @@
 #pragma once
 
-#include "GameCore.h"
 #include "Shader.h"
 
-#include "Collisions.h"
 #include <memory>
 #include <volk.h>
 #include "VulkanHelpers.h"
 
-class GameRenderHandler : public RenderHandler
+#include "Debug.h"
+#include <exception>
+
+class vulkan_error : public std::runtime_error
 {
 public:
-	bool OnCreate(GLFWwindow*) override;
-	void OnDraw(const void* FData) override;
-	void OnDestroy() override;
-	~GameRenderHandler() override;
+	vulkan_error(VkResult err, const std::string &message) 
+		: runtime_error( message + ": " + VulkanResultErrorCause(err) ), error(err) {};
+	VkResult error;
+};
+
+struct SDL_Window;
+class GameRenderHandler
+{
+public:
+	GameRenderHandler(SDL_Window*);
+	void OnDraw(const void* FData);
+	~GameRenderHandler();
 protected:
+
 	VulkanInstance vk;
 	VulkanDevice vkDev;
 	VulkanRenderDevice vkRDev;
@@ -41,19 +51,4 @@ protected:
 	VkResult EndFrame( uint32_t imageIdx );
 	VkResult RecreateSwapchain();
 	void ClearDestructionQueue( uint64_t until );
-};
-
-template<typename RH >
-class GameRenderHandlerIndirect : public RenderHandler
-{
-public:
-	bool OnCreate(GLFWwindow*wnd) override
-	{ 
-		renderer = std::make_unique<RH>(); 
-		return renderer->OnCreate( wnd ); 
-	}
-	void OnDraw(const void* FData) { renderer->OnDraw(FData); }
-	void OnDestroy() override { renderer->OnDestroy(); }
-protected:
-	std::unique_ptr<RH> renderer; // freed in destructor
 };

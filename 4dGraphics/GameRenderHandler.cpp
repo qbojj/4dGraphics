@@ -10,35 +10,14 @@
 
 using namespace std;
 
-#define ASSERT_LOG_RETURN( expr, logmsg, ... ) do{	\
-	if( !(expr) )									\
-	{												\
-		TRACE(DebugLevel::FatalError,				\
-			logmsg __VA_OPT__(, ) __VA_ARGS__);		\
-		return false;								\
-	}												\
+#define ASSERT_LOG( expr, logmsg ) do{ 					\
+	if( !(expr) ) throw std::runtime_error( logmsg );	\
 }while(0)
 
-#define CHECK_LOG_RETURN( expr, logmsg, ... ) do{	\
-	VkResult result_check_log_ = (expr);			\
-	if( result_check_log_ < 0 )						\
-	{												\
-		TRACE(DebugLevel::FatalError,				\
-			logmsg " (cause: %s)\n" __VA_OPT__(, ) __VA_ARGS__,	\
-			VulkanResultErrorCause(result_check_log_));			\
-		return false;								\
-	}												\
-}while(0)
-
-#define CHECK_LOG_RETURN_NOVAL( expr, logmsg, ... ) do{	\
-	VkResult result_check_log_ = (expr);			\
-	if( result_check_log_ < 0 )						\
-	{												\
-		TRACE(DebugLevel::FatalError,				\
-			logmsg " (cause: %s)\n" __VA_OPT__(, ) __VA_ARGS__,	\
-			VulkanResultErrorCause(result_check_log_));			\
-		return ;									\
-	}												\
+#define CHECK_LOG( expr, logmsg ) do{					\
+	VkResult result_check_log_ = (expr);				\
+	if( result_check_log_ < 0 )							\
+		throw vulkan_error(result_check_log_, logmsg);	\
 }while(0)
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -58,15 +37,15 @@ VulkanDebugCallback(
 	if( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ) lev = DebugLevel::Error;
 
 	OutputDebug( lev, "%s\n", CallbackData->pMessage );
-	VK_ASSERT( !( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) );
+	//VK_ASSERT( !( Severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT ) );
 	return VK_FALSE;
 }
 
-bool GameRenderHandler::OnCreate( GLFWwindow *window )
+GameRenderHandler::GameRenderHandler( SDL_Window *window )
 {
 	{
 		auto getprocaddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();
-		ASSERT_LOG_RETURN( getprocaddr, "Could not get vkGetInstanceProcAddr" );
+		ASSERT_LOG( getprocaddr, "Could not get vkGetInstanceProcAddr" );
 		volkInitializeCustom( getprocaddr );
 	}
 
@@ -80,7 +59,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			};
 
 			std::vector<VkLayerProperties> layerProps;
-			CHECK_LOG_RETURN( vulkan_helpers::get_vector( layerProps, vkEnumerateInstanceLayerProperties ), "Cannot enumerate layers" );
+			CHECK_LOG( vulkan_helpers::get_vector( layerProps, vkEnumerateInstanceLayerProperties ), "Cannot enumerate layers" );
 
 			for( const char *layer : wantedLayers )
 				for( const auto &prop : layerProps )
@@ -96,7 +75,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			};
 
 			std::vector<VkExtensionProperties> instanceExts;
-			CHECK_LOG_RETURN( vulkan_helpers::enumerate_instance_extensions( instanceExts, instanceLayers ), "Cannot enumerate instance extensions" );
+			CHECK_LOG( vulkan_helpers::enumerate_instance_extensions( instanceExts, instanceLayers ), "Cannot enumerate instance extensions" );
 
 			for( const char *ext : wantedExts )
 				if( vulkan_helpers::is_extension_present( instanceExts, ext ) )
@@ -108,7 +87,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			{
 				unsigned int sdlextcount = 0;
 				
-				ASSERT_LOG_RETURN( SDL_Vulkan_GetInstanceExtensions( window, &sdlextcount, nullptr), "Could not get instance surface exts" );
+				ASSERT_LOG( SDL_Vulkan_GetInstanceExtensions( window, &sdlextcount, nullptr), "Could not get instance surface exts" );
 				do{
 					exts.resize(sdlextcount);
 				} while( !SDL_Vulkan_GetInstanceExtensions( window, &sdlextcount, exts.data()) );
@@ -134,7 +113,6 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
 				0,
 			.pfnUserCallback = VulkanDebugCallback,
 			.pUserData = nullptr
@@ -144,23 +122,28 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 
 		const void *pCreateInstancePNext = debUtils ? &messengerCI : nullptr;
 
-		CHECK_LOG_RETURN( CreateInstance( instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance ), "Could not create vulkan instance" );
+		VkApplicationInfo ai{};
+		ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		ai.apiVersion = VK_API_VERSION_1_2;
+
+		CHECK_LOG( CreateInstance( instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance ), "Could not create vulkan instance" );
 		vk.enabledLayers = move( instanceLayers );
 		vk.enabledExts = move( instanceExtensions );
-
+		vk.apiVersion = ai.apiVersion;
+		
 		if( debUtils )
-			CHECK_LOG_RETURN( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks" );
+			CHECK_LOG( vkCreateDebugUtilsMessengerEXT( vk.instance, &messengerCI, nullptr, &vk.messenger ), "Could not setup debug callbacks" );
 		else
 			vk.messenger = VK_NULL_HANDLE;
 
-		ASSERT_LOG_RETURN( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
+		ASSERT_LOG( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
 	}
 
 	uint32_t kScreenWidth, kScreenHeight;
 	SDL_Vulkan_GetDrawableSize( window, (int *)&kScreenWidth, (int *)&kScreenHeight );
 
 	std::vector<VkPhysicalDevice> devices;
-	CHECK_LOG_RETURN( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
+	CHECK_LOG( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
 
 	VkPhysicalDevice best = VK_NULL_HANDLE;
 	{
@@ -268,7 +251,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 	};
 
 	std::vector<VkExtensionProperties> devExtensions;
-	CHECK_LOG_RETURN( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
+	CHECK_LOG( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
 
 	std::vector<const char *> deviceExtensions{
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -322,11 +305,11 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 	phFeatures.features.shaderFloat64 = VK_TRUE;
 
 	TRACE( DebugLevel::Log, "Before device creation\n" );
-	CHECK_LOG_RETURN( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
+	CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
 
 	TRACE( DebugLevel::Log, "Before render device creation\n" );
 	vkGetDeviceQueue( vkDev.device, graphicsQueue.family, 0, &graphicsQueue.queue );
-	CHECK_LOG_RETURN( InitVulkanRenderDevice( vk, vkDev, graphicsQueue,
+	CHECK_LOG( InitVulkanRenderDevice( vk, vkDev, graphicsQueue,
 		2, { kScreenWidth, kScreenHeight },
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT |
@@ -363,8 +346,8 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 #endif
 
 	TRACE( DebugLevel::Log, "Before pipeline layout creation\n" );
-	CHECK_LOG_RETURN( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
-	CHECK_LOG_RETURN( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ),
+	CHECK_LOG( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
+	CHECK_LOG( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ),
 		"Could not create pipeline layout" );
 
 	VkFormat depthFormat = FindDepthFormat( vkDev.physicalDevice );
@@ -426,10 +409,10 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 		if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
 		if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
 
-		CHECK_LOG_RETURN( res, "Couldn't create pipeline" );
+		CHECK_LOG( res, "Couldn't create pipeline" );
 	}
 
-	CHECK_LOG_RETURN( CreateDescriptorSetHelper( vkDev.device,
+	CHECK_LOG( CreateDescriptorSetHelper( vkDev.device,
 		0,
 		(uint32_t)vkRDev.swapchain.images.size(),
 		10, 10, 10,
@@ -446,27 +429,27 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 		vkState.uniformBuffers
 	);
 
-	CHECK_LOG_RETURN( CreateBuffer( vkDev.allocator, uniformSize, 0,
+	CHECK_LOG( CreateBuffer( vkDev.allocator, uniformSize, 0,
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VMA_MEMORY_USAGE_AUTO,
 		&vkState.uniformBufferMemory.buffer, &vkState.uniformBufferMemory.bufferAllocation,
 		nullptr ), "Could not create unifrom buffers" );
 
-	CHECK_LOG_RETURN( CreateSSBOVertexBuffer( vkRDev,
+	CHECK_LOG( CreateSSBOVertexBuffer( vkRDev,
 		"data/3dModels/SpaceShuttle.obj",
 		&vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
 		&vkState.vertexBuffer, &vkState.indexBuffer ), "Could not crate model" );
 
-	CHECK_LOG_RETURN( CreateTextureSampler( vkDev.device, VK_FILTER_LINEAR,
+	CHECK_LOG( CreateTextureSampler( vkDev.device, VK_FILTER_LINEAR,
 		VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		props->limits.maxSamplerAnisotropy, &vkState.textureSampler ),
 		"Could not create sampler" );
 
-	CHECK_LOG_RETURN( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png",
+	CHECK_LOG( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png",
 		&vkState.texture ), "Could not create texture" );
 
-	CHECK_LOG_RETURN( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+	CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
 
 	{
 		VkResult res = CreateImageResource( vkDev,
@@ -499,7 +482,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			}
 		}
 
-		CHECK_LOG_RETURN( res, "Could not create depth resource" );
+		CHECK_LOG( res, "Could not create depth resource" );
 	}
 
 	// tmp
@@ -520,7 +503,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			.pBindings = &binding,
 		};
 
-		CHECK_LOG_RETURN( vkCreateDescriptorSetLayout( vkDev.device, &dslci, nullptr, &computeSetLayout ),
+		CHECK_LOG( vkCreateDescriptorSetLayout( vkDev.device, &dslci, nullptr, &computeSetLayout ),
 			"Cannot create compute set layout" );
 
 		const VkPushConstantRange pcr{
@@ -538,11 +521,11 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			.pushConstantRangeCount = 1,
 			.pPushConstantRanges = &pcr
 		};
-		CHECK_LOG_RETURN( vkCreatePipelineLayout( vkDev.device, &plci, nullptr, &computeLayout ),
+		CHECK_LOG( vkCreatePipelineLayout( vkDev.device, &plci, nullptr, &computeLayout ),
 			"Cannot create compute layout" );
 
 		VkShaderModule compModule = VK_NULL_HANDLE;
-		CHECK_LOG_RETURN( CreateShaderModule( vkDev.device, "Shaders/Mandelbrot.comp", 0, nullptr, &compModule ),
+		CHECK_LOG( CreateShaderModule( vkDev.device, "Shaders/Mandelbrot.comp", 0, nullptr, &compModule ),
 			"Cannot create compute shader module" );
 
 		const VkComputePipelineCreateInfo cpci{
@@ -567,14 +550,14 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			vkDev.pipelineCache, 1, &cpci, nullptr, &compute );
 
 		vkDestroyShaderModule( vkDev.device, compModule, nullptr );
-		CHECK_LOG_RETURN( res, "Cannot compile compute pipeline" );
+		CHECK_LOG( res, "Cannot compile compute pipeline" );
 
 		const VkDescriptorPoolSize dps{
 			.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 			.descriptorCount = 10,
 		};
 
-		CHECK_LOG_RETURN( CreateDescriptorPool( vkDev.device, nullptr, 0,
+		CHECK_LOG( CreateDescriptorPool( vkDev.device, nullptr, 0,
 			(uint32_t)vkRDev.swapchain.images.size(), 1, &dps, &computePool ),
 			"Cannot create compute pool" );
 
@@ -588,7 +571,7 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 			.pSetLayouts = layout.data()
 		};
 
-		CHECK_LOG_RETURN( vkAllocateDescriptorSets( vkDev.device, &dsai, computeDescriptors.data() ),
+		CHECK_LOG( vkAllocateDescriptorSets( vkDev.device, &dsai, computeDescriptors.data() ),
 			"Cannot allocate compute ds" );
 
 		std::vector<VkWriteDescriptorSet> writes;
@@ -625,11 +608,9 @@ bool GameRenderHandler::OnCreate( GLFWwindow *window )
 	//
 
 	//for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
-	//	CHECK_LOG_RETURN( FillCommandBuffers( i ), "Could not fill command buffer" );
+	//	CHECK_LOG( FillCommandBuffers( i ), "Could not fill command buffer" );
 
-	lt = glfwGetTime();
-
-	return true;
+	//lt = glfwGetTime();
 }
 
 VkResult GameRenderHandler::RecreateSwapchain()
@@ -710,19 +691,19 @@ void GameRenderHandler::ClearDestructionQueue( uint64_t until )
 VkResult GameRenderHandler::AdvanceFrame( uint32_t *imageIdx )
 {
 	OPTICK_EVENT();
-	static double filteredDT = 1;
-	auto t = glfwGetTime();
-	auto dt = t - lt;
-	lt = t;
-	constexpr double alpha = 0.1;
-	filteredDT = filteredDT * ( 1 - alpha ) + dt * alpha;
+	//static double filteredDT = 1;
+	//auto t = glfwGetTime();
+	//auto dt = t - lt;
+	//lt = t;
+	//constexpr double alpha = 0.1;
+	//filteredDT = filteredDT * ( 1 - alpha ) + dt * alpha;
 
 	vkRDev.currentFrameId++;
 	vkRDev.frameId = ( vkRDev.frameId + 1 ) % vkRDev.framesInFlight;
 
 	{
 		OPTICK_EVENT( "Wait for gpu fence" );
-		OutputDebug( DebugLevel::Log, "%llu: %8.4fms (%6.2f)\n", vkRDev.currentFrameId, dt * 1000, 1. / filteredDT );
+		//OutputDebug( DebugLevel::Log, "%llu: %8.4fms (%6.2f)\n", vkRDev.currentFrameId, dt * 1000, 1. / filteredDT );
 		VK_CHECK_RET( vkWaitForFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[ vkRDev.frameId ], VK_FALSE, UINT64_MAX ) );
 		ClearDestructionQueue( vkRDev.currentFrameId - vkRDev.framesInFlight );
 
@@ -731,11 +712,18 @@ VkResult GameRenderHandler::AdvanceFrame( uint32_t *imageIdx )
 
 	{
 		OPTICK_EVENT( "acquire next frame" );
-		VkResult res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain.swapchain, UINT64_MAX,
-			vkRDev.imageReadySemaphores[ vkRDev.frameId ], VK_NULL_HANDLE, imageIdx );
 
-		// should recreate swapchain
-		if( res == VK_ERROR_OUT_OF_DATE_KHR ) res = RecreateSwapchain();
+		VkResult res = VK_SUCCESS;
+		
+		do
+		{
+			if( res == VK_ERROR_OUT_OF_DATE_KHR ) 
+				VK_CHECK_RET( RecreateSwapchain() );
+			
+			res = vkAcquireNextImageKHR( vkDev.device, vkRDev.swapchain.swapchain, UINT64_MAX,
+				vkRDev.imageReadySemaphores[ vkRDev.frameId ], VK_NULL_HANDLE, imageIdx );
+		} while( res == VK_ERROR_OUT_OF_DATE_KHR ); // should recreate swapchain
+		
 		VK_CHECK_RET( res );
 	}
 
@@ -755,6 +743,7 @@ VkResult GameRenderHandler::EndFrame( uint32_t imageIdx )
 		.pResults = nullptr
 	};
 
+	OPTICK_GPU_FLIP( vkRDev.swapchain.swapchain );
 	VkResult res = vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi );
 	vkRDev.EndOfUsageHandlers.push(
 		EndOfFrameQueueItem{
@@ -769,16 +758,15 @@ VkResult GameRenderHandler::EndFrame( uint32_t imageIdx )
 	if( res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR )
 		res = RecreateSwapchain();
 
-	OPTICK_GPU_FLIP( vkRDev.swapchain.swapchain );
-
 	return res;
 }
 
 void GameRenderHandler::OnDraw( const void *dat )
 {
 	uint32_t imageIdx;
-	CHECK_LOG_RETURN_NOVAL( AdvanceFrame( &imageIdx ), "Cannot advance frame" );
+	CHECK_LOG( AdvanceFrame( &imageIdx ), "Cannot advance frame" );
 
+	/*
 	{
 		void *BufferMemory;
 		CHECK_LOG_RETURN_NOVAL( vmaMapMemory( vkDev.allocator,
@@ -813,9 +801,9 @@ void GameRenderHandler::OnDraw( const void *dat )
 			vkState.uniformBuffers[ imageIdx ].offset, vkState.uniformBuffers[ imageIdx ].size ),
 			"Could not flush unifrom buffers" );
 	}
-
+	*/
 	pPC = (const computePushConstants *)dat;
-	CHECK_LOG_RETURN_NOVAL( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
+	CHECK_LOG( FillCommandBuffers( imageIdx ), "Cannot fill cmd buffer" );
 
 	const VkPipelineStageFlags waitFlags[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
 	VkSubmitInfo si{
@@ -829,15 +817,10 @@ void GameRenderHandler::OnDraw( const void *dat )
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &vkRDev.renderingFinishedSemaphores[ vkRDev.frameId ],
 	};
-	CHECK_LOG_RETURN_NOVAL( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si,
+	CHECK_LOG( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si,
 		vkRDev.resourcesUnusedFence[ vkRDev.frameId ] ), "Cannot enqueue cmdBuffers" );
 
-	CHECK_LOG_RETURN_NOVAL( EndFrame( imageIdx ), "Cannot present" );
-}
-
-void GameRenderHandler::OnDestroy()
-{
-
+	CHECK_LOG( EndFrame( imageIdx ), "Cannot present" );
 }
 
 GameRenderHandler::~GameRenderHandler()

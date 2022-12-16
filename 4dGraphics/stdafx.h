@@ -9,11 +9,16 @@
 #include <glslang/Public/ShaderLang.h>
 #include <vk_mem_alloc.h>
 
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_sdl.h>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
 #include <SDL2/SDL.h>
+#include <taskflow/taskflow.hpp>
 
 #include "optick.h"
 

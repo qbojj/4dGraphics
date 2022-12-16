@@ -23,7 +23,8 @@ set( 4DGSources
 	"Constants.h"
 	"RenderGraph.h"
 	"RenderGraph.cpp"
-	"AutoDestructor.h"
+	"GameRenderHandler.cpp"
+	"GameTickHandler.cpp"
 )
 
 add_executable( 4dGraphics WIN32 ${4DGSources} )

@@ -16,7 +16,6 @@ jobs:
     secrets: inherit
   
   windows:
-    if: github.event_name == 'release' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/SetupAndBuild.yml
     with:
       system: windows-latest

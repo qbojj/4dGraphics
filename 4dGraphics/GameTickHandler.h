@@ -14,7 +14,7 @@ struct FrameData
 	//ImDrawDataBuffered ImGuiDrawData;
 };
 
-class GameTickHandler : public GameHandler
+class GameTickHandler
 {
 public:
 	using vec2 = glm::vec2;
@@ -24,7 +24,13 @@ public:
 	using mat3 = glm::mat3;
 	using mat4 = glm::mat4;
 	using quat = glm::quat;
-	////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+	void *NewFData();
+	void DeleteFData( void *FData );
+
+	GameTickHandler(SDL_Window*);
+	void OnTick( void *_FData );
+
 	quat CamRot = glm::identity<quat>();
 	vec3 CamPos = vec3( 0, 0, 10 );
 
@@ -52,14 +58,7 @@ public:
 	vec2 speed = vec2( 0 );
 
 	std::chrono::high_resolution_clock::time_point TimeStart;
-	////////////////////////////////////////////////////////////////////////////////////////////////
 
-	virtual void *NewFData();
-	virtual void DeleteFData( void *FData );
-
-	virtual bool OnCreate(GLFWwindow*);
-	virtual void OnTick( void *_FData, InputHandler *_IData );
-	virtual void OnDestroy();
-
+private:
 	void Move( glm::vec3 v );	
 };

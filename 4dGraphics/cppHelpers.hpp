@@ -18,8 +18,10 @@ namespace cpph
     {
     public:
         destroy_helper() = default;
+        destroy_helper( destroy_helper&&o ) = default;
+
         template<typename F>
-        destroy_helper( F &&destroy ) : destr_(destroy) {}
+        destroy_helper( F &&destroy ) : destr_(std::forward<F>(destroy)) {}
         ~destroy_helper() { if(destr_) destr_(); }
 
         destroy_helper &operator=(destroy_helper&&o)

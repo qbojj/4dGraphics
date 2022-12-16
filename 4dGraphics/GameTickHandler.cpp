@@ -1,11 +1,11 @@
 #include "GameTickHandler.h"
-#include "GameInputHandler.h"
 
 #include "Constants.h"
 #include "GameCore.h"
 #include "Debug.h"
 #include "CommonUtility.h"
 
+#include <SDL2/SDL_vulkan.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
@@ -21,30 +21,15 @@ void GameTickHandler::DeleteFData( void *FData )
 	delete (FrameData *)FData;
 }
 
-bool GameTickHandler::OnCreate(GLFWwindow*wnd)
+GameTickHandler::GameTickHandler(SDL_Window*wnd)
 {
-	lastTimer = glfwGetTimerValue();
-	timerInvFreq = 1.f / glfwGetTimerFrequency();
-
 	TimeStart = std::chrono::high_resolution_clock::now();
-
-	if( !IMGUI_CHECKVERSION() ) return false;
-	if( !ImGui_ImplSDL2_InitForVulkan( window ) ) return false;
 	
-	ImGui::GetIO().Fonts->AddFontDefault();
-	ImGui::GetIO().Fonts->Build();
-
 	int width, height;
-	glfwGetFramebufferSize( wnd, &width, &height );
+	SDL_Vulkan_GetDrawableSize( wnd, &width, &height );
 
 	pc.start = glm::dvec2( -2, -2 );
 	pc.increment = glm::dvec2( 4, 4 ) / glm::dvec2( width, height );
-
-	return true;
-}
-
-void GameTickHandler::OnDestroy()
-{
 }
 
 inline void GameTickHandler::Move( glm::vec3 v )
@@ -88,20 +73,14 @@ constexpr ImGuiKey ImGuiASCIIidx(char c)
 	return ImGuiKey_None;
 }
 
-void GameTickHandler::OnTick( void *_FData, InputHandler *_IData )
+void GameTickHandler::OnTick( void *_FData )
 {	
 	OPTICK_EVENT();
-	ImGui_ImplSDL2_
 	ImGui::NewFrame();
 	ImGuiIO &io = ImGui::GetIO();
 
 	FrameData *FData = (FrameData *)_FData;
-	GameInputHandler *IData = (GameInputHandler *)_IData;
 	
-	uint64_t StartTickTime = glfwGetTimerValue();
-	float dt = (StartTickTime - lastTimer) * timerInvFreq;
-	lastTimer = StartTickTime;
-
 	const auto KeyDown = []( char c ) { return ImGui::IsKeyDown(ImGuiASCIIidx(c) ); };
 	const auto KeyPressed = []( char c ) { return ImGui::IsKeyPressed(ImGuiASCIIidx(c),false); };
 
