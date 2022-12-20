@@ -5,7 +5,10 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
+#include <taskflow/taskflow.hpp>
 #include <exception>
+#include <memory>
+#include <fstream>
 
 #include "cppHelpers.hpp"
 #include "Shader.h"
@@ -29,10 +32,7 @@ cpph::destroy_helper MyGameHandler::InitImgui()
 
 MyGameHandler::MyGameHandler()
     : GameEngine()
-    , executor()
     , imgui_sdl2_( InitImgui() )
-    , tickHandler( m_hWindow )
-    , renHandler( m_hWindow )
 {}
 
 MyGameHandler::~MyGameHandler()
@@ -40,15 +40,40 @@ MyGameHandler::~MyGameHandler()
 
 int MyGameHandler::Run()
 {
-    OPTICK_APP( "4dGraphics" );
+    tf::Executor executor;
 
+    std::unique_ptr<GameRenderHandler> pRenderHandler;
+    std::unique_ptr<GameTickHandler> pTickHandler;
+    tf::CriticalSection ImGuiLock{1};
+    
+    {
+        tf::Taskflow tf("Initialize");
+
+        auto [ren, tick] = tf.emplace(
+            [&]( tf::Subflow &sf ){ pRenderHandler = std::make_unique<GameRenderHandler>( sf, m_hWindow ); },
+            [&]( tf::Subflow &sf ){ pTickHandler = std::make_unique<GameTickHandler>( sf, m_hWindow ); }
+        );
+
+        ren.name("Init render handler");
+        tick.name("Init tick handler");
+
+        executor.run( tf ).wait();
+        
+        std::ofstream initf("init.dot");
+        tf.dump(initf);
+    }
+
+    OPTICK_APP( "4dGraphics" );
+    
     bool closing = false;
 
-    void *FData = tickHandler.NewFData();
-    cpph::destroy_helper td_([&]{ tickHandler.DeleteFData(FData); });
+    void *FData = pTickHandler->NewFData();
+    if( !FData ) throw std::runtime_error("could not allocate FData");
+    cpph::destroy_helper td_([&]{ pTickHandler->DeleteFData(FData); });
     
     while( !closing )
     {
+        OPTICK_FRAME("Main Thread");
         ImGui_ImplSDL2_NewFrame();
 
         SDL_Event event;
@@ -59,8 +84,8 @@ int MyGameHandler::Run()
             if( ImGui_ImplSDL2_ProcessEvent( &event ) ) continue;
         }
 
-        tickHandler.OnTick( FData );
-        renHandler.OnDraw( FData );
+        pTickHandler->OnTick( FData );
+        pRenderHandler->OnDraw( FData );
     }
 
     return 0;

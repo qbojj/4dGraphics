@@ -12,7 +12,10 @@
 
 // for export to SPIRV
 #include <glslang/SPIRV/GlslangToSpv.h>
+
+#if 0
 #include <spirv-tools/optimizer.hpp>
+#endif
 
 namespace glslang
 {
@@ -165,11 +168,11 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
             "spirv compilation log (%s): %s\n", absolutePath, log.c_str() );
 
     if( spv.size() == 0 ) return std::vector<uint32_t>{};
-
+#if 0
     spvtools::Optimizer opt( SPV_ENV_VULKAN_1_2 );
     bool ok = opt.RegisterPerformancePasses().Run( spv.data(), spv.size(), &spv );
     if( !ok ) return std::vector<uint32_t>{};
-
+#endif
     return spv;
 }
 

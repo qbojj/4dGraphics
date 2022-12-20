@@ -3,7 +3,7 @@
 #include "GameCore.h"
 #include <imgui.h>
 #include "ImguiBufferedHelper.h"
-
+#include <taskflow/taskflow.hpp>
 struct FrameData
 {
 	glm::dvec2 start, increment;
@@ -28,7 +28,7 @@ public:
 	void *NewFData();
 	void DeleteFData( void *FData );
 
-	GameTickHandler(SDL_Window*);
+	GameTickHandler(tf::Subflow&, SDL_Window*);
 	void OnTick( void *_FData );
 
 	quat CamRot = glm::identity<quat>();

@@ -16,7 +16,6 @@ find_package( imgui REQUIRED )
 find_package( glslang REQUIRED )
 find_package( unofficial-portable-snippets REQUIRED )
 find_package( unofficial-vulkan-memory-allocator REQUIRED )
-find_package( SPIRV-Tools-opt REQUIRED )
 find_package( Taskflow REQUIRED )
 find_package( SDL2 REQUIRED )
 
@@ -36,7 +35,6 @@ target_link_libraries(SharedUtils PUBLIC
     unofficial::portable-snippets::debug-trap unofficial::portable-snippets::builtin
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits
-    SPIRV-Tools-opt
     Taskflow::Taskflow
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main> $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
 ) # freetype

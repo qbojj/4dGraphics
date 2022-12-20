@@ -6,7 +6,6 @@
 #include <CommonUtility.h>
 #include <taskflow/taskflow.hpp>
 #include <SDL2/SDL_vulkan.h>
-#include <ranges>
 
 using namespace std;
 
@@ -41,15 +40,15 @@ VulkanDebugCallback(
 	return VK_FALSE;
 }
 
-GameRenderHandler::GameRenderHandler( SDL_Window *window )
+GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 {
-	{
+	tf::Task initVolk = sf.emplace([]{
 		auto getprocaddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();
 		ASSERT_LOG( getprocaddr, "Could not get vkGetInstanceProcAddr" );
 		volkInitializeCustom( getprocaddr );
-	}
+	}).name("initialize volk");
 
-	{
+	tf::Task initInstance = sf.emplace([&]{
 		std::vector<const char *> instanceLayers;
 		std::vector<const char *> instanceExtensions;
 
@@ -137,321 +136,350 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 			vk.messenger = VK_NULL_HANDLE;
 
 		ASSERT_LOG( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
-	}
+	}).name("create vulkan instance").succeed(initVolk);
+
+	VulkanQueue graphicsQueue;
+
+	tf::Task initDevice = sf.emplace([&]{
+		std::vector<VkPhysicalDevice> devices;
+		CHECK_LOG( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
+
+		VkPhysicalDevice best = VK_NULL_HANDLE;
+		{
+			VkPhysicalDeviceVulkan12Properties best12Props;
+			VkPhysicalDeviceVulkan11Properties best11Props;
+			VkPhysicalDeviceProperties2 bestProps;
+
+			VkPhysicalDeviceVulkan12Features best12Feats;
+			VkPhysicalDeviceVulkan11Features best11Feats;
+			VkPhysicalDeviceFeatures2 bestFeats;
+
+			auto GetTypeCost = []( VkPhysicalDeviceType type ) -> uint32_t
+			{
+				const VkPhysicalDeviceType order[] = {
+					VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
+					VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+					VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU,
+					VK_PHYSICAL_DEVICE_TYPE_CPU,
+					VK_PHYSICAL_DEVICE_TYPE_OTHER,
+				};
+
+				auto idx = find( begin( order ), end( order ), type );
+
+				return (uint32_t)( end( order ) - idx );
+			};
+
+			auto StripPatch = []( uint32_t ver ) -> uint32_t {
+				return VK_MAKE_API_VERSION( 0, VK_API_VERSION_MAJOR( ver ), VK_API_VERSION_MINOR( ver ), 0 );
+			};
+
+			for( VkPhysicalDevice dev : devices )
+			{
+				VkPhysicalDeviceProperties props;
+				vkGetPhysicalDeviceProperties( dev, &props );
+
+				if( VK_API_VERSION_VARIANT( props.apiVersion ) == 0 &&
+					props.apiVersion >= VK_API_VERSION_1_2 )
+				{
+					VkPhysicalDeviceVulkan12Properties cur12Props{};
+					cur12Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+
+					VkPhysicalDeviceVulkan11Properties cur11Props{};
+					cur11Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+					cur11Props.pNext = &cur12Props;
+
+					VkPhysicalDeviceProperties2 curProps{};
+					curProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+					curProps.pNext = &cur11Props;
+
+					VkPhysicalDeviceVulkan12Features cur12Feats{};
+					cur12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+					VkPhysicalDeviceVulkan11Features cur11Feats{};
+					cur11Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+					cur11Feats.pNext = &cur12Feats;
+
+					VkPhysicalDeviceFeatures2 curFeats{};
+					curFeats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+					curFeats.pNext = &cur11Feats;
+
+					vkGetPhysicalDeviceProperties2( dev, &curProps );
+					vkGetPhysicalDeviceFeatures2( dev, &curFeats );
+
+					auto selectNew = [&]() {
+						best = dev;
+						bestProps = curProps;
+						best11Props = cur11Props;
+						best12Props = cur12Props;
+
+						bestFeats = curFeats;
+						best11Feats = cur11Feats;
+						best12Feats = cur12Feats;
+					};
+
+					if( !best ) { selectNew(); continue; }
+
+					uint32_t newDev = GetTypeCost( curProps.properties.deviceType );
+					uint32_t oldDev = GetTypeCost( bestProps.properties.deviceType );
+
+					if( oldDev != newDev ) { if( oldDev < newDev ) selectNew(); continue; }
+
+					uint32_t newDevVer = StripPatch( curProps.properties.apiVersion );
+					uint32_t oldDevVer = StripPatch( bestProps.properties.apiVersion );
+
+					if( oldDevVer != newDevVer ) { if( oldDevVer < newDevVer ) selectNew(); continue; }
+				}
+			}
+
+			TRACE( DebugLevel::Log, "Selected %s\n", bestProps.properties.deviceName );
+		}
+
+		graphicsQueue.family = FindQueueFamilies( best, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+
+		std::vector<float> priorities{ 1.0f };
+		std::vector<VkDeviceQueueCreateInfo> queueCI{
+			VkDeviceQueueCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.queueFamilyIndex = graphicsQueue.family,
+				.queueCount = 1,
+				.pQueuePriorities = priorities.data()
+			}
+		};
+
+		std::vector<VkExtensionProperties> devExtensions;
+		CHECK_LOG( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
+
+		std::vector<const char *> deviceExtensions{
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+		void *lastFeatures = nullptr;	
+
+		if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
+			deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
+
+#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+		VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};
+		phPortSubset.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
+		phPortSubset.pNext = lastFeatures;
+		phPortSubset.events = VK_TRUE;
+
+		if( vulkan_helpers::is_extension_present( devExtensions, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME ) )
+		{
+			lastFeatures = &phPortSubset;
+			deviceExtensions.push_back( VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME );
+		}
+#endif // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR phRenderingFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+			.pNext = lastFeatures,
+			.dynamicRendering = VK_TRUE
+		};
+
+		lastFeatures = &phRenderingFeatures;
+		deviceExtensions.push_back( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
+
+		VkPhysicalDeviceVulkan12Features ph12Features{};
+		ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+		ph12Features.pNext = lastFeatures;
+		ph12Features.bufferDeviceAddress = VK_TRUE;
+		ph12Features.timelineSemaphore = VK_TRUE;
+
+		lastFeatures = &ph12Features;
+
+		VkPhysicalDeviceVulkan11Features ph11Features{};
+		ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+		ph11Features.pNext = lastFeatures;
+
+		lastFeatures = &ph11Features;
+
+		VkPhysicalDeviceFeatures2 phFeatures{};
+		phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+			phFeatures.pNext = lastFeatures,
+			phFeatures.features.samplerAnisotropy = VK_TRUE;
+		phFeatures.features.shaderFloat64 = VK_TRUE;
+
+		TRACE( DebugLevel::Log, "Before device creation\n" );
+		CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
+	}).name("init vulkan device").succeed(initInstance);
 
 	uint32_t kScreenWidth, kScreenHeight;
 	SDL_Vulkan_GetDrawableSize( window, (int *)&kScreenWidth, (int *)&kScreenHeight );
 
-	std::vector<VkPhysicalDevice> devices;
-	CHECK_LOG( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
-
-	VkPhysicalDevice best = VK_NULL_HANDLE;
-	{
-		VkPhysicalDeviceVulkan12Properties best12Props;
-		VkPhysicalDeviceVulkan11Properties best11Props;
-		VkPhysicalDeviceProperties2 bestProps;
-
-		VkPhysicalDeviceVulkan12Features best12Feats;
-		VkPhysicalDeviceVulkan11Features best11Feats;
-		VkPhysicalDeviceFeatures2 bestFeats;
-
-		auto GetTypeCost = []( VkPhysicalDeviceType type ) -> uint32_t
-		{
-			const VkPhysicalDeviceType order[] = {
-				VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
-				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
-				VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU,
-				VK_PHYSICAL_DEVICE_TYPE_CPU,
-				VK_PHYSICAL_DEVICE_TYPE_OTHER,
-			};
-
-			auto idx = find( begin( order ), end( order ), type );
-
-			return (uint32_t)( end( order ) - idx );
-		};
-
-		auto StripPatch = []( uint32_t ver ) -> uint32_t {
-			return VK_MAKE_API_VERSION( 0, VK_API_VERSION_MAJOR( ver ), VK_API_VERSION_MINOR( ver ), 0 );
-		};
-
-		for( VkPhysicalDevice dev : devices )
-		{
-			VkPhysicalDeviceProperties props;
-			vkGetPhysicalDeviceProperties( dev, &props );
-
-			if( VK_API_VERSION_VARIANT( props.apiVersion ) == 0 &&
-				props.apiVersion >= VK_API_VERSION_1_2 )
-			{
-				VkPhysicalDeviceVulkan12Properties cur12Props{};
-				cur12Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
-
-				VkPhysicalDeviceVulkan11Properties cur11Props{};
-				cur11Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
-				cur11Props.pNext = &cur12Props;
-
-				VkPhysicalDeviceProperties2 curProps{};
-				curProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-				curProps.pNext = &cur11Props;
-
-				VkPhysicalDeviceVulkan12Features cur12Feats{};
-				cur12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-
-				VkPhysicalDeviceVulkan11Features cur11Feats{};
-				cur11Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-				cur11Feats.pNext = &cur12Feats;
-
-				VkPhysicalDeviceFeatures2 curFeats{};
-				curFeats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				curFeats.pNext = &cur11Feats;
-
-				vkGetPhysicalDeviceProperties2( dev, &curProps );
-				vkGetPhysicalDeviceFeatures2( dev, &curFeats );
-
-				auto selectNew = [&]() {
-					best = dev;
-					bestProps = curProps;
-					best11Props = cur11Props;
-					best12Props = cur12Props;
-
-					bestFeats = curFeats;
-					best11Feats = cur11Feats;
-					best12Feats = cur12Feats;
-				};
-
-				if( !best ) { selectNew(); continue; }
-
-				uint32_t newDev = GetTypeCost( curProps.properties.deviceType );
-				uint32_t oldDev = GetTypeCost( bestProps.properties.deviceType );
-
-				if( oldDev != newDev ) { if( oldDev < newDev ) selectNew(); continue; }
-
-				uint32_t newDevVer = StripPatch( curProps.properties.apiVersion );
-				uint32_t oldDevVer = StripPatch( bestProps.properties.apiVersion );
-
-				if( oldDevVer != newDevVer ) { if( oldDevVer < newDevVer ) selectNew(); continue; }
-			}
-		}
-
-		TRACE( DebugLevel::Log, "Selected %s\n", bestProps.properties.deviceName );
-	}
-
-	VulkanQueue graphicsQueue;
-	graphicsQueue.family = FindQueueFamilies( best, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
-
-	std::vector<float> priorities{ 1.0f };
-	std::vector<VkDeviceQueueCreateInfo> queueCI{
-		VkDeviceQueueCreateInfo{
-			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.queueFamilyIndex = graphicsQueue.family,
-			.queueCount = 1,
-			.pQueuePriorities = priorities.data()
-		}
-	};
-
-	std::vector<VkExtensionProperties> devExtensions;
-	CHECK_LOG( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
-
-	std::vector<const char *> deviceExtensions{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
-
-	void *lastFeatures = nullptr;	
-
-	if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
-		deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
-
-#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-	VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};
-	phPortSubset.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
-	phPortSubset.pNext = lastFeatures;
-	phPortSubset.events = VK_TRUE;
-
-	if( vulkan_helpers::is_extension_present( devExtensions, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME ) )
-	{
-		lastFeatures = &phPortSubset;
-		deviceExtensions.push_back( VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME );
-	}
-#endif // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-
-	VkPhysicalDeviceDynamicRenderingFeaturesKHR phRenderingFeatures = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-		.pNext = lastFeatures,
-		.dynamicRendering = VK_TRUE
-	};
-
-	lastFeatures = &phRenderingFeatures;
-	deviceExtensions.push_back( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
-
-	VkPhysicalDeviceVulkan12Features ph12Features{};
-	ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	ph12Features.pNext = lastFeatures;
-	ph12Features.bufferDeviceAddress = VK_TRUE;
-	ph12Features.timelineSemaphore = VK_TRUE;
-
-	lastFeatures = &ph12Features;
-
-	VkPhysicalDeviceVulkan11Features ph11Features{};
-	ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-	ph11Features.pNext = lastFeatures;
-
-	lastFeatures = &ph11Features;
-
-	VkPhysicalDeviceFeatures2 phFeatures{};
-	phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-		phFeatures.pNext = lastFeatures,
-		phFeatures.features.samplerAnisotropy = VK_TRUE;
-	phFeatures.features.shaderFloat64 = VK_TRUE;
-
-	TRACE( DebugLevel::Log, "Before device creation\n" );
-	CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
-
-	TRACE( DebugLevel::Log, "Before render device creation\n" );
-	vkGetDeviceQueue( vkDev.device, graphicsQueue.family, 0, &graphicsQueue.queue );
-	CHECK_LOG( InitVulkanRenderDevice( vk, vkDev, graphicsQueue,
-		2, { kScreenWidth, kScreenHeight },
-		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-		VK_IMAGE_USAGE_STORAGE_BIT |
-		0,
-		VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-		VK_FORMAT_FEATURE_BLIT_DST_BIT |
-		VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
-		0,
-		vkRDev ), "Could not create reander device" );
+	tf::Task initRenderDevice = sf.emplace([&]{
+		TRACE( DebugLevel::Log, "Before render device creation\n" );
+		vkGetDeviceQueue( vkDev.device, graphicsQueue.family, 0, &graphicsQueue.queue );
+		CHECK_LOG( InitVulkanRenderDevice( vk, vkDev, graphicsQueue,
+			2, { kScreenWidth, kScreenHeight },
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+			VK_IMAGE_USAGE_STORAGE_BIT |
+			0,
+			VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+			VK_FORMAT_FEATURE_BLIT_DST_BIT |
+			VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
+			0,
+			vkRDev ), "Could not create reander device" );
 
 #if OPTICK_ENABLE_GPU_VULKAN
-	Optick::VulkanFunctions vulkanFunctions = {
-				vkGetPhysicalDeviceProperties,
-				(PFN_vkCreateQueryPool_)vkCreateQueryPool,
-				(PFN_vkCreateCommandPool_)vkCreateCommandPool,
-				(PFN_vkAllocateCommandBuffers_)vkAllocateCommandBuffers,
-				(PFN_vkCreateFence_)vkCreateFence,
-				vkCmdResetQueryPool,
-				(PFN_vkQueueSubmit_)vkQueueSubmit,
-				(PFN_vkWaitForFences_)vkWaitForFences,
-				(PFN_vkResetCommandBuffer_)vkResetCommandBuffer,
-				(PFN_vkCmdWriteTimestamp_)vkCmdWriteTimestamp,
-				(PFN_vkGetQueryPoolResults_)vkGetQueryPoolResults,
-				(PFN_vkBeginCommandBuffer_)vkBeginCommandBuffer,
-				(PFN_vkEndCommandBuffer_)vkEndCommandBuffer,
-				(PFN_vkResetFences_)vkResetFences,
-				vkDestroyCommandPool,
-				vkDestroyQueryPool,
-				vkDestroyFence,
-				vkFreeCommandBuffers,
-	};
-	OPTICK_GPU_INIT_VULKAN( &vkDev.device, &vkDev.physicalDevice, &vkRDev.graphicsQueue.queue, &vkRDev.graphicsQueue.family, 1, &vulkanFunctions );
+		Optick::VulkanFunctions vulkanFunctions = {
+					vkGetPhysicalDeviceProperties,
+					(PFN_vkCreateQueryPool_)vkCreateQueryPool,
+					(PFN_vkCreateCommandPool_)vkCreateCommandPool,
+					(PFN_vkAllocateCommandBuffers_)vkAllocateCommandBuffers,
+					(PFN_vkCreateFence_)vkCreateFence,
+					vkCmdResetQueryPool,
+					(PFN_vkQueueSubmit_)vkQueueSubmit,
+					(PFN_vkWaitForFences_)vkWaitForFences,
+					(PFN_vkResetCommandBuffer_)vkResetCommandBuffer,
+					(PFN_vkCmdWriteTimestamp_)vkCmdWriteTimestamp,
+					(PFN_vkGetQueryPoolResults_)vkGetQueryPoolResults,
+					(PFN_vkBeginCommandBuffer_)vkBeginCommandBuffer,
+					(PFN_vkEndCommandBuffer_)vkEndCommandBuffer,
+					(PFN_vkResetFences_)vkResetFences,
+					vkDestroyCommandPool,
+					vkDestroyQueryPool,
+					vkDestroyFence,
+					vkFreeCommandBuffers,
+		};
+		OPTICK_GPU_INIT_VULKAN( &vkDev.device, &vkDev.physicalDevice, &vkRDev.graphicsQueue.queue, &vkRDev.graphicsQueue.family, 1, &vulkanFunctions );
 #endif
+	}).name("init vulkan render device").succeed(initDevice);
 
-	TRACE( DebugLevel::Log, "Before pipeline layout creation\n" );
-	CHECK_LOG( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
-	CHECK_LOG( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ),
-		"Could not create pipeline layout" );
+	tf::CriticalSection singleTimeCommands{1};
 
-	VkFormat depthFormat = FindDepthFormat( vkDev.physicalDevice );
+	tf::Task initLayouts = sf.emplace([&]{
+		TRACE( DebugLevel::Log, "Before pipeline layout creation\n" );
+		CHECK_LOG( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
+		CHECK_LOG( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ),
+			"Could not create pipeline layout" );
+	}).name("init layouts").succeed(initDevice);
 
-	TRACE( DebugLevel::Log, "Before shader creation\n" );
-	{
-		VkResult res = VK_SUCCESS;
-
-		VkShaderModule vertShader = VK_NULL_HANDLE, fragShader = VK_NULL_HANDLE;
-		if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.vert", 0, nullptr, &vertShader );
-		if( res >= 0 ) res = CreateShaderModule( vkDev.device, "Shaders/Simple.frag", 0, nullptr, &fragShader );
-		if( res >= 0 )
-		{
-			TRACE( DebugLevel::Log, "Before pipeline creation\n" );
-			VkGraphicsPipelineCreateInfo gpci{};
-			FillGraphicsPipelineDefaults( &gpci );
-
-			std::vector<VkPipelineShaderStageCreateInfo> shaders{
-				FillShaderStage( VK_SHADER_STAGE_VERTEX_BIT, vertShader, "main" ),
-				FillShaderStage( VK_SHADER_STAGE_FRAGMENT_BIT, fragShader, "main" ),
-			};
-
-			VkDynamicState dyncamicStates[] = {
-				VK_DYNAMIC_STATE_VIEWPORT,
-				VK_DYNAMIC_STATE_SCISSOR
-			};
-			VkPipelineDynamicStateCreateInfo dsci{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.dynamicStateCount = (uint32_t)size( dyncamicStates ),
-				.pDynamicStates = data( dyncamicStates )
-			};
-
-			VkFormat colorFromats[] = {
-				vkRDev.swapchain.format.format
-			};
-
-			VkPipelineRenderingCreateInfo prci{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-				.pNext = nullptr,
-				.viewMask = 0,
-				.colorAttachmentCount = (uint32_t)size( colorFromats ),
-				.pColorAttachmentFormats = data( colorFromats ),
-				.depthAttachmentFormat = depthFormat,
-				.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
-			};
-
-			gpci.stageCount = (uint32_t)size( shaders );
-			gpci.pStages = data( shaders );
-			gpci.pDynamicState = &dsci;
-			gpci.layout = vkState.layout;
-
-			gpci.pNext = &prci;
-
-			TRACE( DebugLevel::Log, "Before vkCreateGraphicsPipelines\n" );
-			res = vkCreateGraphicsPipelines( vkDev.device, vkDev.pipelineCache, 1, &gpci, nullptr, &vkState.graphicsPipeline );
-		}
-		if( vertShader ) vkDestroyShaderModule( vkDev.device, vertShader, nullptr );
-		if( fragShader ) vkDestroyShaderModule( vkDev.device, fragShader, nullptr );
-
-		CHECK_LOG( res, "Couldn't create pipeline" );
-	}
-
-	CHECK_LOG( CreateDescriptorSetHelper( vkDev.device,
-		0,
-		(uint32_t)vkRDev.swapchain.images.size(),
-		10, 10, 10,
-		&vkState.descriptorPool ), "Could not create descriptor pool" );
-
-	const VkPhysicalDeviceProperties *props;
-	vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
-
-	VkDeviceSize uniformSize = 0;
-	GetSuballocatedBufferSize(
-		std::vector<VkDeviceSize>( vkRDev.swapchain.images.size(), sizeof( glm::mat4 ) ),
-		props->limits.minUniformBufferOffsetAlignment,
-		&uniformSize,
-		vkState.uniformBuffers
+	VkFormat depthFormat;
+	tf::Task chooseDepthFormat = sf.emplace(
+		[&]{ depthFormat = FindDepthFormat( vkDev.physicalDevice ); }
+	).name("choose depth format").succeed(initDevice);
+	
+	VkShaderModule vertShader = VK_NULL_HANDLE, fragShader = VK_NULL_HANDLE;
+	cpph::destroy_helper destrVert, destrFrag;
+	
+	auto [vert, frag] = sf.emplace(
+		[&]{ 
+			CHECK_LOG( CreateShaderModule( vkDev.device, "Shaders/Simple.vert", 0, nullptr, &vertShader ), "Could not create vert shader" );
+			destrVert = [&]{ vkDestroyShaderModule( vkDev.device, vertShader, nullptr ); }; },
+		[&]{ CHECK_LOG( CreateShaderModule( vkDev.device, "Shaders/Simple.frag", 0, nullptr, &fragShader ), "Could not create frag shader" );
+			destrFrag = [&]{ vkDestroyShaderModule( vkDev.device, fragShader, nullptr ); }; }
 	);
 
-	CHECK_LOG( CreateBuffer( vkDev.allocator, uniformSize, 0,
-		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VMA_MEMORY_USAGE_AUTO,
-		&vkState.uniformBufferMemory.buffer, &vkState.uniformBufferMemory.bufferAllocation,
-		nullptr ), "Could not create unifrom buffers" );
+	initDevice.precede(
+		vert.name("compile vert shader"),
+		frag.name("compile frag shader")
+	);
 
-	CHECK_LOG( CreateSSBOVertexBuffer( vkRDev,
-		"data/3dModels/SpaceShuttle.obj",
-		&vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
-		&vkState.vertexBuffer, &vkState.indexBuffer ), "Could not crate model" );
+	tf::Task compileGraphPipeline = sf.emplace([&]{
+		TRACE( DebugLevel::Log, "Before pipeline creation\n" );
+		VkGraphicsPipelineCreateInfo gpci{};
+		FillGraphicsPipelineDefaults( &gpci );
 
-	CHECK_LOG( CreateTextureSampler( vkDev.device, VK_FILTER_LINEAR,
-		VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-		props->limits.maxSamplerAnisotropy, &vkState.textureSampler ),
-		"Could not create sampler" );
+		std::vector<VkPipelineShaderStageCreateInfo> shaders{
+			FillShaderStage( VK_SHADER_STAGE_VERTEX_BIT, vertShader, "main" ),
+			FillShaderStage( VK_SHADER_STAGE_FRAGMENT_BIT, fragShader, "main" ),
+		};
 
-	CHECK_LOG( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png",
-		&vkState.texture ), "Could not create texture" );
+		VkDynamicState dyncamicStates[] = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		VkPipelineDynamicStateCreateInfo dsci{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.dynamicStateCount = (uint32_t)size( dyncamicStates ),
+			.pDynamicStates = data( dyncamicStates )
+		};
 
-	CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+		VkFormat colorFromats[] = {
+			vkRDev.swapchain.format.format
+		};
 
-	{
+		VkPipelineRenderingCreateInfo prci{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.pNext = nullptr,
+			.viewMask = 0,
+			.colorAttachmentCount = (uint32_t)size( colorFromats ),
+			.pColorAttachmentFormats = data( colorFromats ),
+			.depthAttachmentFormat = depthFormat,
+			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+		};
+
+		gpci.stageCount = (uint32_t)size( shaders );
+		gpci.pStages = data( shaders );
+		gpci.pDynamicState = &dsci;
+		gpci.layout = vkState.layout;
+
+		gpci.pNext = &prci;
+
+		TRACE( DebugLevel::Log, "Before vkCreateGraphicsPipelines\n" );
+		CHECK_LOG( vkCreateGraphicsPipelines( vkDev.device, vkDev.pipelineCache, 1, &gpci, nullptr, &vkState.graphicsPipeline ),
+			"Could not compile graphics pipeline" );
+	}).name("compile graphics pipeline").succeed(initRenderDevice,chooseDepthFormat,vert,frag);
+
+	tf::Task initUBOS = sf.emplace([&]{
+		const VkPhysicalDeviceProperties *props;
+		vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+
+		VkDeviceSize uniformSize = 0;
+		GetSuballocatedBufferSize(
+			std::vector<VkDeviceSize>( vkRDev.swapchain.images.size(), sizeof( glm::mat4 ) ),
+			props->limits.minUniformBufferOffsetAlignment,
+			&uniformSize,
+			vkState.uniformBuffers
+		);
+
+		CHECK_LOG( CreateBuffer( vkDev.allocator, uniformSize, 0,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VMA_MEMORY_USAGE_AUTO,
+			&vkState.uniformBufferMemory.buffer, &vkState.uniformBufferMemory.bufferAllocation,
+			nullptr ), "Could not create unifrom buffers" );
+	}).name("init ubos").succeed(initRenderDevice);
+
+	tf::Task loadModel = sf.emplace([&]{
+		CHECK_LOG( CreateSSBOVertexBuffer( vkRDev,
+			"data/3dModels/SpaceShuttle.obj",
+			&vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
+			&vkState.vertexBuffer, &vkState.indexBuffer ), "Could not crate model" );
+	}).name("load model").succeed(initRenderDevice);
+	singleTimeCommands.add(loadModel);
+
+	tf::Task createModelTexture = sf.emplace([&]{	
+		const VkPhysicalDeviceProperties *props;
+		vmaGetPhysicalDeviceProperties( vkDev.allocator, &props );
+
+		CHECK_LOG( CreateTextureSampler( vkDev.device, VK_FILTER_LINEAR,
+			VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			props->limits.maxSamplerAnisotropy, &vkState.textureSampler ),
+			"Could not create sampler" );
+
+		CHECK_LOG( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png",
+			&vkState.texture ), "Could not create texture" );
+	}).name("init model texture").succeed(initRenderDevice);
+	singleTimeCommands.add(createModelTexture);
+
+	tf::Task initDescSets = sf.emplace([&]{
+		CHECK_LOG( CreateDescriptorSetHelper( vkDev.device,
+			0,
+			(uint32_t)vkRDev.swapchain.images.size(),
+			10, 10, 10,
+			&vkState.descriptorPool ), "Could not create descriptor pool" );
+
+		CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+	}).name("init descr sets").succeed(initRenderDevice,initLayouts,loadModel,createModelTexture,initUBOS);
+
+	tf::Task initDepthRes = sf.emplace([&]{
 		VkResult res = CreateImageResource( vkDev,
 			depthFormat, VK_IMAGE_TYPE_2D, { kScreenWidth, kScreenHeight, 1 },
 			1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, 0,
@@ -483,10 +511,12 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 		}
 
 		CHECK_LOG( res, "Could not create depth resource" );
-	}
+	}).name("init depth resouce").succeed(initRenderDevice,chooseDepthFormat);
+	singleTimeCommands.add(initDepthRes);
 
 	// tmp
-	{
+
+	tf::Task initComputeLayouts = sf.emplace([&]{
 		const VkDescriptorSetLayoutBinding binding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -523,7 +553,9 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 		};
 		CHECK_LOG( vkCreatePipelineLayout( vkDev.device, &plci, nullptr, &computeLayout ),
 			"Cannot create compute layout" );
+	}).name("init compute layouts").succeed(initDevice);
 
+	tf::Task compileComputePipeline = sf.emplace([&]{
 		VkShaderModule compModule = VK_NULL_HANDLE;
 		CHECK_LOG( CreateShaderModule( vkDev.device, "Shaders/Mandelbrot.comp", 0, nullptr, &compModule ),
 			"Cannot create compute shader module" );
@@ -551,7 +583,9 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 
 		vkDestroyShaderModule( vkDev.device, compModule, nullptr );
 		CHECK_LOG( res, "Cannot compile compute pipeline" );
+	}).name("compile compute pipeline").succeed(initComputeLayouts);
 
+	tf::Task initComputeDS = sf.emplace([&]{
 		const VkDescriptorPoolSize dps{
 			.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 			.descriptorCount = 10,
@@ -585,8 +619,6 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 				} );
 		}
 
-		TRACE( DebugLevel::PrintAlways, "%d %d\n", (int)imageInfos.size(), (int)computeDescriptors.size() );
-
 		for( uint32_t i = 0; i < (uint32_t)computeDescriptors.size(); i++ )
 		{
 			writes.push_back( VkWriteDescriptorSet{
@@ -604,13 +636,17 @@ GameRenderHandler::GameRenderHandler( SDL_Window *window )
 		}
 
 		vkUpdateDescriptorSets( vkDev.device, (uint32_t)writes.size(), writes.data(), 0, nullptr );
+	}).name("init compute descriptor sets").succeed(initRenderDevice,initComputeLayouts);
+
+	try
+	{
+		sf.join();
 	}
-	//
-
-	//for( uint32_t i = 0; i < (uint32_t)vkRDev.swapchainImageViews.size(); i++ )
-	//	CHECK_LOG( FillCommandBuffers( i ), "Could not fill command buffer" );
-
-	//lt = glfwGetTime();
+	catch(std::exception &e)
+	{
+		TRACE(DebugLevel::FatalError, "%s\n", e.what() );
+		throw e;
+	}
 }
 
 VkResult GameRenderHandler::RecreateSwapchain()
@@ -860,7 +896,7 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 
 	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchain.images[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
 		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT );
 	//VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT );
 /*
@@ -972,7 +1008,7 @@ vkCmdEndRenderingKHR( CmdBuffer );
 		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
 		//VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT );
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0 );
 
 	return vkEndCommandBuffer( CmdBuffer );
 }

@@ -9,6 +9,7 @@
 #include "Debug.h"
 #include <exception>
 
+#include <taskflow/taskflow.hpp>
 class vulkan_error : public std::runtime_error
 {
 public:
@@ -21,7 +22,7 @@ struct SDL_Window;
 class GameRenderHandler
 {
 public:
-	GameRenderHandler(SDL_Window*);
+	GameRenderHandler(tf::Subflow &, SDL_Window*);
 	void OnDraw(const void* FData);
 	~GameRenderHandler();
 protected:

@@ -21,7 +21,7 @@ void GameTickHandler::DeleteFData( void *FData )
 	delete (FrameData *)FData;
 }
 
-GameTickHandler::GameTickHandler(SDL_Window*wnd)
+GameTickHandler::GameTickHandler(tf::Subflow&, SDL_Window*wnd)
 {
 	TimeStart = std::chrono::high_resolution_clock::now();
 	

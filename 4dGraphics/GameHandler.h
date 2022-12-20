@@ -15,11 +15,7 @@ public:
 
     int Run();
 
-    tf::Executor executor;
 private:
     cpph::destroy_helper InitImgui();
-
     cpph::destroy_helper imgui_sdl2_;
-    GameTickHandler tickHandler;
-    GameRenderHandler renHandler;
 };
