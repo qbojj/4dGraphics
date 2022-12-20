@@ -40,6 +40,8 @@ MyGameHandler::~MyGameHandler()
 
 int MyGameHandler::Run()
 {
+    OPTICK_APP( "4dGraphics" );
+
     bool closing = false;
 
     void *FData = tickHandler.NewFData();

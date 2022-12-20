@@ -15,7 +15,7 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-int main( int argc, const char *argv[] )
+int main( int argc, char *argv[] )
 {
 	for( int i = 1; i < argc; i++ )
 	{

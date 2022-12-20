@@ -835,6 +835,8 @@ GameRenderHandler::~GameRenderHandler()
 		vkDestroyDescriptorPool( vkDev.device, computePool, nullptr );
 
 		DestroyVulkanState( vkDev, vkState );
+
+		OPTICK_SHUTDOWN();
 		DestroyVulkanRendererDevice( vkRDev );
 	}
 	DestroyVulkanDevice( vkDev );
