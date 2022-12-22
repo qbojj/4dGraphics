@@ -105,7 +105,7 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 			.messageSeverity =
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+				//VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
 				// VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 				0,
 			.messageType =
@@ -324,7 +324,8 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 			0,
 			vkRDev ), "Could not create reander device" );
 
-#if OPTICK_ENABLE_GPU_VULKAN
+#if USE_OPTICK
+		TRACE(DebugLevel::Log,"Setting up optick for vulkan\n");
 		Optick::VulkanFunctions vulkanFunctions = {
 					vkGetPhysicalDeviceProperties,
 					(PFN_vkCreateQueryPool_)vkCreateQueryPool,
@@ -746,9 +747,11 @@ VkResult GameRenderHandler::AdvanceFrame( uint32_t *imageIdx )
 		VK_CHECK_RET( vkResetFences( vkDev.device, 1, &vkRDev.resourcesUnusedFence[ vkRDev.frameId ] ) );
 	}
 
+	OPTICK_GPU_FLIP( vkRDev.swapchain.swapchain );
+	
 	{
 		OPTICK_EVENT( "acquire next frame" );
-
+		
 		VkResult res = VK_SUCCESS;
 		
 		do
@@ -779,7 +782,6 @@ VkResult GameRenderHandler::EndFrame( uint32_t imageIdx )
 		.pResults = nullptr
 	};
 
-	OPTICK_GPU_FLIP( vkRDev.swapchain.swapchain );
 	VkResult res = vkQueuePresentKHR( vkRDev.graphicsQueue.queue, &pi );
 	vkRDev.EndOfUsageHandlers.push(
 		EndOfFrameQueueItem{
@@ -853,8 +855,12 @@ void GameRenderHandler::OnDraw( const void *dat )
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &vkRDev.renderingFinishedSemaphores[ vkRDev.frameId ],
 	};
+
+	{
+	OPTICK_EVENT("Queue Submit");
 	CHECK_LOG( vkQueueSubmit( vkRDev.graphicsQueue.queue, 1, &si,
 		vkRDev.resourcesUnusedFence[ vkRDev.frameId ] ), "Cannot enqueue cmdBuffers" );
+	}
 
 	CHECK_LOG( EndFrame( imageIdx ), "Cannot present" );
 }
@@ -892,7 +898,6 @@ VkResult GameRenderHandler::FillCommandBuffers( uint32_t index )
 	VK_CHECK_RET( vkBeginCommandBuffer( CmdBuffer, &bi ) );
 
 	OPTICK_GPU_CONTEXT( CmdBuffer, Optick::GPU_QUEUE_COMPUTE, 0 );
-	OPTICK_GPU_EVENT( "Draw MandelBrotSet" );
 
 	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchain.images[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -966,49 +971,48 @@ vkCmdBeginRenderingKHR( CmdBuffer, &rinfo );
 vkCmdEndRenderingKHR( CmdBuffer );
 */
 
-	VkDescriptorSet dset = computeDescriptors[ vkRDev.frameId ];
+	{
+		OPTICK_GPU_EVENT( "Draw MandelBrotSet" );
+		
+		VkDescriptorSet dset = computeDescriptors[ vkRDev.frameId ];
 
-	const VkDescriptorImageInfo dii{
-		.sampler = VK_NULL_HANDLE,
-		.imageView = vkRDev.swapchain.imageViews[ index ],
-		.imageLayout = VK_IMAGE_LAYOUT_GENERAL
-	};
+		const VkDescriptorImageInfo dii{
+			.sampler = VK_NULL_HANDLE,
+			.imageView = vkRDev.swapchain.imageViews[ index ],
+			.imageLayout = VK_IMAGE_LAYOUT_GENERAL
+		};
 
-	const VkWriteDescriptorSet wds{
-		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		.pNext = nullptr,
-		.dstSet = dset,
-		.dstBinding = 0,
-		.dstArrayElement = 0,
-		.descriptorCount = 1,
-		.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-		.pImageInfo = &dii,
-		.pBufferInfo = nullptr,
-		.pTexelBufferView = nullptr,
-	};
+		const VkWriteDescriptorSet wds{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.pNext = nullptr,
+			.dstSet = dset,
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			.pImageInfo = &dii,
+			.pBufferInfo = nullptr,
+			.pTexelBufferView = nullptr,
+		};
 
-	vkUpdateDescriptorSets( vkDev.device, 1, &wds, 0, nullptr );
+		vkUpdateDescriptorSets( vkDev.device, 1, &wds, 0, nullptr );
 
-	vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute );
-	vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computeLayout, 0, 1, &dset, 0, nullptr );
+		vkCmdBindPipeline( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute );
+		vkCmdBindDescriptorSets( CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computeLayout, 0, 1, &dset, 0, nullptr );
 
-	//computePushConstants pc{
-	//	.start = glm::dvec2( -2, -2 ),
-	//	.increment = glm::dvec2( 4, 4 ) / glm::dvec2( kScreenWidth, kScreenHeight ) 
-	//};
-	vkCmdPushConstants( CmdBuffer, computeLayout, VK_SHADER_STAGE_COMPUTE_BIT,
-		0, sizeof( *pPC ), pPC );
-	const int blockSize = 8;
-	vkCmdDispatch( CmdBuffer,
-		AlignUp( vkRDev.swapchain.extent.width, blockSize ) / blockSize,
-		AlignUp( vkRDev.swapchain.extent.height, blockSize ) / blockSize, 1 );
-
+		vkCmdPushConstants( CmdBuffer, computeLayout, VK_SHADER_STAGE_COMPUTE_BIT,
+			0, sizeof( *pPC ), pPC );
+		const int blockSize = 8;
+		vkCmdDispatch( CmdBuffer,
+			AlignUp( vkRDev.swapchain.extent.width, blockSize ) / blockSize,
+			AlignUp( vkRDev.swapchain.extent.height, blockSize ) / blockSize, 1 );
+	}
 	TransitionImageLayoutCmd( CmdBuffer, vkRDev.swapchain.images[ index ], VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_GENERAL,//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
 		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
 		//VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0 );
-
+	
 	return vkEndCommandBuffer( CmdBuffer );
 }

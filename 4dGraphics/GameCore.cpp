@@ -51,12 +51,13 @@ SDL_Window *GameEngine::Initialize()
 	if( SDL_Init( SDL_INIT_EVENTS | SDL_INIT_VIDEO ) ) return nullptr;
 
 	return SDL_CreateWindow( "4dGraphics", 
-		0, 0, 
-		0, 0, 
+		0, 0,
+		800, 420, 
 		SDL_WINDOW_VULKAN |
 		SDL_WINDOW_RESIZABLE |
-		SDL_WINDOW_FULLSCREEN_DESKTOP |
+		//SDL_WINDOW_FULLSCREEN_DESKTOP |
 		SDL_WINDOW_ALLOW_HIGHDPI |
+		SDL_WINDOW_HIDDEN |
 		0);
 }
 

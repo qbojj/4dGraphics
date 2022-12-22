@@ -96,6 +96,15 @@ struct VulkanQueue {
 	uint32_t family;
 };
 
+struct VulkanPerThread {
+	VkCommandPool cmdPool;
+	
+};
+
+struct VulkanPerFrame {
+	std::vector<VulkanPerThread> threadData;
+};
+
 struct VulkanDevice {
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;

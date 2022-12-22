@@ -27,9 +27,9 @@ GameTickHandler::GameTickHandler(tf::Subflow&, SDL_Window*wnd)
 	
 	int width, height;
 	SDL_Vulkan_GetDrawableSize( wnd, &width, &height );
-
+	
 	pc.start = glm::dvec2( -2, -2 );
-	pc.increment = glm::dvec2( 4, 4 ) / glm::dvec2( width, height );
+	pc.increment = glm::dvec2( 4, 4 ) / double( width );
 }
 
 inline void GameTickHandler::Move( glm::vec3 v )

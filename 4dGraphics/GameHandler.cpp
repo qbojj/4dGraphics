@@ -70,7 +70,8 @@ int MyGameHandler::Run()
     void *FData = pTickHandler->NewFData();
     if( !FData ) throw std::runtime_error("could not allocate FData");
     cpph::destroy_helper td_([&]{ pTickHandler->DeleteFData(FData); });
-    
+
+    SDL_ShowWindow( m_hWindow );   
     while( !closing )
     {
         OPTICK_FRAME("Main Thread");
