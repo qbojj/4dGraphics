@@ -123,9 +123,11 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 
 		VkApplicationInfo ai{};
 		ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		ai.pApplicationName = "4dGraphics";
+		ai.applicationVersion = VK_MAKE_API_VERSION(0,1,0,0);
 		ai.apiVersion = VK_API_VERSION_1_2;
 
-		CHECK_LOG( CreateInstance( instanceLayers, instanceExtensions, nullptr, true, pCreateInstancePNext, &vk.instance ), "Could not create vulkan instance" );
+		CHECK_LOG( CreateInstance( instanceLayers, instanceExtensions, &ai, true, pCreateInstancePNext, &vk.instance ), "Could not create vulkan instance" );
 		vk.enabledLayers = move( instanceLayers );
 		vk.enabledExts = move( instanceExtensions );
 		vk.apiVersion = ai.apiVersion;
@@ -260,7 +262,15 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
 			deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
 
-#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+		if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME ) )
+		{
+			deviceExtensions.push_back( VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME );
+
+			if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME ) )
+				deviceExtensions.push_back( VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME );
+		}
+
+#ifdef VK_KHR_portability_subset
 		VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};
 		phPortSubset.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
 		phPortSubset.pNext = lastFeatures;
@@ -973,7 +983,7 @@ vkCmdEndRenderingKHR( CmdBuffer );
 
 	{
 		OPTICK_GPU_EVENT( "Draw MandelBrotSet" );
-		
+
 		VkDescriptorSet dset = computeDescriptors[ vkRDev.frameId ];
 
 		const VkDescriptorImageInfo dii{

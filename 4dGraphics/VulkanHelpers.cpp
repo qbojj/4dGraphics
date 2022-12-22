@@ -1292,8 +1292,7 @@ VkResult CreateInstance(
 		appInfo.pNext = pAppInfo->pNext;
 		appInfo.pApplicationName = pAppInfo->pApplicationName;
 		appInfo.applicationVersion = pAppInfo->applicationVersion;
-		if( !Vulkan1_0 )
-			appInfo.apiVersion = max( appInfo.apiVersion, pAppInfo->apiVersion );
+		if( pAppInfo->apiVersion ) appInfo.apiVersion = pAppInfo->apiVersion;
 	}
 	
 	VkInstanceCreateFlags flags = 0;
