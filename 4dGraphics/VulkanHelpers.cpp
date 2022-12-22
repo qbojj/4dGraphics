@@ -865,7 +865,7 @@ VkResult CreateSSBOVertexBuffer(
 					};
 
 					vkCmdPipelineBarrier( cmdBuffer,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
 						0, 0, nullptr, 1, &bmb, 0, nullptr );
 
 					res = EndSingleTimeCommands(
