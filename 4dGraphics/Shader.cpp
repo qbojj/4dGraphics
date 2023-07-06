@@ -117,8 +117,8 @@ std::vector<uint32_t> compileShaderToSPIRV( EShLanguage stage, const char *shade
     );
 
     shader.setEnvInput( glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100 );
-    shader.setEnvClient( glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2 );
-    shader.setEnvTarget( glslang::EShTargetSpv, glslang::EShTargetSpv_1_5 );
+    shader.setEnvClient( glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3 );
+    shader.setEnvTarget( glslang::EShTargetSpv, glslang::EShTargetSpv_1_6 );
 
     MyIncluder includer;
 

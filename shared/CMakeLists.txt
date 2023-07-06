@@ -18,6 +18,7 @@ find_package( unofficial-portable-snippets REQUIRED )
 find_package( unofficial-vulkan-memory-allocator REQUIRED )
 find_package( Taskflow REQUIRED )
 find_package( SDL2 REQUIRED )
+find_package( argparse REQUIRED )
 
 find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 
@@ -25,9 +26,10 @@ add_library( GlmHeaders INTERFACE )
 target_include_directories( GlmHeaders INTERFACE ${PROJECT_SOURCE_DIR}/GlmHeaders/ )
 target_link_libraries( GlmHeaders INTERFACE glm::glm )
 
-add_library( SharedUtils ${SOURCES} )
+add_library( SharedUtils STATIC ${SOURCES} )
 
 target_link_libraries(SharedUtils PUBLIC 
+    WarningSettings
     OptickCore GlmHeaders
     assimp::assimp 
     imgui::imgui 
@@ -37,6 +39,7 @@ target_link_libraries(SharedUtils PUBLIC
     glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits
     Taskflow::Taskflow
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main> $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+    argparse::argparse
 ) # freetype
 
 target_include_directories(SharedUtils PUBLIC ${STB_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})

@@ -16,7 +16,7 @@ using namespace std;
 #define CHECK_LOG( expr, logmsg ) do{					\
 	VkResult result_check_log_ = (expr);				\
 	if( result_check_log_ < 0 )							\
-		throw vulkan_error(result_check_log_, logmsg);	\
+		vk_err::throwResultException(result_check_log_, logmsg);	\
 }while(0)
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -40,6 +40,47 @@ VulkanDebugCallback(
 	return VK_FALSE;
 }
 
+uint64_t GameRenderHandler::getDeviceViability( VkPhysicalDevice pd )
+{
+	VulkanPDInfo pdi( pd );
+
+	VkPhysicalDeviceProperties &props = pdi.props.properties;
+	VkPhysicalDeviceFeatures &feats = pdi.feats.features;
+	VkPhysicalDeviceLimits &limits = props.limits;
+
+	// check if vulkan physical device has all requirements:
+	if( VK_API_VERSION_VARIANT( props.apiVersion ) != 0 ) return 0;
+	if( props.apiVersion < VK_API_VERSION_1_3 ) return 0;
+
+	if( !feats.shaderFloat64 ) return 0;
+
+	// assign viability to allow choise of the best device
+	uint64_t viability = 0;
+
+	switch( props.deviceType )
+	{
+	case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+	case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+		// possibly much more powerfull
+		viability += 1 << 20; break;
+	
+	case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+		viability += 1 << 10; break;
+	
+	case VK_PHYSICAL_DEVICE_TYPE_CPU:
+	case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+		break;
+		// nothing
+
+	default:
+		[[assume(false)]]
+	}
+
+	viability += (uint64_t)( limits.maxImageDimension2D );
+
+	return viability;
+}
+
 GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 {
 	tf::Task initVolk = sf.emplace([]{
@@ -55,6 +96,8 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		{
 			const char *wantedLayers[]{
 				"VK_LAYER_KHRONOS_validation",
+				"VK_LAYER_KHRONOS_shader_object",
+				"VK_LAYER_KHRONOS_synchronization2",
 			};
 
 			std::vector<VkLayerProperties> layerProps;
@@ -70,7 +113,7 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 
 			const char *wantedExts[]{
 				VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-				VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			};
 
 			std::vector<VkExtensionProperties> instanceExts;
@@ -125,7 +168,7 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		ai.pApplicationName = "4dGraphics";
 		ai.applicationVersion = VK_MAKE_API_VERSION(0,1,0,0);
-		ai.apiVersion = VK_API_VERSION_1_2;
+		ai.apiVersion = VK_API_VERSION_1_3;
 
 		CHECK_LOG( CreateInstance( instanceLayers, instanceExtensions, &ai, true, pCreateInstancePNext, &vk.instance ), "Could not create vulkan instance" );
 		vk.enabledLayers = move( instanceLayers );
@@ -140,124 +183,95 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		ASSERT_LOG( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
 	}).name("create vulkan instance").succeed(initVolk);
 
-	VulkanQueue graphicsQueue;
+	std::vector<uint32_t> queueFamilies;
+	uint32_t graphicsQueueIdx, transferQueueIdx, asyncComputeQueueIdx;
 
 	tf::Task initDevice = sf.emplace([&]{
 		std::vector<VkPhysicalDevice> devices;
 		CHECK_LOG( vulkan_helpers::get_vector( devices, vkEnumeratePhysicalDevices, vk.instance ), "Could not enumerate physical devices" );
+		std::vector<uint64_t> scores(devices.size());
 
-		VkPhysicalDevice best = VK_NULL_HANDLE;
+		std::transform( devices.begin(), devices.end(), scores.begin(),
+			[this]( VkPhysicalDevice a ){ return getDeviceViability(a); } );
+
+		uint32_t bestDevIndex = (uint32_t)( std::max_element( scores.begin(), scores.end() ) - scores.begin() );
+		VkPhysicalDevice best = devices[bestDevIndex];
+
+		ASSERT_LOG( scores[bestDevIndex] != 0, "Could not get viable physical device" );
+		VulkanPDInfo pdi( best );
+
+		TRACE( DebugLevel::Log, "Selected %s\n", pdi.props.properties.deviceName );
+
+		uint32_t familyCount = 0;
+
 		{
-			VkPhysicalDeviceVulkan12Properties best12Props;
-			VkPhysicalDeviceVulkan11Properties best11Props;
-			VkPhysicalDeviceProperties2 bestProps;
+			auto families = vulkan_helpers::get_vector_noerror<VkQueueFamilyProperties>( vkGetPhysicalDeviceQueueFamilyProperties, best );
+			for( auto &f : families )
+				f.queueFlags |= f.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT) ? VK_QUEUE_TRANSFER_BIT : 0;
 
-			VkPhysicalDeviceVulkan12Features best12Feats;
-			VkPhysicalDeviceVulkan11Features best11Feats;
-			VkPhysicalDeviceFeatures2 bestFeats;
+			familyCount = (uint32_t) families.size();
 
-			auto GetTypeCost = []( VkPhysicalDeviceType type ) -> uint32_t
+			uint32_t graphicsFamily = FindQueueFamilies(families, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+			
+			ASSERT_LOG( graphicsFamily != UINT32_MAX, "Could not find graphics+compute queue family" );
+			families[graphicsFamily].queueCount -= 1;
+
+			uint32_t asyncComputeFamily = FindQueueFamilies(families, VK_QUEUE_COMPUTE_BIT, 0, VK_QUEUE_GRAPHICS_BIT);
+			if( asyncComputeFamily != UINT32_MAX )
+				families[asyncComputeFamily].queueCount -= 1;
+			
+			uint32_t transferOnlyFlags = VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_TRANSFER_BIT;
+			uint32_t transferFamily = FindQueueFamilies(families, VK_QUEUE_TRANSFER_BIT, 0, 0, ~transferOnlyFlags );
+			if( transferFamily != UINT32_MAX )
+				families[transferFamily].queueCount -= 1;
+			
+			graphicsQueueIdx = (uint32_t)queues.size();
+			queues.push_back( VulkanQueue{ .family = graphicsFamily } );
+			
+			if( asyncComputeFamily != UINT32_MAX )
 			{
-				const VkPhysicalDeviceType order[] = {
-					VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
-					VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
-					VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU,
-					VK_PHYSICAL_DEVICE_TYPE_CPU,
-					VK_PHYSICAL_DEVICE_TYPE_OTHER,
-				};
-
-				auto idx = find( begin( order ), end( order ), type );
-
-				return (uint32_t)( end( order ) - idx );
-			};
-
-			auto StripPatch = []( uint32_t ver ) -> uint32_t {
-				return VK_MAKE_API_VERSION( 0, VK_API_VERSION_MAJOR( ver ), VK_API_VERSION_MINOR( ver ), 0 );
-			};
-
-			for( VkPhysicalDevice dev : devices )
-			{
-				VkPhysicalDeviceProperties props;
-				vkGetPhysicalDeviceProperties( dev, &props );
-
-				if( VK_API_VERSION_VARIANT( props.apiVersion ) == 0 &&
-					props.apiVersion >= VK_API_VERSION_1_2 )
-				{
-					VkPhysicalDeviceVulkan12Properties cur12Props{};
-					cur12Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
-
-					VkPhysicalDeviceVulkan11Properties cur11Props{};
-					cur11Props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
-					cur11Props.pNext = &cur12Props;
-
-					VkPhysicalDeviceProperties2 curProps{};
-					curProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-					curProps.pNext = &cur11Props;
-
-					VkPhysicalDeviceVulkan12Features cur12Feats{};
-					cur12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-
-					VkPhysicalDeviceVulkan11Features cur11Feats{};
-					cur11Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-					cur11Feats.pNext = &cur12Feats;
-
-					VkPhysicalDeviceFeatures2 curFeats{};
-					curFeats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-					curFeats.pNext = &cur11Feats;
-
-					vkGetPhysicalDeviceProperties2( dev, &curProps );
-					vkGetPhysicalDeviceFeatures2( dev, &curFeats );
-
-					auto selectNew = [&]() {
-						best = dev;
-						bestProps = curProps;
-						best11Props = cur11Props;
-						best12Props = cur12Props;
-
-						bestFeats = curFeats;
-						best11Feats = cur11Feats;
-						best12Feats = cur12Feats;
-					};
-
-					if( !best ) { selectNew(); continue; }
-
-					uint32_t newDev = GetTypeCost( curProps.properties.deviceType );
-					uint32_t oldDev = GetTypeCost( bestProps.properties.deviceType );
-
-					if( oldDev != newDev ) { if( oldDev < newDev ) selectNew(); continue; }
-
-					uint32_t newDevVer = StripPatch( curProps.properties.apiVersion );
-					uint32_t oldDevVer = StripPatch( bestProps.properties.apiVersion );
-
-					if( oldDevVer != newDevVer ) { if( oldDevVer < newDevVer ) selectNew(); continue; }
-				}
+				asyncComputeQueueIdx = (uint32_t)queues.size();
+				queues.push_back( VulkanQueue{ .family = asyncComputeFamily } );
 			}
+			else asyncComputeQueueIdx = UINT32_MAX;
 
-			TRACE( DebugLevel::Log, "Selected %s\n", bestProps.properties.deviceName );
+			if( transferFamily != UINT32_MAX )
+			{
+				transferQueueIdx = (uint32_t)queues.size();
+				queues.push_back( VulkanQueue{ .family = transferFamily } );
+			}
+			else transferQueueIdx = UINT32_MAX;
 		}
 
-		graphicsQueue.family = FindQueueFamilies( best, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+		std::vector<VkDeviceQueueCreateInfo> queueCI;
 
-		std::vector<float> priorities{ 1.0f };
-		std::vector<VkDeviceQueueCreateInfo> queueCI{
-			VkDeviceQueueCreateInfo{
+		std::vector<uint32_t> qCnt( familyCount );
+		std::vector<float> priorities( queues.size(), 1.0f );
+		for( auto &q : queues ) qCnt[q.family] += 1;
+
+		for( uint32_t family = 0; family < familyCount; family++ )
+		{
+			if( qCnt[family] == 0 ) continue;
+
+			queueCI.push_back( VkDeviceQueueCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
-				.queueFamilyIndex = graphicsQueue.family,
-				.queueCount = 1,
+				.queueFamilyIndex = family,
+				.queueCount = qCnt[family],
 				.pQueuePriorities = priorities.data()
-			}
-		};
+			} );
+		}
 
 		std::vector<VkExtensionProperties> devExtensions;
 		CHECK_LOG( vulkan_helpers::enumerate_device_extensions( devExtensions, best, vk.enabledLayers ), "Could not enumerate extensions" );
 
+		VulkanPDInfo enable = pdi;
+		enable.clear_core_features();
+
 		std::vector<const char *> deviceExtensions{
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
-
-		void *lastFeatures = nullptr;	
 
 		if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME ) )
 			deviceExtensions.push_back( VK_EXT_VALIDATION_CACHE_EXTENSION_NAME );
@@ -269,61 +283,179 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 			if( vulkan_helpers::is_extension_present( devExtensions, VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME ) )
 				deviceExtensions.push_back( VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME );
 		}
-
-#ifdef VK_KHR_portability_subset
-		VkPhysicalDevicePortabilitySubsetFeaturesKHR phPortSubset{};
-		phPortSubset.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
-		phPortSubset.pNext = lastFeatures;
-		phPortSubset.events = VK_TRUE;
+/*
+#ifdef VK_KHR_portability_subset		
+		enable.portFeats.events = VK_TRUE;
 
 		if( vulkan_helpers::is_extension_present( devExtensions, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME ) )
-		{
-			lastFeatures = &phPortSubset;
 			deviceExtensions.push_back( VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME );
-		}
 #endif // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+*/
 
-		VkPhysicalDeviceDynamicRenderingFeaturesKHR phRenderingFeatures = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-			.pNext = lastFeatures,
-			.dynamicRendering = VK_TRUE
-		};
+#define ENABLE_IF_PRESENT(o) enable.o = pdi.o;
 
-		lastFeatures = &phRenderingFeatures;
-		deviceExtensions.push_back( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
+#define PREFIX feats.features
+// enable core features (1.0)
+#define EFC(o) ENABLE_IF_PRESENT( feats.features.o )
 
-		VkPhysicalDeviceVulkan12Features ph12Features{};
-		ph12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-		ph12Features.pNext = lastFeatures;
-		ph12Features.bufferDeviceAddress = VK_TRUE;
-		ph12Features.timelineSemaphore = VK_TRUE;
+		//EFC( robustBufferAccess ) // required
+		EFC( fullDrawIndexUint32 )
+		//EFC( imageCubeArray )
+		//EFC( independentBlend )
+		EFC( geometryShader )
+		EFC( tessellationShader )
+		//EFC( sampleRateShading )
+		//EFC( dualSrcBlend )
+		//EFC( logicOp )
+		//EFC( multiDrawIndirect )
+		//EFC( drawIndirectFirstInstance )
+		//EFC( depthClamp )
+		//EFC( depthBiasClamp )
+		//EFC( fillModeNonSolid )
+		//EFC( depthBounds )
+		//EFC( wideLines )
+		//EFC( largePoints )
+		//EFC( alphaToOne )
+		//EFC( multiViewport )
+		EFC( samplerAnisotropy )
+		EFC( textureCompressionETC2 )
+		EFC( textureCompressionASTC_LDR )
+		EFC( textureCompressionBC )
+		//EFC( occlusionQueryPrecise )
+		//EFC( pipelineStatisticsQuery )
+		//EFC( vertexPipelineStoresAndAtomics )
+		//EFC( fragmentStoresAndAtomics )
+		//EFC( shaderTessellationAndGeometryPointSize )
+		//EFC( shaderImageGatherExtended )
+		//EFC( shaderStorageImageExtendedFormats )
+		//EFC( shaderStorageImageMultisample )
+		EFC( shaderStorageImageReadWithoutFormat )
+		EFC( shaderStorageImageWriteWithoutFormat )
+		//EFC( shaderUniformBufferArrayDynamicIndexing )
+		//EFC( shaderSampledImageArrayDynamicIndexing )
+		//EFC( shaderStorageBufferArrayDynamicIndexing )
+		//EFC( shaderStorageImageArrayDynamicIndexing )
+		//EFC( shaderClipDistance )
+		//EFC( shaderCullDistance )
+		EFC( shaderFloat64 )
+		//EFC( shaderInt64 )
+		//EFC( shaderInt16 )
+		//EFC( shaderResourceResidency )
+		//EFC( shaderResourceMinLod )
+		//EFC( sparseBinding )
+		//EFC( sparseResidencyBuffer )
+		//EFC( sparseResidencyImage2D )
+		//EFC( sparseResidencyImage3D )
+		//EFC( sparseResidency2Samples )
+		//EFC( sparseResidency4Samples )
+		//EFC( sparseResidency8Samples )
+		//EFC( sparseResidency16Samples )
+		//EFC( sparseResidencyAliased )
+		//EFC( variableMultisampleRate )
+		//EFC( inheritedQueries )
 
-		lastFeatures = &ph12Features;
+#undef EFC
 
-		VkPhysicalDeviceVulkan11Features ph11Features{};
-		ph11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-		ph11Features.pNext = lastFeatures;
+// enable core features (1.1)
+#define EFC1(o) ENABLE_IF_PRESENT( feats11.o )
+		//EFC1( storageBuffer16BitAccess )
+		//EFC1( uniformAndStorageBuffer16BitAccess )
+		//EFC1( storagePushConstant16 )
+		//EFC1( storageInputOutput16 )
+		EFC1( multiview )
+		//EFC1( multiviewGeometryShader )
+		//EFC1( multiviewTessellationShader )
+		EFC1( variablePointersStorageBuffer )
+		EFC1( variablePointers )
+		//EFC1( protectedMemory )
+		//EFC1( samplerYcbcrConversion )
+		EFC1( shaderDrawParameters )
+#undef EFC1
 
-		lastFeatures = &ph11Features;
+// enable core features (1.2)
+#define EFC2(o) ENABLE_IF_PRESENT( feats12.o )
+		//EFC2( samplerMirrorClampToEdge )
+		//EFC2( drawIndirectCount )
+		//EFC2( storageBuffer8BitAccess )
+		//EFC2( uniformAndStorageBuffer8BitAccess )
+		//EFC2( storagePushConstant8 )
+		//EFC2( shaderBufferInt64Atomics )
+		//EFC2( shaderSharedInt64Atomics )
+		//EFC2( shaderFloat16 )
+		//EFC2( shaderInt8 )
+		//EFC2( descriptorIndexing )
+		//EFC2( shaderInputAttachmentArrayDynamicIndexing )
+		//EFC2( shaderUniformTexelBufferArrayDynamicIndexing )
+		//EFC2( shaderStorageTexelBufferArrayDynamicIndexing )
+		//EFC2( shaderUniformBufferArrayNonUniformIndexing )
+		//EFC2( shaderSampledImageArrayNonUniformIndexing )
+		//EFC2( shaderStorageBufferArrayNonUniformIndexing )
+		//EFC2( shaderStorageImageArrayNonUniformIndexing )
+		//EFC2( shaderInputAttachmentArrayNonUniformIndexing )
+		//EFC2( shaderUniformTexelBufferArrayNonUniformIndexing )
+		//EFC2( shaderStorageTexelBufferArrayNonUniformIndexing )
+		//EFC2( descriptorBindingUniformBufferUpdateAfterBind )
+		//EFC2( descriptorBindingSampledImageUpdateAfterBind )
+		//EFC2( descriptorBindingStorageImageUpdateAfterBind )
+		//EFC2( descriptorBindingStorageBufferUpdateAfterBind )
+		//EFC2( descriptorBindingUniformTexelBufferUpdateAfterBind )
+		//EFC2( descriptorBindingStorageTexelBufferUpdateAfterBind )
+		//EFC2( descriptorBindingUpdateUnusedWhilePending )
+		//EFC2( descriptorBindingPartiallyBound )
+		//EFC2( descriptorBindingVariableDescriptorCount )
+		//EFC2( runtimeDescriptorArray )
+		//EFC2( samplerFilterMinmax )
+		//EFC2( scalarBlockLayout )
+		EFC2( imagelessFramebuffer )
+		EFC2( uniformBufferStandardLayout )
+		EFC2( shaderSubgroupExtendedTypes )
+		EFC2( separateDepthStencilLayouts )
+		EFC2( hostQueryReset )
+		EFC2( timelineSemaphore )
+		EFC2( bufferDeviceAddress )
+		//EFC2( bufferDeviceAddressCaptureReplay )
+		//EFC2( bufferDeviceAddressMultiDevice )
+		EFC2( vulkanMemoryModel )
+		EFC2( vulkanMemoryModelDeviceScope )
+		//EFC2( vulkanMemoryModelAvailabilityVisibilityChains )
+		//EFC2( shaderOutputViewportIndex )
+		//EFC2( shaderOutputLayer )
+		EFC2( subgroupBroadcastDynamicId )
+#undef EFC2
 
-		VkPhysicalDeviceFeatures2 phFeatures{};
-		phFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-			phFeatures.pNext = lastFeatures,
-			phFeatures.features.samplerAnisotropy = VK_TRUE;
-		phFeatures.features.shaderFloat64 = VK_TRUE;
+#define EFC3(o) ENABLE_IF_PRESENT( feats13.o )
+
+		//EFC3( robustImageAccess ) // required
+		EFC3( inlineUniformBlock )
+		//EFC3( descriptorBindingInlineUniformBlockUpdateAfterBind )
+		EFC3( pipelineCreationCacheControl )
+		//EFC3( privateData ) // required
+		EFC3( shaderDemoteToHelperInvocation )
+		EFC3( shaderTerminateInvocation )
+		EFC3( subgroupSizeControl )
+		EFC3( computeFullSubgroups )
+		EFC3( synchronization2 )
+		EFC3( textureCompressionASTC_HDR )
+		EFC3( shaderZeroInitializeWorkgroupMemory )
+		EFC3( dynamicRendering )
+		EFC3( shaderIntegerDotProduct )
+		EFC3( maintenance4 )
+
+#undef EFC3
+#undef ENABLE_IF_PRESENT
 
 		TRACE( DebugLevel::Log, "Before device creation\n" );
-		CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &phFeatures, vkDev ), "Could not create device" );
+		CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &enable.feats, vkDev ), "Could not create device" );
 	}).name("init vulkan device").succeed(initInstance);
 
 	uint32_t kScreenWidth, kScreenHeight;
 	SDL_Vulkan_GetDrawableSize( window, (int *)&kScreenWidth, (int *)&kScreenHeight );
 
-	tf::Task initRenderDevice = sf.emplace([&]{
-		TRACE( DebugLevel::Log, "Before render device creation\n" );
+	tf::Task initVulkanContext = sf.emplace([&]{
+		TRACE( DebugLevel::Log, "Before vulkan context creation\n" );
+		auto &graphicsQueue = queues[graphicsQueueIdx];
 		vkGetDeviceQueue( vkDev.device, graphicsQueue.family, 0, &graphicsQueue.queue );
-		CHECK_LOG( InitVulkanRenderDevice( vk, vkDev, graphicsQueue,
-			2, { kScreenWidth, kScreenHeight },
+		CHECK_LOG( InitVulkanContext( vk, vkDev, 3, { kScreenWidth, kScreenHeight },
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT |
 			VK_IMAGE_USAGE_STORAGE_BIT |
@@ -332,7 +464,7 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 			VK_FORMAT_FEATURE_BLIT_DST_BIT |
 			VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
 			0,
-			vkRDev ), "Could not create reander device" );
+			4, vkCtx ), "Could not init vulkan context" );
 
 #if USE_OPTICK
 		TRACE(DebugLevel::Log,"Setting up optick for vulkan\n");
@@ -358,7 +490,7 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		};
 		OPTICK_GPU_INIT_VULKAN( &vkDev.device, &vkDev.physicalDevice, &vkRDev.graphicsQueue.queue, &vkRDev.graphicsQueue.family, 1, &vulkanFunctions );
 #endif
-	}).name("init vulkan render device").succeed(initDevice);
+	}).name("init vulkan context").succeed(initDevice);
 
 	tf::CriticalSection singleTimeCommands{1};
 
@@ -649,11 +781,12 @@ GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
 		vkUpdateDescriptorSets( vkDev.device, (uint32_t)writes.size(), writes.data(), 0, nullptr );
 	}).name("init compute descriptor sets").succeed(initRenderDevice,initComputeLayouts);
 
+	// this try-catch does not work with taskflow :(
 	try
 	{
 		sf.join();
 	}
-	catch(std::exception &e)
+	catch(const std::exception &e)
 	{
 		TRACE(DebugLevel::FatalError, "%s\n", e.what() );
 		throw e;

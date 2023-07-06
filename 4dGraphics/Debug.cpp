@@ -7,25 +7,23 @@
 #define STB_SPRINTF_IMPLEMENTATION
 #include <stb_sprintf.h>
 #include <mutex>
+
+#undef VK_ENABLE_BETA_EXTENSIONS
+#include <vulkan/vk_enum_string_helper.h>
+
 using namespace std;
 
 DebugLevel LogLevel = IS_DEBUG ? DebugLevel::Debug : DebugLevel::Log;
 
-static ofstream DebugFile( "log.txt", ios_base::out | ios_base::trunc );
+static ofstream DebugFile( "log.txt", ios_base::out | ios_base::trunc | ios_base::app );
 
 static void printToFile( const char *s )
 {
 	if( DebugFile ) 
 	{
 		DebugFile << s; 
-		//DebugFile.flush();
+		DebugFile.flush();
 	}
-	//FILE *f = fopen( "log.txt", "a" );
-	//if( f )
-	//{
-	//	fputs( s, f );
-	//	fclose( f );
-	//}
 }
 
 static std::mutex DebugMutex;
@@ -75,59 +73,67 @@ void OutputDebugV( DebugLevel l, const char *fmt, va_list va )
 	if( si >= 1024 ) free( dat );
 }
 
-const char* VulkanResultErrorCause(VkResult res)
+const char *string_from_VkResult(VkResult r)
 {
-	switch (res)
+    return string_VkResult(r);
+}
+
+const char *string_from_VkStructureType(VkStructureType t)
+{
+    return string_VkStructureType(t);
+}
+
+namespace vk_err
+{
+	class ErrorCategoryImpl : public std::error_category
 	{
-    case VK_SUCCESS: return "Success";
-    case VK_NOT_READY: return "NotReady";
-    case VK_TIMEOUT: return "Timeout";
-    case VK_EVENT_SET: return "EventSet";
-    case VK_EVENT_RESET: return "EventReset";
-    case VK_INCOMPLETE: return "Incomplete";
-    case VK_ERROR_OUT_OF_HOST_MEMORY: return "ErrorOutOfHostMemory";
-    case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "ErrorOutOfDeviceMemory";
-    case VK_ERROR_INITIALIZATION_FAILED: return "ErrorInitializationFailed";
-    case VK_ERROR_DEVICE_LOST: return "ErrorDeviceLost";
-    case VK_ERROR_MEMORY_MAP_FAILED: return "ErrorMemoryMapFailed";
-    case VK_ERROR_LAYER_NOT_PRESENT: return "ErrorLayerNotPresent";
-    case VK_ERROR_EXTENSION_NOT_PRESENT: return "ErrorExtensionNotPresent";
-    case VK_ERROR_FEATURE_NOT_PRESENT: return "ErrorFeatureNotPresent";
-    case VK_ERROR_INCOMPATIBLE_DRIVER: return "ErrorIncompatibleDriver";
-    case VK_ERROR_TOO_MANY_OBJECTS: return "ErrorTooManyObjects";
-    case VK_ERROR_FORMAT_NOT_SUPPORTED: return "ErrorFormatNotSupported";
-    case VK_ERROR_FRAGMENTED_POOL: return "ErrorFragmentedPool";
-    case VK_ERROR_UNKNOWN: return "ErrorUnknown";
-    case VK_ERROR_OUT_OF_POOL_MEMORY: return "ErrorOutOfPoolMemory";
-    case VK_ERROR_INVALID_EXTERNAL_HANDLE: return "ErrorInvalidExternalHandle";
-    case VK_ERROR_FRAGMENTATION: return "ErrorFragmentation";
-    case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS: return "ErrorInvalidOpaqueCaptureAddress";
-    case VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT: return "PipelineCompileRequired";
-    case VK_ERROR_SURFACE_LOST_KHR: return "ErrorSurfaceLostKHR";
-    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return "ErrorNativeWindowInUseKHR";
-    case VK_SUBOPTIMAL_KHR: return "SuboptimalKHR";
-    case VK_ERROR_OUT_OF_DATE_KHR: return "ErrorOutOfDateKHR";
-    case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR: return "ErrorIncompatibleDisplayKHR";
-    case VK_ERROR_VALIDATION_FAILED_EXT: return "ErrorValidationFailedEXT";
-    case VK_ERROR_INVALID_SHADER_NV: return "ErrorInvalidShaderNV";
-#if defined( VK_ENABLE_BETA_EXTENSIONS )
-    case VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR: return "ErrorImageUsageNotSupportedKHR";
-    case VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR: return "ErrorVideoPictureLayoutNotSupportedKHR";
-    case VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR: return "ErrorVideoProfileOperationNotSupportedKHR";
-    case VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR: return "ErrorVideoProfileFormatNotSupportedKHR";
-    case VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR: return "ErrorVideoProfileCodecNotSupportedKHR";
-    case VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR: return "ErrorVideoStdVersionNotSupportedKHR";
-#endif /*VK_ENABLE_BETA_EXTENSIONS*/
-    case VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT: return "ErrorInvalidDrmFormatModifierPlaneLayoutEXT";
-    case VK_ERROR_NOT_PERMITTED_KHR: return "ErrorNotPermittedKHR";
-#if defined( VK_USE_PLATFORM_WIN32_KHR )
-    case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT: return "ErrorFullScreenExclusiveModeLostEXT";
-#endif /*VK_USE_PLATFORM_WIN32_KHR*/
-    case VK_THREAD_IDLE_KHR: return "ThreadIdleKHR";
-    case VK_THREAD_DONE_KHR: return "ThreadDoneKHR";
-    case VK_OPERATION_DEFERRED_KHR: return "OperationDeferredKHR";
-    case VK_OPERATION_NOT_DEFERRED_KHR: return "OperationNotDeferredKHR";
-    case VK_ERROR_COMPRESSION_EXHAUSTED_EXT: return "ErrorCompressionExhaustedEXT";
-    default: return "Unknown/Invalid";
+	public:
+		virtual const char * name() const noexcept override
+		{
+			return "VkResult";
+		}
+
+		virtual std::string message( int ev ) const override
+		{
+			return std::to_string( ev );
+		}
+	};
+
+	const std::error_category &error_cat() noexcept
+	{
+		static ErrorCategoryImpl category;
+		return category;
+	}
+
+	[[noreturn]] void throwResultException( VkResult result, const std::string &message )
+	{
+		switch ( result )
+		{
+		case VK_ERROR_OUT_OF_HOST_MEMORY: throw OutOfHostMemoryError( message );
+		case VK_ERROR_OUT_OF_DEVICE_MEMORY: throw OutOfDeviceMemoryError( message );
+		case VK_ERROR_INITIALIZATION_FAILED: throw InitializationFailedError( message );
+		case VK_ERROR_DEVICE_LOST: throw DeviceLostError( message );
+		case VK_ERROR_MEMORY_MAP_FAILED: throw MemoryMapFailedError( message );
+		case VK_ERROR_LAYER_NOT_PRESENT: throw LayerNotPresentError( message );
+		case VK_ERROR_EXTENSION_NOT_PRESENT: throw ExtensionNotPresentError( message );
+		case VK_ERROR_FEATURE_NOT_PRESENT: throw FeatureNotPresentError( message );
+		case VK_ERROR_INCOMPATIBLE_DRIVER: throw IncompatibleDriverError( message );
+		case VK_ERROR_TOO_MANY_OBJECTS: throw TooManyObjectsError( message );
+		case VK_ERROR_FORMAT_NOT_SUPPORTED: throw FormatNotSupportedError( message );
+		case VK_ERROR_FRAGMENTED_POOL: throw FragmentedPoolError( message );
+		case VK_ERROR_UNKNOWN: throw UnknownError( message );
+		case VK_ERROR_OUT_OF_POOL_MEMORY: throw OutOfPoolMemoryError( message );
+		case VK_ERROR_INVALID_EXTERNAL_HANDLE: throw InvalidExternalHandleError( message );
+		case VK_ERROR_FRAGMENTATION: throw FragmentationError( message );
+		case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS: throw InvalidOpaqueCaptureAddressError( message );
+		case VK_ERROR_SURFACE_LOST_KHR: throw SurfaceLostKHRError( message );
+		case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: throw NativeWindowInUseKHRError( message );
+		case VK_ERROR_OUT_OF_DATE_KHR: throw OutOfDateKHRError( message );
+		case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR: throw IncompatibleDisplayKHRError( message );
+		case VK_ERROR_VALIDATION_FAILED_EXT: throw ValidationFailedEXTError( message );
+		case VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR: throw ImageUsageNotSupportedKHRError( message );
+		case VK_ERROR_NOT_PERMITTED_KHR: throw NotPermittedKHRError( message );
+		default: throw Error( make_error_code( result ), message );
+		}
 	}
 }

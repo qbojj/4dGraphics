@@ -11,6 +11,8 @@ else()
 	list(APPEND CMAKE_INSTALL_RPATH "${ORIGIN}/../lib" )
 endif()
 
+
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 project( 4DG )
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -24,30 +26,29 @@ if( MSVC )
 	add_compile_options( $<$<BOOL:${4DG_BUILD_PARALEL}>:/MP> )
 endif()
 
+add_library( WarningSettings INTERFACE )
+
+set_property(TARGET WarningSettings PROPERTY CXX_CLANG_TIDY
+	clang-tidy;
+	-checks=*;
+)
+
 option( 4DG_ALL_WARINGS "Generate all warnings" ON)
 if( 4DG_ALL_WARINGS )
 	if (MSVC)
-		add_compile_options( /W4 )
+		target_compile_options(WarningSettings INTERFACE /W4 )
 	else()
-		add_compile_options( -Wall -Wextra -pedantic $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments> )
+		target_compile_options(WarningSettings INTERFACE -Wall -Wextra -pedantic $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments> )
 	endif()
 endif()
 
-set(OPTICK_ENABLED OFF CACHE BOOL "" )
-set(OPTICK_USE_VULKAN ON CACHE BOOL "")
-set(OPTICK_INSTALL_TARGETS OFF CACHE BOOL "" )
-
-add_subdirectory(deps/optick)
-
-set_property(TARGET OptickCore    PROPERTY FOLDER "ThirdPartyLibraries")
-
+add_subdirectory(deps)
 add_subdirectory(shared)
-add_subdirectory(Collisions)
 add_subdirectory(4dGraphics)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT 4dGraphics)
 
-install( TARGETS 4dGraphics SharedUtils Collisions )
+install( TARGETS 4dGraphics SharedUtils )
 include(InstallRequiredSystemLibraries)
 
 configure_file(

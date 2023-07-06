@@ -4,6 +4,8 @@ out/
 build/
 cache/
 *.spv
+.cache/
+vcpkg_installed/
 
 imgui.ini
 log.txt

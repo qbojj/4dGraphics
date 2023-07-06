@@ -1,0 +1,1327 @@
+[1/5] Building CXX object 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o
+FAILED: 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o 
+/usr/bin/c++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\"RelWithDebInfo\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -std=gnu++20 -Winvalid-pch -include /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -MD -MT 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o -MF 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o.d -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.h:6,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.h:5,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp:1:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:34: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                  ^~~~~~~~~~~~~~~~~~
+      |                                  VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:54: error: ‘vkDev’ was not declared in this scope
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                                      ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:233:9: error: expected primary-expression before ‘const’
+  233 |         const char *filename,
+      |         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:18: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                  ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:19: error: ‘storageBuffer’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                   ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:48: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:49: error: ‘storageBufferMemory’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                 ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:35: error: expected primary-expression before ‘*’ token
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:36: error: ‘vertexBuffer’ was not declared in this scope; did you mean ‘CreateBuffer’?
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                    ^~~~~~~~~~~~
+      |                                    CreateBuffer
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:35: error: expected primary-expression before ‘*’ token
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:36: error: ‘indexBuffer’ was not declared in this scope
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                    ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:237:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  237 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:9: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  245 |         VulkanRenderDevice &vkDev,
+      |         ^~~~~~~~~~~~~~~~~~
+      |         VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:29: error: ‘vkDev’ was not declared in this scope
+  245 |         VulkanRenderDevice &vkDev,
+      |                             ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:21: error: expected primary-expression before ‘&’ token
+  246 |         VulkanState &vkState
+      |                     ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:22: error: ‘vkState’ was not declared in this scope
+  246 |         VulkanState &vkState
+      |                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:247:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  247 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:254:47: error: ‘VulkanSwapchain’ has not been declared
+  254 | void DestroyVulkanSwapchain( VkDevice device, VulkanSwapchain &swapchain );
+      |                                               ^~~~~~~~~~~~~~~
+
+
+
+[2/5] Building CXX object 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o
+FAILED: 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o 
+/usr/bin/c++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\"RelWithDebInfo\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -std=gnu++20 -Winvalid-pch -include /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -MD -MT 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o -MF 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o.d -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.h:6,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.h:5,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp:1:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:34: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                  ^~~~~~~~~~~~~~~~~~
+      |                                  VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:54: error: ‘vkDev’ was not declared in this scope
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                                      ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:233:9: error: expected primary-expression before ‘const’
+  233 |         const char *filename,
+      |         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:18: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                  ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:19: error: ‘storageBuffer’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                   ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:48: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:49: error: ‘storageBufferMemory’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                 ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:35: error: expected primary-expression before ‘*’ token
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:36: error: ‘vertexBuffer’ was not declared in this scope; did you mean ‘CreateBuffer’?
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                    ^~~~~~~~~~~~
+      |                                    CreateBuffer
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:35: error: expected primary-expression before ‘*’ token
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:36: error: ‘indexBuffer’ was not declared in this scope
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                    ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:237:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  237 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:9: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  245 |         VulkanRenderDevice &vkDev,
+      |         ^~~~~~~~~~~~~~~~~~
+      |         VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:29: error: ‘vkDev’ was not declared in this scope
+  245 |         VulkanRenderDevice &vkDev,
+      |                             ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:21: error: expected primary-expression before ‘&’ token
+  246 |         VulkanState &vkState
+      |                     ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:22: error: ‘vkState’ was not declared in this scope
+  246 |         VulkanState &vkState
+      |                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:247:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  247 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:254:47: error: ‘VulkanSwapchain’ has not been declared
+  254 | void DestroyVulkanSwapchain( VkDevice device, VulkanSwapchain &swapchain );
+      |                                               ^~~~~~~~~~~~~~~
+
+
+
+[3/5] Building CXX object 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o
+FAILED: 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o 
+/usr/bin/c++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\"RelWithDebInfo\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -std=gnu++20 -Winvalid-pch -include /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -MD -MT 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o -MF 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o.d -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:34: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                  ^~~~~~~~~~~~~~~~~~
+      |                                  VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:54: error: ‘vkDev’ was not declared in this scope
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                                      ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:233:9: error: expected primary-expression before ‘const’
+  233 |         const char *filename,
+      |         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:18: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                  ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:19: error: ‘storageBuffer’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                   ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:48: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:49: error: ‘storageBufferMemory’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                 ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:35: error: expected primary-expression before ‘*’ token
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:36: error: ‘vertexBuffer’ was not declared in this scope; did you mean ‘CreateBuffer’?
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                    ^~~~~~~~~~~~
+      |                                    CreateBuffer
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:35: error: expected primary-expression before ‘*’ token
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:36: error: ‘indexBuffer’ was not declared in this scope
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                    ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:237:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  237 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:9: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  245 |         VulkanRenderDevice &vkDev,
+      |         ^~~~~~~~~~~~~~~~~~
+      |         VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:29: error: ‘vkDev’ was not declared in this scope
+  245 |         VulkanRenderDevice &vkDev,
+      |                             ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:21: error: expected primary-expression before ‘&’ token
+  246 |         VulkanState &vkState
+      |                     ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:22: error: ‘vkState’ was not declared in this scope
+  246 |         VulkanState &vkState
+      |                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:247:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  247 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:254:47: error: ‘VulkanSwapchain’ has not been declared
+  254 | void DestroyVulkanSwapchain( VkDevice device, VulkanSwapchain &swapchain );
+      |                                               ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In constructor ‘VulkanDevice::VulkanDevice(const VulkanInstance&, VkPhysicalDevice, std::span<const VkDeviceQueueCreateInfo>, std::vector<const char*>, const VkPhysicalDeviceFeatures2*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:246:29: error: ‘GetFileString’ was not declared in this scope
+  246 |         std::string cache = GetFileString(devPathPrefix + ".pcache", true);
+      |                             ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:270:29: error: ‘GetFileString’ was not declared in this scope
+  270 |         std::string cache = GetFileString(devPathPrefix + ".vcache", true);
+      |                             ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: At global scope:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:354:1: error: declaration of ‘VulkanPerThread::VulkanPerThread(std::span<const std::pair<VkDevice_T*, unsigned int> >)’ outside of class is not definition [-fpermissive]
+  354 | VulkanPerThread::VulkanPerThread( std::span<const std::pair<VkDevice,uint32_t>> families );
+      | ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:355:1: error: expected unqualified-id before ‘{’ token
+  355 | {
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:367:29: error: ‘VkResult CreateTextureImage’ redeclared as different kind of entity
+  367 | VkResult CreateTextureImage(VulkanRenderDevice &vkDev,
+      |                             ^~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:228:10: note: previous declaration ‘VkResult CreateTextureImage(ThreadCtx&, const char*, VulkanTexture*)’
+  228 | VkResult CreateTextureImage( ThreadCtx &vkCev,
+      |          ^~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:367:29: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  367 | VkResult CreateTextureImage(VulkanRenderDevice &vkDev,
+      |                             ^~~~~~~~~~~~~~~~~~
+      |                             VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:367:49: error: ‘vkDev’ was not declared in this scope
+  367 | VkResult CreateTextureImage(VulkanRenderDevice &vkDev,
+      |                                                 ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:368:29: error: expected primary-expression before ‘const’
+  368 |                             const char *filename, VulkanTexture *texture)
+      |                             ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:368:65: error: expected primary-expression before ‘*’ token
+  368 |                             const char *filename, VulkanTexture *texture)
+      |                                                                 ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:368:66: error: ‘texture’ was not declared in this scope; did you mean ‘aiTexture’?
+  368 |                             const char *filename, VulkanTexture *texture)
+      |                                                                  ^~~~~~~
+      |                                                                  aiTexture
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:448:10: error: redefinition of ‘VkResult CreateSSBOVertexBuffer’
+  448 | VkResult CreateSSBOVertexBuffer(
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:10: note: ‘VkResult CreateSSBOVertexBuffer’ previously defined here
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:449:5: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  449 |     VulkanRenderDevice &vkDev,
+      |     ^~~~~~~~~~~~~~~~~~
+      |     VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:449:25: error: ‘vkDev’ was not declared in this scope
+  449 |     VulkanRenderDevice &vkDev,
+      |                         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:450:5: error: expected primary-expression before ‘const’
+  450 |     const char *filename,
+      |     ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:451:14: error: expected primary-expression before ‘*’ token
+  451 |     VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |              ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:451:15: error: ‘storageBuffer’ was not declared in this scope
+  451 |     VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |               ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:451:44: error: expected primary-expression before ‘*’ token
+  451 |     VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                            ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:451:45: error: ‘storageBufferMemory’ was not declared in this scope
+  451 |     VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                             ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:452:31: error: expected primary-expression before ‘*’ token
+  452 |     VulkanBufferSuballocation *vertexBuffer,
+      |                               ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:452:32: error: ‘vertexBuffer’ was not declared in this scope; did you mean ‘CreateBuffer’?
+  452 |     VulkanBufferSuballocation *vertexBuffer,
+      |                                ^~~~~~~~~~~~
+      |                                CreateBuffer
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:453:31: error: expected primary-expression before ‘*’ token
+  453 |     VulkanBufferSuballocation *indexBuffer)
+      |                               ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:453:32: error: ‘indexBuffer’ was not declared in this scope
+  453 |     VulkanBufferSuballocation *indexBuffer)
+      |                                ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In function ‘VkResult CreateEngineDescriptorSetLayout(VkDevice, VkDescriptorSetLayout_T**)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:612:35: error: ‘size’ was not declared in this scope
+  612 |         .bindingCount = (uint32_t)size(bindingFlags),
+      |                                   ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:612:35: note: suggested alternatives:
+In file included from /usr/include/c++/12/vector:67,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glslang/Public/ShaderLang.h:44,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.h:9,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx:5,
+                 from <command-line>:
+/usr/include/c++/12/bits/range_access.h:274:5: note:   ‘std::size’
+  274 |     size(const _Tp (&)[_Nm]) noexcept
+      |     ^~~~
+In file included from /usr/include/c++/12/string_view:50,
+                 from /usr/include/c++/12/bits/basic_string.h:47,
+                 from /usr/include/c++/12/string:53,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glslang/Public/ShaderLang.h:397:
+/usr/include/c++/12/bits/ranges_base.h:574:43: note:   ‘std::ranges::__cust::size’
+  574 |     inline constexpr __cust_access::_Size size{};
+      |                                           ^~~~
+/usr/include/c++/12/bits/ranges_base.h:373:10: note:   ‘std::ranges::__cust_access::size’
+  373 |     void size(const auto&) = delete;
+      |          ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:613:26: error: ‘data’ was not declared in this scope
+  613 |         .pBindingFlags = data(bindingFlags)};
+      |                          ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:613:26: note: suggested alternatives:
+/usr/include/c++/12/bits/range_access.h:343:5: note:   ‘std::data’
+  343 |     data(initializer_list<_Tp> __il) noexcept
+      |     ^~~~
+/usr/include/c++/12/bits/ranges_base.h:577:43: note:   ‘std::ranges::__cust::data’
+  577 |     inline constexpr __cust_access::_Data data{};
+      |                                           ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: At global scope:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:625:10: error: redefinition of ‘VkResult CreateEngineDescriptorSets’
+  625 | VkResult CreateEngineDescriptorSets(VulkanRenderDevice &vkDev, VulkanState &vkState)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:244:10: note: ‘VkResult CreateEngineDescriptorSets’ previously defined here
+  244 | VkResult CreateEngineDescriptorSets(
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:625:37: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  625 | VkResult CreateEngineDescriptorSets(VulkanRenderDevice &vkDev, VulkanState &vkState)
+      |                                     ^~~~~~~~~~~~~~~~~~
+      |                                     VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:625:57: error: ‘vkDev’ was not declared in this scope
+  625 | VkResult CreateEngineDescriptorSets(VulkanRenderDevice &vkDev, VulkanState &vkState)
+      |                                                         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:625:76: error: expected primary-expression before ‘&’ token
+  625 | VkResult CreateEngineDescriptorSets(VulkanRenderDevice &vkDev, VulkanState &vkState)
+      |                                                                            ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:625:77: error: ‘vkState’ was not declared in this scope
+  625 | VkResult CreateEngineDescriptorSets(VulkanRenderDevice &vkDev, VulkanState &vkState)
+      |                                                                             ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In function ‘void DestroyVulkanContext(VulkanContext&)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:729:25: error: base operand of ‘->’ has non-pointer type ‘VulkanContext’
+  729 |     VkDevice dev = vkCtx->vkDev.device;
+      |                         ^~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:733:43: error: ‘struct VulkanContext’ has no member named ‘swapchain’
+  733 |         DestroyVulkanSwapchain(dev, vkCtx.swapchain);
+      |                                           ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:736:15: error: ‘struct VulkanContext’ has no member named ‘dslc’
+  736 |         vkCtx.dslc.cleanup();
+      |               ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:748:25: error: ‘class VulkanCommandBufferManager’ has no member named ‘clear’
+  748 |                     cbm.clear(dev);
+      |                         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:753:27: error: member ‘VulkanContext::vk’ is uninitialized reference
+  753 |     vkCtx = VulkanContext{};
+      |                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:753:27: error: member ‘VulkanContext::vkDev’ is uninitialized reference
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:753:27: error: could not convert ‘<brace-enclosed initializer list>()’ from ‘<brace-enclosed initializer list>’ to ‘HDesc::DescriptorSetLayoutCache’ {aka ‘HDesc::util::VulkanHandleCache<HDesc::DescriptorSetLayoutInfo>’}
+  753 |     vkCtx = VulkanContext{};
+      |                           ^
+      |                           |
+      |                           <brace-enclosed initializer list>
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In function ‘void DestroyVulkanInstance(VulkanInstance&)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:760:45: error: ‘class VulkanInstance’ has no member named ‘surface’
+  760 |         vkDestroySurfaceKHR(vk.instance, vk.surface, nullptr);
+      |                                             ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:766:25: error: no matching function for call to ‘VulkanInstance::VulkanInstance(<brace-enclosed initializer list>)’
+  766 |     vk = VulkanInstance{};
+      |                         ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:69:1: note: candidate: ‘VulkanInstance::VulkanInstance(std::vector<const char*>, std::vector<const char*>, const VkApplicationInfo*, bool, const void*)’
+   69 | VulkanInstance::VulkanInstance(
+      | ^~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:69:1: note:   candidate expects 5 arguments, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note: candidate: ‘constexpr VulkanInstance::VulkanInstance(const VulkanInstance&)’
+   87 | class VulkanInstance {
+      |       ^~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note:   candidate expects 1 argument, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: At global scope:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:769:46: error: ‘VulkanSwapchain’ has not been declared
+  769 | void DestroyVulkanSwapchain(VkDevice device, VulkanSwapchain &swapchain)
+      |                                              ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In function ‘void DestroyVulkanSwapchain(VkDevice, int&)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:771:37: error: request for member ‘imageViews’ in ‘swapchain’, which is of non-class type ‘int’
+  771 |     for (VkImageView iv : swapchain.imageViews)
+      |                                     ^~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:774:45: error: request for member ‘swapchain’ in ‘swapchain’, which is of non-class type ‘int’
+  774 |     vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
+      |                                             ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:776:17: error: ‘VulkanSwapchain’ was not declared in this scope
+  776 |     swapchain = VulkanSwapchain{};
+      |                 ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: In function ‘VkResult InitVulkanContext(VulkanInstance&, VulkanDevice&, uint32_t, VkExtent2D, VkImageUsageFlags, VkFormatFeatureFlags, uint32_t, VulkanContext&)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:845:5: error: ‘VulkanSwapchain’ was not declared in this scope
+  845 |     VulkanSwapchain &swapchain = vkCtx.swapchain;
+      |     ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:845:22: error: ‘swapchain’ was not declared in this scope
+  845 |     VulkanSwapchain &swapchain = vkCtx.swapchain;
+      |                      ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:845:40: error: ‘struct VulkanContext’ has no member named ‘swapchain’
+  845 |     VulkanSwapchain &swapchain = vkCtx.swapchain;
+      |                                        ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:850:14: error: redeclaration of ‘uint32_t imageCount’
+  850 |     uint32_t imageCount;
+      |              ^~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:833:14: note: ‘uint32_t imageCount’ previously declared here
+  833 |     uint32_t imageCount;
+      |              ^~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:858:14: error: no match for ‘operator=’ (operand types are ‘VulkanContext’ and ‘<brace-enclosed initializer list>’)
+  858 |     vkCtx = {};
+      |              ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: note: candidate: ‘VulkanContext& VulkanContext::operator=(const VulkanContext&)’ (deleted)
+  180 | struct VulkanContext {
+      |        ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: note:   no known conversion for argument 1 from ‘<brace-enclosed initializer list>’ to ‘const VulkanContext&’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: note: candidate: ‘VulkanContext& VulkanContext::operator=(VulkanContext&&)’ (deleted)
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: note:   no known conversion for argument 1 from ‘<brace-enclosed initializer list>’ to ‘VulkanContext&&’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:859:17: error: no match for ‘operator=’ (operand types are ‘VulkanInstance’ and ‘VulkanInstance*’)
+  859 |     vkCtx.vk = &vk;
+      |                 ^~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note: candidate: ‘constexpr VulkanInstance& VulkanInstance::operator=(const VulkanInstance&)’
+   87 | class VulkanInstance {
+      |       ^~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note:   no known conversion for argument 1 from ‘VulkanInstance*’ to ‘const VulkanInstance&’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:860:20: error: no match for ‘operator=’ (operand types are ‘VulkanDevice’ and ‘VulkanDevice*’)
+  860 |     vkCtx.vkDev = &vkDev;
+      |                    ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:115:7: note: candidate: ‘constexpr VulkanDevice& VulkanDevice::operator=(const VulkanDevice&)’
+  115 | class VulkanDevice {
+      |       ^~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:115:7: note:   no known conversion for argument 1 from ‘VulkanDevice*’ to ‘const VulkanDevice&’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:862:11: error: ‘struct VulkanContext’ has no member named ‘familyToIdx’
+  862 |     vkCtx.familyToIdx.resize(queueFamilyCount, UINT32_MAX);
+      |           ^~~~~~~~~~~
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.h:13,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:6:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:864:86: error: ‘class VulkanInstance’ has no member named ‘surface’
+  864 |     VK_CHECK_GOTO(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkDev.physicalDevice, vk.surface, &capabilities));
+      |                                                                                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.h:54:43: note: in definition of macro ‘VK_CHECK_GOTO’
+   54 | #define VK_CHECK_GOTO( c ) do{ _result = (c); if( _result < 0 ) goto _error; }while(0)
+      |                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:866:71: error: ‘class VulkanInstance’ has no member named ‘surface’
+  866 |     swapchain.format = ChooseSwapchainFormat(vkDev.physicalDevice, vk.surface, features);
+      |                                                                       ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:869:66: error: ‘class VulkanInstance’ has no member named ‘surface’
+  869 |     presentMode = ChooseSwapPresentMode(vkDev.physicalDevice, vk.surface, true, false);
+      |                                                                  ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:879:22: error: ‘min’ was not declared in this scope
+  879 |     framesInFlight = min(wantedFramesInFlight, imageCount);
+      |                      ^~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:879:22: note: suggested alternatives:
+In file included from /usr/include/c++/12/algorithm:61,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/assimp/matrix3x3.inl:57,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/assimp/types.h:534,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/assimp/Importer.hpp:60,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.h:16:
+/usr/include/c++/12/bits/stl_algo.h:5736:5: note:   ‘std::min’
+ 5736 |     min(initializer_list<_Tp> __l, _Compare __comp)
+      |     ^~~
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/common.hpp:538,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/detail/func_geometric.inl:2,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/geometric.hpp:116,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/detail/func_matrix.inl:1,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/matrix.hpp:161,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/detail/type_mat2x2.inl:1,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/detail/type_mat2x2.hpp:176,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/ext/matrix_double2x2.hpp:5,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/mat2x2.hpp:5,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/glm.hpp:119,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders/GlmHeaders.h:12,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.h:28:
+/home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glm/detail/func_common.inl:484:55: note:   ‘glm::min’
+  484 |         GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<L, T, Q> min(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
+      |                                                       ^~~
+In file included from /usr/include/c++/12/algorithm:63:
+/usr/include/c++/12/bits/ranges_algo.h:2957:29: note:   ‘std::ranges::min’
+ 2957 |   inline constexpr __min_fn min{};
+      |                             ^~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:882:26: error: ‘class VulkanInstance’ has no member named ‘surface’
+  882 |         vkDev.device, vk.surface,
+      |                          ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.h:54:43: note: in definition of macro ‘VK_CHECK_GOTO’
+   54 | #define VK_CHECK_GOTO( c ) do{ _result = (c); if( _result < 0 ) goto _error; }while(0)
+      |                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:895:19: error: ‘struct VulkanContext’ has no member named ‘familyToIdx’
+  895 |         if (vkCtx.familyToIdx[q.family] == UINT32_MAX)
+      |                   ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:896:19: error: ‘struct VulkanContext’ has no member named ‘familyToIdx’
+  896 |             vkCtx.familyToIdx[q.family] = uniqueFamilyCount++;
+      |                   ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:926:129: error: designated initializers cannot be used with a non-aggregate type ‘VulkanPerThread’
+  926 |                                                                                                           .destructionQueue = {}})});
+      |                                                                                                                                 ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:926:129: error: no matching function for call to ‘VulkanPerThread::VulkanPerThread(<brace-enclosed initializer list>)’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:941:27: error: ‘struct VulkanContext’ has no member named ‘familyToIdx’
+  941 |                 if (vkCtx.familyToIdx[qf] != UINT32_MAX)
+      |                           ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:943:73: error: ‘struct VulkanContext’ has no member named ‘familyToIdx’
+  943 |                     auto &cbm = pf.threadData[th].cmdBuffManagers[vkCtx.familyToIdx[qf]];
+      |                                                                         ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:954:70: error: ‘struct VulkanQueue’ has no member named ‘timeline’
+  954 |         VK_CHECK_GOTO(CreateTimelineSemaphore(vkDev.device, 0ull, &q.timeline));
+      |                                                                      ^~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.h:54:43: note: in definition of macro ‘VK_CHECK_GOTO’
+   54 | #define VK_CHECK_GOTO( c ) do{ _result = (c); if( _result < 0 ) goto _error; }while(0)
+      |                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:955:51: error: ‘struct VulkanQueue’ has no member named ‘timeline’
+  955 |         VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, q.timeline, VK_OBJECT_TYPE_SEMAPHORE, "vkCtx queue %d: (family %d) timeline", i, q.family));
+      |                                                   ^~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.h:54:43: note: in definition of macro ‘VK_CHECK_GOTO’
+   54 | #define VK_CHECK_GOTO( c ) do{ _result = (c); if( _result < 0 ) goto _error; }while(0)
+      |                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:955:23: note: in expansion of macro ‘SET_VK_NAME’
+  955 |         VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, q.timeline, VK_OBJECT_TYPE_SEMAPHORE, "vkCtx queue %d: (family %d) timeline", i, q.family));
+      |                       ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:956:11: error: ‘struct VulkanQueue’ has no member named ‘curTimeline’
+  956 |         q.curTimeline = 0;
+      |           ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:834:29: warning: unused variable ‘cpCI’ [-Wunused-variable]
+  834 |     VkCommandPoolCreateInfo cpCI;
+      |                             ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:835:33: warning: unused variable ‘cbAI’ [-Wunused-variable]
+  835 |     VkCommandBufferAllocateInfo cbAI;
+      |                                 ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:838:29: warning: unused variable ‘fci’ [-Wunused-variable]
+  838 |     const VkFenceCreateInfo fci{
+      |                             ^~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp: At global scope:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1028:10: error: no declaration matches ‘VkResult VulkanCommandBufferManager::init(VkDevice, uint32_t, VkCommandPoolCreateFlags)’
+ 1028 | VkResult VulkanCommandBufferManager::init(VkDevice dev, uint32_t family, VkCommandPoolCreateFlags flags)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1028:10: note: no functions named ‘VkResult VulkanCommandBufferManager::init(VkDevice, uint32_t, VkCommandPoolCreateFlags)’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: note: ‘class VulkanCommandBufferManager’ defined here
+   27 | class VulkanCommandBufferManager : private cpph::move_only {
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1041:6: error: no declaration matches ‘void VulkanCommandBufferManager::clear(VkDevice)’
+ 1041 | void VulkanCommandBufferManager::clear(VkDevice dev)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1041:6: note: no functions named ‘void VulkanCommandBufferManager::clear(VkDevice)’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: note: ‘class VulkanCommandBufferManager’ defined here
+   27 | class VulkanCommandBufferManager : private cpph::move_only {
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1049:10: error: no declaration matches ‘VkResult VulkanCommandBufferManager::reset(VkDevice, VkCommandPoolResetFlags)’
+ 1049 | VkResult VulkanCommandBufferManager::reset(VkDevice dev, VkCommandPoolResetFlags flags)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:32:18: note: candidate is: ‘VkResult VulkanCommandBufferManager::reset(VkCommandPoolResetFlags)’
+   32 |         VkResult reset( VkCommandPoolResetFlags flags = 0 );
+      |                  ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: note: ‘class VulkanCommandBufferManager’ defined here
+   27 | class VulkanCommandBufferManager : private cpph::move_only {
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:1059:10: error: no declaration matches ‘VkResult VulkanCommandBufferManager::get(VkDevice, VkCommandBufferLevel, VkCommandBuffer_T**)’
+ 1059 | VkResult VulkanCommandBufferManager::get(VkDevice dev, VkCommandBufferLevel level, VkCommandBuffer *cmdBuff)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:33:18: note: candidate is: ‘VkResult VulkanCommandBufferManager::get(VkCommandBufferLevel, VkCommandBuffer_T**)’
+   33 |         VkResult get( VkCommandBufferLevel level, VkCommandBuffer *cmdBuff );
+      |                  ^~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: note: ‘class VulkanCommandBufferManager’ defined here
+   27 | class VulkanCommandBufferManager : private cpph::move_only {
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/12/vector:63:
+/usr/include/c++/12/bits/stl_uninitialized.h: In instantiation of ‘constexpr bool std::__check_constructible() [with _ValueType = VulkanCommandBufferManager; _Tp = VulkanCommandBufferManager&&]’:
+/usr/include/c++/12/bits/stl_uninitialized.h:182:4:   required from ‘_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*]’
+/usr/include/c++/12/bits/stl_uninitialized.h:372:37:   required from ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_uninitialized.h:397:2:   required from ‘constexpr _ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = VulkanCommandBufferManager*; _ForwardIterator = VulkanCommandBufferManager*; _Allocator = allocator<VulkanCommandBufferManager>]’
+/usr/include/c++/12/bits/vector.tcc:487:3:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_realloc_insert(iterator, _Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; iterator = std::vector<VulkanCommandBufferManager>::iterator]’
+/usr/include/c++/12/bits/vector.tcc:123:21:   required from ‘constexpr std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; reference = VulkanCommandBufferManager&]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:364:37:   required from here
+/usr/include/c++/12/bits/stl_uninitialized.h:90:56: error: static assertion failed: result type must be constructible from input type
+   90 |       static_assert(is_constructible<_ValueType, _Tp>::value,
+      |                                                        ^~~~~
+/usr/include/c++/12/bits/stl_uninitialized.h:90:56: note: ‘std::integral_constant<bool, false>::value’ evaluates to false
+In file included from /usr/include/c++/12/bits/stl_iterator.h:85,
+                 from /usr/include/c++/12/bits/stl_algobase.h:67,
+                 from /usr/include/c++/12/vector:60:
+/usr/include/c++/12/bits/stl_construct.h: In instantiation of ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {VulkanCommandBufferManager}]’:
+/usr/include/c++/12/bits/stl_uninitialized.h:120:21:   required from ‘constexpr _ForwardIterator std::__do_uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*]’
+/usr/include/c++/12/bits/stl_uninitialized.h:370:30:   required from ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_uninitialized.h:397:2:   required from ‘constexpr _ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = VulkanCommandBufferManager*; _ForwardIterator = VulkanCommandBufferManager*; _Allocator = allocator<VulkanCommandBufferManager>]’
+/usr/include/c++/12/bits/vector.tcc:487:3:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_realloc_insert(iterator, _Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; iterator = std::vector<VulkanCommandBufferManager>::iterator]’
+/usr/include/c++/12/bits/vector.tcc:123:21:   required from ‘constexpr std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; reference = VulkanCommandBufferManager&]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:364:37:   required from here
+/usr/include/c++/12/bits/stl_construct.h:115:28: error: no matching function for call to ‘construct_at(VulkanCommandBufferManager*&, VulkanCommandBufferManager)’
+  115 |           std::construct_at(__p, std::forward<_Args>(__args)...);
+      |           ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h:94:5: note: candidate: ‘template<class _Tp, class ... _Args> constexpr decltype (::new(void*(0)) _Tp) std::construct_at(_Tp*, _Args&& ...)’
+   94 |     construct_at(_Tp* __location, _Args&&... __args)
+      |     ^~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h:94:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12/bits/stl_construct.h: In substitution of ‘template<class _Tp, class ... _Args> constexpr decltype (::new(void*(0)) _Tp) std::construct_at(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {VulkanCommandBufferManager}]’:
+/usr/include/c++/12/bits/stl_construct.h:115:21:   required from ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {VulkanCommandBufferManager}]’
+/usr/include/c++/12/bits/stl_uninitialized.h:120:21:   required from ‘constexpr _ForwardIterator std::__do_uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*]’
+/usr/include/c++/12/bits/stl_uninitialized.h:370:30:   required from ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_uninitialized.h:397:2:   required from ‘constexpr _ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = VulkanCommandBufferManager*; _ForwardIterator = VulkanCommandBufferManager*; _Allocator = allocator<VulkanCommandBufferManager>]’
+/usr/include/c++/12/bits/vector.tcc:487:3:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_realloc_insert(iterator, _Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; iterator = std::vector<VulkanCommandBufferManager>::iterator]’
+/usr/include/c++/12/bits/vector.tcc:123:21:   required from ‘constexpr std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; reference = VulkanCommandBufferManager&]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:364:37:   required from here
+/usr/include/c++/12/bits/stl_construct.h:96:17: error: use of deleted function ‘VulkanCommandBufferManager::VulkanCommandBufferManager(const VulkanCommandBufferManager&)’
+   96 |     -> decltype(::new((void*)0) _Tp(std::declval<_Args>()...))
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: note: ‘VulkanCommandBufferManager::VulkanCommandBufferManager(const VulkanCommandBufferManager&)’ is implicitly deleted because the default definition would be ill-formed:
+   27 | class VulkanCommandBufferManager : private cpph::move_only {
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:27:7: error: use of deleted function ‘cpph::move_only::move_only(const cpph::move_only&)’
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.h:15:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/cppHelpers.hpp:11:9: note: declared here
+   11 |         move_only(const move_only&) = delete;
+      |         ^~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h: In instantiation of ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {VulkanCommandBufferManager}]’:
+/usr/include/c++/12/bits/stl_uninitialized.h:120:21:   required from ‘constexpr _ForwardIterator std::__do_uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*]’
+/usr/include/c++/12/bits/stl_uninitialized.h:370:30:   required from ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = move_iterator<VulkanCommandBufferManager*>; _ForwardIterator = VulkanCommandBufferManager*; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_uninitialized.h:397:2:   required from ‘constexpr _ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = VulkanCommandBufferManager*; _ForwardIterator = VulkanCommandBufferManager*; _Allocator = allocator<VulkanCommandBufferManager>]’
+/usr/include/c++/12/bits/vector.tcc:487:3:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_realloc_insert(iterator, _Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; iterator = std::vector<VulkanCommandBufferManager>::iterator]’
+/usr/include/c++/12/bits/vector.tcc:123:21:   required from ‘constexpr std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {VkDevice_T*&, unsigned int&}; _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; reference = VulkanCommandBufferManager&]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:364:37:   required from here
+/usr/include/c++/12/bits/stl_construct.h:119:7: error: use of deleted function ‘VulkanCommandBufferManager::VulkanCommandBufferManager(const VulkanCommandBufferManager&)’
+  119 |       ::new((void*)__p) _Tp(std::forward<_Args>(__args)...);
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h: In instantiation of ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {}]’:
+/usr/include/c++/12/bits/stl_uninitialized.h:638:18:   required from ‘static constexpr _ForwardIterator std::__uninitialized_default_n_1<_TrivialValueType>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; bool _TrivialValueType = false]’
+/usr/include/c++/12/bits/stl_uninitialized.h:701:20:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int]’
+/usr/include/c++/12/bits/stl_uninitialized.h:766:44:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, allocator<_Tp>&) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_vector.h:1713:36:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_default_initialize(size_type) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int]’
+/usr/include/c++/12/bits/stl_vector.h:553:9:   required from ‘constexpr std::vector<_Tp, _Alloc>::vector(size_type, const allocator_type&) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int; allocator_type = std::allocator<VulkanCommandBufferManager>]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:925:183:   required from here
+/usr/include/c++/12/bits/stl_construct.h:115:28: error: no matching function for call to ‘construct_at(VulkanCommandBufferManager*&)’
+  115 |           std::construct_at(__p, std::forward<_Args>(__args)...);
+      |           ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h:94:5: note: candidate: ‘template<class _Tp, class ... _Args> constexpr decltype (::new(void*(0)) _Tp) std::construct_at(_Tp*, _Args&& ...)’
+   94 |     construct_at(_Tp* __location, _Args&&... __args)
+      |     ^~~~~~~~~~~~
+/usr/include/c++/12/bits/stl_construct.h:94:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12/bits/stl_construct.h: In substitution of ‘template<class _Tp, class ... _Args> constexpr decltype (::new(void*(0)) _Tp) std::construct_at(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {}]’:
+/usr/include/c++/12/bits/stl_construct.h:115:21:   required from ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {}]’
+/usr/include/c++/12/bits/stl_uninitialized.h:638:18:   required from ‘static constexpr _ForwardIterator std::__uninitialized_default_n_1<_TrivialValueType>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; bool _TrivialValueType = false]’
+/usr/include/c++/12/bits/stl_uninitialized.h:701:20:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int]’
+/usr/include/c++/12/bits/stl_uninitialized.h:766:44:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, allocator<_Tp>&) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_vector.h:1713:36:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_default_initialize(size_type) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int]’
+/usr/include/c++/12/bits/stl_vector.h:553:9:   required from ‘constexpr std::vector<_Tp, _Alloc>::vector(size_type, const allocator_type&) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int; allocator_type = std::allocator<VulkanCommandBufferManager>]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:925:183:   required from here
+/usr/include/c++/12/bits/stl_construct.h:96:17: error: no matching function for call to ‘VulkanCommandBufferManager::VulkanCommandBufferManager()’
+   96 |     -> decltype(::new((void*)0) _Tp(std::declval<_Args>()...))
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:29:9: note: candidate: ‘VulkanCommandBufferManager::VulkanCommandBufferManager(VkDevice, uint32_t, VkCommandPoolCreateFlags)’
+   29 |         VulkanCommandBufferManager( VkDevice dev, uint32_t family, VkCommandPoolCreateFlags flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT );
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:29:9: note:   candidate expects 3 arguments, 0 provided
+/usr/include/c++/12/bits/stl_construct.h: In instantiation of ‘constexpr void std::_Construct(_Tp*, _Args&& ...) [with _Tp = VulkanCommandBufferManager; _Args = {}]’:
+/usr/include/c++/12/bits/stl_uninitialized.h:638:18:   required from ‘static constexpr _ForwardIterator std::__uninitialized_default_n_1<_TrivialValueType>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; bool _TrivialValueType = false]’
+/usr/include/c++/12/bits/stl_uninitialized.h:701:20:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int]’
+/usr/include/c++/12/bits/stl_uninitialized.h:766:44:   required from ‘constexpr _ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, allocator<_Tp>&) [with _ForwardIterator = VulkanCommandBufferManager*; _Size = long unsigned int; _Tp = VulkanCommandBufferManager]’
+/usr/include/c++/12/bits/stl_vector.h:1713:36:   required from ‘constexpr void std::vector<_Tp, _Alloc>::_M_default_initialize(size_type) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int]’
+/usr/include/c++/12/bits/stl_vector.h:553:9:   required from ‘constexpr std::vector<_Tp, _Alloc>::vector(size_type, const allocator_type&) [with _Tp = VulkanCommandBufferManager; _Alloc = std::allocator<VulkanCommandBufferManager>; size_type = long unsigned int; allocator_type = std::allocator<VulkanCommandBufferManager>]’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp:925:183:   required from here
+/usr/include/c++/12/bits/stl_construct.h:119:7: error: no matching function for call to ‘VulkanCommandBufferManager::VulkanCommandBufferManager()’
+  119 |       ::new((void*)__p) _Tp(std::forward<_Args>(__args)...);
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:29:9: note: candidate: ‘VulkanCommandBufferManager::VulkanCommandBufferManager(VkDevice, uint32_t, VkCommandPoolCreateFlags)’
+   29 |         VulkanCommandBufferManager( VkDevice dev, uint32_t family, VkCommandPoolCreateFlags flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT );
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:29:9: note:   candidate expects 3 arguments, 0 provided
+
+
+[4/5] Building CXX object 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o
+FAILED: 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o 
+/usr/bin/c++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\"RelWithDebInfo\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -std=gnu++20 -Winvalid-pch -include /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -MD -MT 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o -MF 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o.d -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.h:6,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:1:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:34: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                  ^~~~~~~~~~~~~~~~~~
+      |                                  VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:232:54: error: ‘vkDev’ was not declared in this scope
+  232 | VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
+      |                                                      ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:233:9: error: expected primary-expression before ‘const’
+  233 |         const char *filename,
+      |         ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:18: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                  ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:19: error: ‘storageBuffer’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                   ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:48: error: expected primary-expression before ‘*’ token
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:234:49: error: ‘storageBufferMemory’ was not declared in this scope
+  234 |         VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
+      |                                                 ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:35: error: expected primary-expression before ‘*’ token
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:235:36: error: ‘vertexBuffer’ was not declared in this scope; did you mean ‘CreateBuffer’?
+  235 |         VulkanBufferSuballocation *vertexBuffer,
+      |                                    ^~~~~~~~~~~~
+      |                                    CreateBuffer
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:35: error: expected primary-expression before ‘*’ token
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                   ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:236:36: error: ‘indexBuffer’ was not declared in this scope
+  236 |         VulkanBufferSuballocation *indexBuffer
+      |                                    ^~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:237:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  237 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:9: error: ‘VulkanRenderDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  245 |         VulkanRenderDevice &vkDev,
+      |         ^~~~~~~~~~~~~~~~~~
+      |         VulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:245:29: error: ‘vkDev’ was not declared in this scope
+  245 |         VulkanRenderDevice &vkDev,
+      |                             ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:21: error: expected primary-expression before ‘&’ token
+  246 |         VulkanState &vkState
+      |                     ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:246:22: error: ‘vkState’ was not declared in this scope
+  246 |         VulkanState &vkState
+      |                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:247:1: error: expression list treated as compound expression in initializer [-fpermissive]
+  247 | );
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:254:47: error: ‘VulkanSwapchain’ has not been declared
+  254 | void DestroyVulkanSwapchain( VkDevice device, VulkanSwapchain &swapchain );
+      |                                               ^~~~~~~~~~~~~~~
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:10:
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkStructureType(VkStructureType)’:
+/usr/include/vulkan/vk_enum_string_helper.h:1239:14: error: ‘VK_STRUCTURE_TYPE_QUEUE_FAMILY_QUERY_RESULT_STATUS_PROPERTIES_2_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_QUEUE_FAMILY_QUERY_RESULT_STATUS_PROPERTIES_KHR’?
+ 1239 |         case VK_STRUCTURE_TYPE_QUEUE_FAMILY_QUERY_RESULT_STATUS_PROPERTIES_2_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_QUEUE_FAMILY_QUERY_RESULT_STATUS_PROPERTIES_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1399:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_BIND_MEMORY_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_INFO_KHR’?
+ 1399 |         case VK_STRUCTURE_TYPE_VIDEO_BIND_MEMORY_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1415:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_CAPABILITIES_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_CAPABILITIES_EXT’?
+ 1415 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_CAPABILITIES_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_CAPABILITIES_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1419:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_DPB_SLOT_INFO_EXT’?
+ 1419 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_DPB_SLOT_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1423:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_MVC_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR’?
+ 1423 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_MVC_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1427:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_KHR’?
+ 1427 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1431:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PROFILE_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_INFO_EXT’?
+ 1431 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PROFILE_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1435:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_ADD_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_SESSION_PARAMETERS_ADD_INFO_EXT’?
+ 1435 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_ADD_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_SESSION_PARAMETERS_ADD_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1439:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_CREATE_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_SESSION_PARAMETERS_CREATE_INFO_EXT’?
+ 1439 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_CREATE_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_SESSION_PARAMETERS_CREATE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1443:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_CAPABILITIES_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_CAPABILITIES_EXT’?
+ 1443 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_CAPABILITIES_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_CAPABILITIES_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1447:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_DPB_SLOT_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_DPB_SLOT_INFO_EXT’?
+ 1447 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_DPB_SLOT_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_DPB_SLOT_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1451:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_KHR’?
+ 1451 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1455:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PROFILE_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_INFO_EXT’?
+ 1455 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PROFILE_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1459:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_ADD_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_SESSION_PARAMETERS_ADD_INFO_EXT’?
+ 1459 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_ADD_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_SESSION_PARAMETERS_ADD_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1463:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_CREATE_INFO_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_SESSION_PARAMETERS_CREATE_INFO_EXT’?
+ 1463 |         case VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_CREATE_INFO_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_SESSION_PARAMETERS_CREATE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1483:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_EMIT_PICTURE_PARAMETERS_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_EMIT_PICTURE_PARAMETERS_INFO_EXT’?
+ 1483 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_EMIT_PICTURE_PARAMETERS_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_EMIT_PICTURE_PARAMETERS_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1487:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_NALU_SLICE_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_NALU_SLICE_INFO_EXT’?
+ 1487 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_NALU_SLICE_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_NALU_SLICE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1491:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_INFO_EXT’?
+ 1491 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_PROFILE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1503:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_REFERENCE_LISTS_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_REFERENCE_LISTS_INFO_EXT’?
+ 1503 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_REFERENCE_LISTS_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H264_REFERENCE_LISTS_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1527:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_EMIT_PICTURE_PARAMETERS_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_EMIT_PICTURE_PARAMETERS_INFO_EXT’?
+ 1527 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_EMIT_PICTURE_PARAMETERS_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_EMIT_PICTURE_PARAMETERS_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1531:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_NALU_SLICE_SEGMENT_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_NALU_SLICE_SEGMENT_INFO_EXT’?
+ 1531 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_NALU_SLICE_SEGMENT_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_NALU_SLICE_SEGMENT_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1535:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_INFO_EXT’?
+ 1535 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_PROFILE_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1547:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_REFERENCE_LISTS_EXT’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_REFERENCE_LISTS_INFO_EXT’?
+ 1547 |         case VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_REFERENCE_LISTS_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_ENCODE_H265_REFERENCE_LISTS_INFO_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:1583:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_GET_MEMORY_PROPERTIES_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_FORMAT_PROPERTIES_KHR’?
+ 1583 |         case VK_STRUCTURE_TYPE_VIDEO_GET_MEMORY_PROPERTIES_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_FORMAT_PROPERTIES_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1587:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR’?
+ 1587 |         case VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1591:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_PROFILES_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR’?
+ 1591 |         case VK_STRUCTURE_TYPE_VIDEO_PROFILES_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1595:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_PROFILE_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR’?
+ 1595 |         case VK_STRUCTURE_TYPE_VIDEO_PROFILE_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1599:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_QUEUE_FAMILY_PROPERTIES_2_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2_KHR’?
+ 1599 |         case VK_STRUCTURE_TYPE_VIDEO_QUEUE_FAMILY_PROPERTIES_2_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2_KHR
+/usr/include/vulkan/vk_enum_string_helper.h:1603:14: error: ‘VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_KHR’ was not declared in this scope; did you mean ‘VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR’?
+ 1603 |         case VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoCodecOperationFlagBitsKHR(VkVideoCodecOperationFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6248:14: error: ‘VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_EXT’ was not declared in this scope; did you mean ‘VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_EXT’?
+ 6248 |         case VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:6252:14: error: ‘VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_EXT’ was not declared in this scope; did you mean ‘VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_EXT’?
+ 6252 |         case VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_EXT:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_EXT
+/usr/include/vulkan/vk_enum_string_helper.h:6263:14: error: ‘VK_VIDEO_CODEC_OPERATION_INVALID_BIT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_CODEC_OPERATION_NONE_KHR’?
+ 6263 |         case VK_VIDEO_CODEC_OPERATION_INVALID_BIT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_CODEC_OPERATION_NONE_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoChromaSubsamplingFlagBitsKHR(VkVideoChromaSubsamplingFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6300:14: error: ‘VK_VIDEO_CHROMA_SUBSAMPLING_INVALID_BIT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_CHROMA_SUBSAMPLING_INVALID_KHR’?
+ 6300 |         case VK_VIDEO_CHROMA_SUBSAMPLING_INVALID_BIT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_CHROMA_SUBSAMPLING_INVALID_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoSessionCreateFlagBitsKHR(VkVideoSessionCreateFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6403:14: error: ‘VK_VIDEO_SESSION_CREATE_DEFAULT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_ENCODE_USAGE_DEFAULT_KHR’?
+ 6403 |         case VK_VIDEO_SESSION_CREATE_DEFAULT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_ENCODE_USAGE_DEFAULT_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoCodingControlFlagBitsKHR(VkVideoCodingControlFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6436:14: error: ‘VK_VIDEO_CODING_CONTROL_DEFAULT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR’?
+ 6436 |         case VK_VIDEO_CODING_CONTROL_DEFAULT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: At global scope:
+/usr/include/vulkan/vk_enum_string_helper.h:6465:72: error: ‘VkVideoCodingQualityPresetFlagBitsKHR’ was not declared in this scope; did you mean ‘string_VkVideoCodingQualityPresetFlagBitsKHR’?
+ 6465 | static inline const char* string_VkVideoCodingQualityPresetFlagBitsKHR(VkVideoCodingQualityPresetFlagBitsKHR input_value)
+      |                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                        string_VkVideoCodingQualityPresetFlagBitsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:6480:69: error: ‘VkVideoCodingQualityPresetFlagsKHR’ was not declared in this scope; did you mean ‘string_VkVideoCodingQualityPresetFlagsKHR’?
+ 6480 | static inline std::string string_VkVideoCodingQualityPresetFlagsKHR(VkVideoCodingQualityPresetFlagsKHR input_value)
+      |                                                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                     string_VkVideoCodingQualityPresetFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:6481:1: error: expected ‘,’ or ‘;’ before ‘{’ token
+ 6481 | {
+      | ^
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoDecodeCapabilityFlagBitsKHR(VkVideoDecodeCapabilityFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6523:14: error: ‘VK_VIDEO_DECODE_CAPABILITY_DEFAULT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_DECODE_USAGE_DEFAULT_KHR’?
+ 6523 |         case VK_VIDEO_DECODE_CAPABILITY_DEFAULT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_DECODE_USAGE_DEFAULT_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: At global scope:
+/usr/include/vulkan/vk_enum_string_helper.h:6554:59: error: ‘VkVideoDecodeFlagBitsKHR’ was not declared in this scope; did you mean ‘VkVideoDecodeFlagsKHR’?
+ 6554 | static inline const char* string_VkVideoDecodeFlagBitsKHR(VkVideoDecodeFlagBitsKHR input_value)
+      |                                                           ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                           VkVideoDecodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘std::string string_VkVideoDecodeFlagsKHR(VkVideoDecodeFlagsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:6574:68: error: ‘VkVideoDecodeFlagBitsKHR’ does not name a type; did you mean ‘VkVideoDecodeFlagsKHR’?
+ 6574 |             ret.append(string_VkVideoDecodeFlagBitsKHR(static_cast<VkVideoDecodeFlagBitsKHR>(1U << index)));
+      |                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                    VkVideoDecodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:6574:106: error: ‘string_VkVideoDecodeFlagBitsKHR’ cannot be used as a function
+ 6574 |             ret.append(string_VkVideoDecodeFlagBitsKHR(static_cast<VkVideoDecodeFlagBitsKHR>(1U << index)));
+      |                                                                                                          ^
+/usr/include/vulkan/vk_enum_string_helper.h:6579:77: error: ‘VkVideoDecodeFlagBitsKHR’ does not name a type; did you mean ‘VkVideoDecodeFlagsKHR’?
+ 6579 |     if( ret.empty()) ret.append(string_VkVideoDecodeFlagBitsKHR(static_cast<VkVideoDecodeFlagBitsKHR>(0)));
+      |                                                                             ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                             VkVideoDecodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:6579:105: error: ‘string_VkVideoDecodeFlagBitsKHR’ cannot be used as a function
+ 6579 |     if( ret.empty()) ret.append(string_VkVideoDecodeFlagBitsKHR(static_cast<VkVideoDecodeFlagBitsKHR>(0)));
+      |                                                                                                         ^
+/usr/include/vulkan/vk_enum_string_helper.h: At global scope:
+/usr/include/vulkan/vk_enum_string_helper.h:7324:59: error: ‘VkVideoEncodeFlagBitsKHR’ was not declared in this scope; did you mean ‘VkVideoEncodeFlagsKHR’?
+ 7324 | static inline const char* string_VkVideoEncodeFlagBitsKHR(VkVideoEncodeFlagBitsKHR input_value)
+      |                                                           ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                           VkVideoEncodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘std::string string_VkVideoEncodeFlagsKHR(VkVideoEncodeFlagsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:7344:68: error: ‘VkVideoEncodeFlagBitsKHR’ does not name a type; did you mean ‘VkVideoEncodeFlagsKHR’?
+ 7344 |             ret.append(string_VkVideoEncodeFlagBitsKHR(static_cast<VkVideoEncodeFlagBitsKHR>(1U << index)));
+      |                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                    VkVideoEncodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:7344:106: error: ‘string_VkVideoEncodeFlagBitsKHR’ cannot be used as a function
+ 7344 |             ret.append(string_VkVideoEncodeFlagBitsKHR(static_cast<VkVideoEncodeFlagBitsKHR>(1U << index)));
+      |                                                                                                          ^
+/usr/include/vulkan/vk_enum_string_helper.h:7349:77: error: ‘VkVideoEncodeFlagBitsKHR’ does not name a type; did you mean ‘VkVideoEncodeFlagsKHR’?
+ 7349 |     if( ret.empty()) ret.append(string_VkVideoEncodeFlagBitsKHR(static_cast<VkVideoEncodeFlagBitsKHR>(0)));
+      |                                                                             ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                             VkVideoEncodeFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:7349:105: error: ‘string_VkVideoEncodeFlagBitsKHR’ cannot be used as a function
+ 7349 |     if( ret.empty()) ret.append(string_VkVideoEncodeFlagBitsKHR(static_cast<VkVideoEncodeFlagBitsKHR>(0)));
+      |                                                                                                         ^
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘const char* string_VkVideoEncodeCapabilityFlagBitsKHR(VkVideoEncodeCapabilityFlagBitsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:7361:14: error: ‘VK_VIDEO_ENCODE_CAPABILITY_DEFAULT_KHR’ was not declared in this scope; did you mean ‘VK_VIDEO_ENCODE_CONTENT_DEFAULT_KHR’?
+ 7361 |         case VK_VIDEO_ENCODE_CAPABILITY_DEFAULT_KHR:
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |              VK_VIDEO_ENCODE_CONTENT_DEFAULT_KHR
+/usr/include/vulkan/vk_enum_string_helper.h: At global scope:
+/usr/include/vulkan/vk_enum_string_helper.h:7425:70: error: ‘VkVideoEncodeRateControlFlagBitsKHR’ was not declared in this scope; did you mean ‘VkVideoEncodeRateControlFlagsKHR’?
+ 7425 | static inline const char* string_VkVideoEncodeRateControlFlagBitsKHR(VkVideoEncodeRateControlFlagBitsKHR input_value)
+      |                                                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                      VkVideoEncodeRateControlFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h: In function ‘std::string string_VkVideoEncodeRateControlFlagsKHR(VkVideoEncodeRateControlFlagsKHR)’:
+/usr/include/vulkan/vk_enum_string_helper.h:7445:79: error: ‘VkVideoEncodeRateControlFlagBitsKHR’ does not name a type; did you mean ‘VkVideoEncodeRateControlFlagsKHR’?
+ 7445 |             ret.append(string_VkVideoEncodeRateControlFlagBitsKHR(static_cast<VkVideoEncodeRateControlFlagBitsKHR>(1U << index)));
+      |                                                                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                               VkVideoEncodeRateControlFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:7445:128: error: ‘string_VkVideoEncodeRateControlFlagBitsKHR’ cannot be used as a function
+ 7445 |             ret.append(string_VkVideoEncodeRateControlFlagBitsKHR(static_cast<VkVideoEncodeRateControlFlagBitsKHR>(1U << index)));
+      |                                                                                                                                ^
+/usr/include/vulkan/vk_enum_string_helper.h:7450:88: error: ‘VkVideoEncodeRateControlFlagBitsKHR’ does not name a type; did you mean ‘VkVideoEncodeRateControlFlagsKHR’?
+ 7450 |     if( ret.empty()) ret.append(string_VkVideoEncodeRateControlFlagBitsKHR(static_cast<VkVideoEncodeRateControlFlagBitsKHR>(0)));
+      |                                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                        VkVideoEncodeRateControlFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:7450:127: error: ‘string_VkVideoEncodeRateControlFlagBitsKHR’ cannot be used as a function
+ 7450 |     if( ret.empty()) ret.append(string_VkVideoEncodeRateControlFlagBitsKHR(static_cast<VkVideoEncodeRateControlFlagBitsKHR>(0)));
+      |                                                                                                                               ^
+/usr/include/vulkan/vk_enum_string_helper.h: At global scope:
+/usr/include/vulkan/vk_enum_string_helper.h:8096:83: error: ‘VkVideoEncodeH264RateControlStructureFlagBitsEXT’ was not declared in this scope; did you mean ‘string_VkVideoEncodeH264RateControlStructureFlagBitsEXT’?
+ 8096 | static inline const char* string_VkVideoEncodeH264RateControlStructureFlagBitsEXT(VkVideoEncodeH264RateControlStructureFlagBitsEXT input_value)
+      |                                                                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                   string_VkVideoEncodeH264RateControlStructureFlagBitsEXT
+/usr/include/vulkan/vk_enum_string_helper.h:8111:80: error: ‘VkVideoEncodeH264RateControlStructureFlagsEXT’ was not declared in this scope; did you mean ‘VkVideoEncodeH264RateControlStructureEXT’?
+ 8111 | static inline std::string string_VkVideoEncodeH264RateControlStructureFlagsEXT(VkVideoEncodeH264RateControlStructureFlagsEXT input_value)
+      |                                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                VkVideoEncodeH264RateControlStructureEXT
+/usr/include/vulkan/vk_enum_string_helper.h:8112:1: error: expected ‘,’ or ‘;’ before ‘{’ token
+ 8112 | {
+      | ^
+/usr/include/vulkan/vk_enum_string_helper.h:8354:83: error: ‘VkVideoEncodeH265RateControlStructureFlagBitsEXT’ was not declared in this scope; did you mean ‘string_VkVideoEncodeH265RateControlStructureFlagBitsEXT’?
+ 8354 | static inline const char* string_VkVideoEncodeH265RateControlStructureFlagBitsEXT(VkVideoEncodeH265RateControlStructureFlagBitsEXT input_value)
+      |                                                                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                   string_VkVideoEncodeH265RateControlStructureFlagBitsEXT
+/usr/include/vulkan/vk_enum_string_helper.h:8369:80: error: ‘VkVideoEncodeH265RateControlStructureFlagsEXT’ was not declared in this scope; did you mean ‘VkVideoEncodeH265RateControlStructureEXT’?
+ 8369 | static inline std::string string_VkVideoEncodeH265RateControlStructureFlagsEXT(VkVideoEncodeH265RateControlStructureFlagsEXT input_value)
+      |                                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                VkVideoEncodeH265RateControlStructureEXT
+/usr/include/vulkan/vk_enum_string_helper.h:8370:1: error: expected ‘,’ or ‘;’ before ‘{’ token
+ 8370 | {
+      | ^
+/usr/include/vulkan/vk_enum_string_helper.h:8389:76: error: ‘VkVideoDecodeH264PictureLayoutFlagBitsEXT’ was not declared in this scope; did you mean ‘VkVideoDecodeH264PictureLayoutFlagBitsKHR’?
+ 8389 | static inline const char* string_VkVideoDecodeH264PictureLayoutFlagBitsEXT(VkVideoDecodeH264PictureLayoutFlagBitsEXT input_value)
+      |                                                                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                            VkVideoDecodeH264PictureLayoutFlagBitsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:8404:73: error: ‘VkVideoDecodeH264PictureLayoutFlagsEXT’ was not declared in this scope; did you mean ‘VkVideoDecodeH264PictureLayoutFlagsKHR’?
+ 8404 | static inline std::string string_VkVideoDecodeH264PictureLayoutFlagsEXT(VkVideoDecodeH264PictureLayoutFlagsEXT input_value)
+      |                                                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                         VkVideoDecodeH264PictureLayoutFlagsKHR
+/usr/include/vulkan/vk_enum_string_helper.h:8405:1: error: expected ‘,’ or ‘;’ before ‘{’ token
+ 8405 | {
+      | ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘uint64_t GameRenderHandler::getDeviceViability(VkPhysicalDevice)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:47:9: error: ‘InitVulkanPDInfo’ was not declared in this scope; did you mean ‘VulkanPDInfo’?
+   47 |         InitVulkanPDInfo( pd, &pdi );
+      |         ^~~~~~~~~~~~~~~~
+      |         VulkanPDInfo
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In constructor ‘GameRenderHandler::GameRenderHandler(tf::Subflow&, SDL_Window*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:86:75: error: no matching function for call to ‘VulkanInstance::VulkanInstance()’
+   86 | GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
+      |                                                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:89:5: note: candidate: ‘VulkanInstance::VulkanInstance(std::vector<const char*>, std::vector<const char*>, const VkApplicationInfo*, bool, const void*)’
+   89 |     VulkanInstance(
+      |     ^~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:89:5: note:   candidate expects 5 arguments, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note: candidate: ‘constexpr VulkanInstance::VulkanInstance(const VulkanInstance&)’
+   87 | class VulkanInstance {
+      |       ^~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:87:7: note:   candidate expects 1 argument, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:86:75: error: no matching function for call to ‘VulkanDevice::VulkanDevice()’
+   86 | GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
+      |                                                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:117:5: note: candidate: ‘VulkanDevice::VulkanDevice(const VulkanInstance&, VkPhysicalDevice, std::span<const VkDeviceQueueCreateInfo>, std::vector<const char*>, const VkPhysicalDeviceFeatures2*)’
+  117 |     VulkanDevice(
+      |     ^~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:117:5: note:   candidate expects 5 arguments, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:115:7: note: candidate: ‘constexpr VulkanDevice::VulkanDevice(const VulkanDevice&)’
+  115 | class VulkanDevice {
+      |       ^~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:115:7: note:   candidate expects 1 argument, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:86:75: error: use of deleted function ‘VulkanContext::VulkanContext()’
+   86 | GameRenderHandler::GameRenderHandler( tf::Subflow &sf, SDL_Window *window )
+      |                                                                           ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: note: ‘VulkanContext::VulkanContext()’ is implicitly deleted because the default definition would be ill-formed:
+  180 | struct VulkanContext {
+      |        ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: error: uninitialized reference member in ‘struct VulkanContext’
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:181:25: note: ‘VulkanInstance& VulkanContext::vk’ should be initialized
+  181 |         VulkanInstance &vk;
+      |                         ^~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: error: uninitialized reference member in ‘struct VulkanContext’
+  180 | struct VulkanContext {
+      |        ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:182:23: note: ‘VulkanDevice& VulkanContext::vkDev’ should be initialized
+  182 |         VulkanDevice &vkDev;
+      |                       ^~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:180:8: error: no matching function for call to ‘HDesc::util::VulkanHandleCache<HDesc::DescriptorSetLayoutInfo>::VulkanHandleCache()’
+  180 | struct VulkanContext {
+      |        ^~~~~~~~~~~~~
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.h:7:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.hpp:85:13: note: candidate: ‘HDesc::util::VulkanHandleCache<handle_desc>::VulkanHandleCache(VkDevice, VkAllocationCallbacks*, handle_data) [with handle_desc = HDesc::DescriptorSetLayoutInfo; VkDevice = VkDevice_T*; VkAllocationCallbacks = VkAllocationCallbacks; handle_data = HDesc::util::CacheInfo]’
+   85 |             VulkanHandleCache(VkDevice dev, VkAllocationCallbacks *callbacks = nullptr, handle_data priv = {} )
+      |             ^~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.hpp:85:13: note:   candidate expects 3 arguments, 0 provided
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:183:80: error: ‘class VulkanInstance’ has no member named ‘surface’
+  183 |                 ASSERT_LOG( SDL_Vulkan_CreateSurface( window, vk.instance, &vk.surface ), "Could not create surface" );
+      |                                                                                ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:14:15: note: in definition of macro ‘ASSERT_LOG’
+   14 |         if( !(expr) ) throw std::runtime_error( logmsg );       \
+      |               ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:203:17: error: ‘InitVulkanPDInfo’ was not declared in this scope; did you mean ‘VulkanPDInfo’?
+  203 |                 InitVulkanPDInfo( best, &pdi );
+      |                 ^~~~~~~~~~~~~~~~
+      |                 VulkanPDInfo
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:230:54: error: ‘queues’ was not declared in this scope
+  230 |                         graphicsQueueIdx = (uint32_t)queues.size();
+      |                                                      ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:231:81: warning: missing initializer for member ‘VulkanQueue::mut’ [-Wmissing-field-initializers]
+  231 |                         queues.push_back( VulkanQueue{ .family = graphicsFamily } );
+      |                                                                                 ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:231:81: warning: missing initializer for member ‘VulkanQueue::queue’ [-Wmissing-field-initializers]
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:236:93: warning: missing initializer for member ‘VulkanQueue::mut’ [-Wmissing-field-initializers]
+  236 |                                 queues.push_back( VulkanQueue{ .family = asyncComputeFamily } );
+      |                                                                                             ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:236:93: warning: missing initializer for member ‘VulkanQueue::queue’ [-Wmissing-field-initializers]
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:243:89: warning: missing initializer for member ‘VulkanQueue::mut’ [-Wmissing-field-initializers]
+  243 |                                 queues.push_back( VulkanQueue{ .family = transferFamily } );
+      |                                                                                         ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:243:89: warning: missing initializer for member ‘VulkanQueue::queue’ [-Wmissing-field-initializers]
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:251:48: error: ‘queues’ was not declared in this scope; did you mean ‘queueCI’?
+  251 |                 std::vector<float> priorities( queues.size(), 1.0f );
+      |                                                ^~~~~~
+      |                                                queueCI
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:272:17: error: ‘InitVulkanPDInfoChain’ was not declared in this scope
+  272 |                 InitVulkanPDInfoChain( &enable );
+      |                 ^~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:311:28: error: ‘InitVulkanDevice’ was not declared in this scope; did you mean ‘VulkanDevice’?
+  311 |                 CHECK_LOG( InitVulkanDevice( vk, best, queueCI, deviceExtensions, &enable.feats, vkDev ), "Could not create device" );
+      |                            ^~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:319:39: error: ‘queues’ was not declared in this scope
+  319 |                 auto &graphicsQueue = queues[graphicsQueueIdx];
+      |                                       ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:362:76: error: ‘vkState’ was not declared in this scope
+  362 |                 CHECK_LOG( CreateEngineDescriptorSetLayout( vkDev.device, &vkState.descriptorSetLayout ), "Could not create descriptor set layout" );
+      |                                                                            ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:363:68: error: ‘vkState’ was not declared in this scope
+  363 |                 CHECK_LOG( CreatePipelineLayout( vkDev.device, 1, &vkState.descriptorSetLayout, 0, nullptr, &vkState.layout ),
+      |                                                                    ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:411:25: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  411 |                         vkRDev.swapchain.format.format
+      |                         ^~~~~~
+      |                         vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:427:31: error: ‘vkState’ was not declared in this scope
+  427 |                 gpci.layout = vkState.layout;
+      |                               ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In constructor ‘GameRenderHandler::GameRenderHandler(tf::Subflow&, SDL_Window*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:434:54: error: ‘initRenderDevice’ was not declared in this scope; did you mean ‘initDevice’?
+  434 |         }).name("compile graphics pipeline").succeed(initRenderDevice,chooseDepthFormat,vert,frag);
+      |                                                      ^~~~~~~~~~~~~~~~
+      |                                                      initDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:442:52: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  442 |                         std::vector<VkDeviceSize>( vkRDev.swapchain.images.size(), sizeof( glm::mat4 ) ),
+      |                                                    ^~~~~~
+      |                                                    vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:445:25: error: ‘vkState’ was not declared in this scope
+  445 |                         vkState.uniformBuffers
+      |                         ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:456:52: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  456 |                 CHECK_LOG( CreateSSBOVertexBuffer( vkRDev,
+      |                                                    ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:458:26: error: ‘vkState’ was not declared in this scope
+  458 |                         &vkState.modelBuffer.buffer, &vkState.modelBuffer.bufferAllocation,
+      |                          ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:459:69: error: ‘CreateSSBOVertexBuffer’ cannot be used as a function
+  459 |                         &vkState.vertexBuffer, &vkState.indexBuffer ), "Could not crate model" );
+      |                                                                     ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:470:62: error: ‘vkState’ was not declared in this scope
+  470 |                         props->limits.maxSamplerAnisotropy, &vkState.textureSampler ),
+      |                                                              ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:473:48: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  473 |                 CHECK_LOG( CreateTextureImage( vkRDev, "data/3dModels/SpaceShuttle_BaseColor.png",
+      |                                                ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:474:26: error: ‘vkState’ was not declared in this scope
+  474 |                         &vkState.texture ), "Could not create texture" );
+      |                          ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:481:35: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  481 |                         (uint32_t)vkRDev.swapchain.images.size(),
+      |                                   ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:483:26: error: ‘vkState’ was not declared in this scope
+  483 |                         &vkState.descriptorPool ), "Could not create descriptor pool" );
+      |                          ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:485:56: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  485 |                 CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+      |                                                        ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:485:64: error: ‘vkState’ was not declared in this scope
+  485 |                 CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+      |                                                                ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:485:72: error: ‘CreateEngineDescriptorSets’ cannot be used as a function
+  485 |                 CHECK_LOG( CreateEngineDescriptorSets( vkRDev, vkState ), "Cannot create descriptor sets" );
+      |                                                                        ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:494:26: error: ‘vkState’ was not declared in this scope
+  494 |                         &vkState.depthResource );
+      |                          ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:500:47: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  500 |                                 vkDev.device, vkRDev.commandPool, &cmdBuffer
+      |                                               ^~~~~~
+      |                                               vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:601:35: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  601 |                         (uint32_t)vkRDev.swapchain.images.size(), 1, &dps, &computePool ),
+      |                                   ^~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:18:39: note: in definition of macro ‘CHECK_LOG’
+   18 |         VkResult result_check_log_ = (expr);                            \
+      |                                       ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:604:44: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  604 |                 computeDescriptors.resize( vkRDev.swapchain.images.size() );
+      |                                            ^~~~~~
+      |                                            vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In constructor ‘GameRenderHandler::GameRenderHandler(tf::Subflow&, SDL_Window*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:388:18: warning: unused variable ‘compileGraphPipeline’ [-Wunused-variable]
+  388 |         tf::Task compileGraphPipeline = sf.emplace([&]{
+      |                  ^~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:478:18: warning: unused variable ‘initDescSets’ [-Wunused-variable]
+  478 |         tf::Task initDescSets = sf.emplace([&]{
+      |                  ^~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:594:18: warning: unused variable ‘initComputeDS’ [-Wunused-variable]
+  594 |         tf::Task initComputeDS = sf.emplace([&]{
+      |                  ^~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘VkResult GameRenderHandler::RecreateSwapchain()’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:664:86: error: ‘class VulkanInstance’ has no member named ‘surface’
+  664 |         swpErr = vkGetPhysicalDeviceSurfaceCapabilitiesKHR( vkDev.physicalDevice, vk.surface, &capabilities );
+      |                                                                                      ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:666:85: error: ‘class VulkanInstance’ has no member named ‘surface’
+  666 |                 vkGetPhysicalDeviceSurfacePresentModesKHR, vkDev.physicalDevice, vk.surface );
+      |                                                                                     ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:672:63: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  672 |                 VkExtent2D newExtent = ChooseSwapchainExtent( vkRDev.swapchain.extent, capabilities );
+      |                                                               ^~~~~~
+      |                                                               vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:674:17: error: ‘VulkanSwapchain’ was not declared in this scope
+  674 |                 VulkanSwapchain  oldSwapchain = std::move( vkRDev.swapchain );
+      |                 ^~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:675:34: error: ‘swapchain’ was not declared in this scope; did you mean ‘newSwapchain’?
+  675 |                 VulkanSwapchain &swapchain = vkRDev.swapchain;
+      |                                  ^~~~~~~~~
+      |                                  newSwapchain
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:677:60: error: ‘class VulkanInstance’ has no member named ‘surface’
+  677 |                 swpErr = CreateSwapchain( vkDev.device, vk.surface,
+      |                                                            ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:678:61: error: cannot convert ‘VkSurfaceCapabilitiesKHR’ to ‘uint32_t’ {aka ‘unsigned int’}
+  678 |                         newExtent, 1, ChooseSwapImageCount( capabilities ), oldSwapchain.format,
+      |                                                             ^~~~~~~~~~~~
+      |                                                             |
+      |                                                             VkSurfaceCapabilitiesKHR
+In file included from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.h:5:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.h:104:41: note:   initializing argument 1 of ‘uint32_t ChooseSwapImageCount(uint32_t, const VkSurfaceCapabilitiesKHR&)’
+  104 | uint32_t ChooseSwapImageCount( uint32_t wantedImageCount, const VkSurfaceCapabilitiesKHR &capabilities );
+      |                                ~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:678:77: error: ‘oldSwapchain’ was not declared in this scope; did you mean ‘newSwapchain’?
+  678 |                         newExtent, 1, ChooseSwapImageCount( capabilities ), oldSwapchain.format,
+      |                                                                             ^~~~~~~~~~~~
+      |                                                                             newSwapchain
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:680:73: error: ‘class VulkanInstance’ has no member named ‘surface’
+  680 |                         ChooseSwapPresentMode( vkDev.physicalDevice, vk.surface, true, false ), VK_TRUE,
+      |                                                                         ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:688:65: error: ‘make_eofCallback’ is not a member of ‘vulkan_helpers’
+  688 |                 vkRDev.EndOfUsageHandlers.push( vulkan_helpers::make_eofCallback(
+      |                                                                 ^~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In lambda function:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:689:117: error: ‘swapchain’ is not captured
+  689 |                         [dev=vkDev.device,swapchain=std::move(oldSwapchain)]() mutable { DestroyVulkanSwapchain(dev,swapchain); }
+      |                                                                                                                     ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:689:76: note: the lambda has no capture-default
+  689 |                         [dev=vkDev.device,swapchain=std::move(oldSwapchain)]() mutable { DestroyVulkanSwapchain(dev,swapchain); }
+      |                                                                            ^
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:675:34: note: ‘<typeprefixerror>swapchain’ declared here
+  675 |                 VulkanSwapchain &swapchain = vkRDev.swapchain;
+      |                                  ^~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘void GameRenderHandler::ClearDestructionQueue(uint64_t)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:708:17: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  708 |         while( !vkRDev.EndOfUsageHandlers.empty() )
+      |                 ^~~~~~
+      |                 vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:710:23: error: ‘EndOfFrameQueueItem’ does not name a type
+  710 |                 const EndOfFrameQueueItem &item = vkRDev.EndOfUsageHandlers.front();
+      |                       ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:711:23: error: ‘EndOfFrameQueueItemFlags’ does not name a type
+  711 |                 const EndOfFrameQueueItemFlags type = item.type;
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:712:23: error: ‘EndOfFrameQueueItem’ does not name a type
+  712 |                 const EndOfFrameQueueItem::payload_t &payload = item.payload;
+      |                       ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:714:21: error: ‘type’ was not declared in this scope; did you mean ‘std::__cmp_cat::type’?
+  714 |                 if( type == WAIT_BEGIN_FRAME )
+      |                     ^~~~
+      |                     std::__cmp_cat::type
+In file included from /usr/include/c++/12/bits/stl_pair.h:65,
+                 from /usr/include/c++/12/bits/stl_algobase.h:64,
+                 from /usr/include/c++/12/vector:60,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux-dynamic/include/glslang/Public/ShaderLang.h:44,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.h:9,
+                 from /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx:5,
+                 from <command-line>:
+/usr/include/c++/12/compare:51:11: note: ‘std::__cmp_cat::type’ declared here
+   51 |     using type = signed char;
+      |           ^~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:714:29: error: ‘WAIT_BEGIN_FRAME’ was not declared in this scope
+  714 |                 if( type == WAIT_BEGIN_FRAME )
+      |                             ^~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:718:29: error: ‘payload’ was not declared in this scope; did you mean ‘setpayload’?
+  718 |                         if( payload.waitBeginFrame.frameIdx > until ) break;
+      |                             ^~~~~~~
+      |                             setpayload
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:720:34: error: ‘END_OF_FRAME_CALLBACK’ was not declared in this scope
+  720 |                 else if( type == END_OF_FRAME_CALLBACK )
+      |                                  ^~~~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:722:25: error: ‘payload’ was not declared in this scope; did you mean ‘setpayload’?
+  722 |                         payload.EndOfFrameCallback.callback( payload.EndOfFrameCallback.userPtr );
+      |                         ^~~~~~~
+      |                         setpayload
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘VkResult GameRenderHandler::AdvanceFrame(uint32_t*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:743:9: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  743 |         vkRDev.currentFrameId++;
+      |         ^~~~~~
+      |         vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘VkResult GameRenderHandler::EndFrame(uint32_t)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:783:37: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  783 |                 .pWaitSemaphores = &vkRDev.renderingFinishedSemaphores[ vkRDev.frameId ],
+      |                                     ^~~~~~
+      |                                     vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:792:17: error: ‘EndOfFrameQueueItem’ was not declared in this scope
+  792 |                 EndOfFrameQueueItem{
+      |                 ^~~~~~~~~~~~~~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘void GameRenderHandler::OnDraw(const void*)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:856:37: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  856 |                 .pWaitSemaphores = &vkRDev.imageReadySemaphores[ vkRDev.frameId ],
+      |                                     ^~~~~~
+      |                                     vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In destructor ‘GameRenderHandler::~GameRenderHandler()’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:884:44: error: ‘vkState’ was not declared in this scope
+  884 |                 DestroyVulkanState( vkDev, vkState );
+      |                                            ^~~~~~~
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:887:46: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  887 |                 DestroyVulkanRendererDevice( vkRDev );
+      |                                              ^~~~~~
+      |                                              vkDev
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:887:17: error: ‘DestroyVulkanRendererDevice’ was not declared in this scope; did you mean ‘DestroyVulkanDevice’?
+  887 |                 DestroyVulkanRendererDevice( vkRDev );
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                 DestroyVulkanDevice
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp: In member function ‘VkResult GameRenderHandler::FillCommandBuffers(uint32_t)’:
+/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp:902:37: error: ‘vkRDev’ was not declared in this scope; did you mean ‘vkDev’?
+  902 |         VkCommandBuffer CmdBuffer = vkRDev.commandBuffers[ vkRDev.frameId ];
+      |                                     ^~~~~~
+      |                                     vkDev
+ninja: build stopped: subcommand failed.

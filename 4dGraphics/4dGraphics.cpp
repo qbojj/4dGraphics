@@ -6,10 +6,13 @@
 #include <filesystem>
 #include <chrono>
 #include <thread>
+#include <sstream>
 
 #include <SDL2/SDL_main.h>
 #include "Shader.h"
 
+
+#include <argparse/argparse.hpp>
 #include "cppHelpers.hpp"
 
 #ifdef __cplusplus
@@ -17,36 +20,36 @@ extern "C"
 #endif
 int main( int argc, char *argv[] )
 {
-	for( int i = 1; i < argc; i++ )
-	{
-		std::string_view s{ argv[i] };
+	argparse::ArgumentParser parser;
+	
+	parser.add_argument("-d","--debug-level")
+		.help("set debug level. possible values (d, l, w, e, f, q)")
+		.default_value("l");
 
-		if( s == "-d" || s == "--debug-level" )
-		{
-			DebugLevel lev = DebugLevel::Log;
-			if( i+1 < argc && argv[i+1][0] != '-' )
-			{
-				i++;
-				
-				switch( argv[i][0] )
-				{
-				case 'd': lev = DebugLevel::Debug; break;
-				case 'l': lev = DebugLevel::Log; break;
-				case 'w': lev = DebugLevel::Warning; break;
-				case 'e': lev = DebugLevel::Error; break;
-				case 'f': lev = DebugLevel::FatalError; break;
-				case 'q': lev = DebugLevel::PrintAlways; break;
-				default: break;
-				}
-			}
-			
-			LogLevel = lev;
-		}
-		else 
-		{
-			OutputDebug(DebugLevel::PrintAlways, "Unknown option %s\n", argv[i]);
-			return -1;
-		}
+	parser.add_argument("-V")
+		.help("enable vulkan validation layers")
+		.default_value(false);
+	
+	try	{
+		parser.parse_args(argc, argv);
+	}
+	catch( const std::runtime_error &e ) {
+		std::stringstream ss;
+		ss << e.what() << std::endl;
+		ss << parser;
+		TRACE( DebugLevel::PrintAlways, "%s", ss.str().c_str() );
+		return 1;
+	}
+	
+	switch( parser.get<char>("-d") )
+	{
+	case 'd': LogLevel = DebugLevel::Debug; break;
+	case 'l': LogLevel = DebugLevel::Log; break;
+	case 'w': LogLevel = DebugLevel::Warning; break;
+	case 'e': LogLevel = DebugLevel::Error; break;
+	case 'f': LogLevel = DebugLevel::FatalError; break;
+	case 'q': LogLevel = DebugLevel::PrintAlways; break;
+	default: TRACE(DebugLevel::PrintAlways, "unsupported debug level %c\n", parser.get<char>("-d") );
 	}
 
 	srand( (unsigned int)time( NULL ) );

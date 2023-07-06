@@ -6,7 +6,7 @@
 #include "CommonUtility.h"
 
 #include <SDL2/SDL_vulkan.h>
-#include <imgui_impl_sdl.h>
+#include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 
 using namespace std;
@@ -81,8 +81,10 @@ void GameTickHandler::OnTick( void *_FData )
 
 	FrameData *FData = (FrameData *)_FData;
 	
+	/*
 	const auto KeyDown = []( char c ) { return ImGui::IsKeyDown(ImGuiASCIIidx(c) ); };
 	const auto KeyPressed = []( char c ) { return ImGui::IsKeyPressed(ImGuiASCIIidx(c),false); };
+	*/
 
 	ImVec2 mousePos2 = ImGui::GetMousePos();
 	glm::dvec2 mousePos = glm::dvec2( mousePos2.x, mousePos2.y );
