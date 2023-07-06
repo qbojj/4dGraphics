@@ -2,7 +2,7 @@
 
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL_events.h>
-#include <imgui_impl_sdl.h>
+#include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 
 #include <taskflow/taskflow.hpp>
@@ -25,9 +25,8 @@ cpph::destroy_helper MyGameHandler::InitImgui()
 
     if( !ImGui_ImplSDL2_InitForVulkan( m_hWindow ) )
         throw std::runtime_error("Could not init imgui for SDL2");
-    cpph::destroy_helper res(ImGui_ImplSDL2_Shutdown);
-    
-    return res;
+
+    return cpph::destroy_helper(ImGui_ImplSDL2_Shutdown);
 }
 
 MyGameHandler::MyGameHandler()

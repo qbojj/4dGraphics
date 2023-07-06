@@ -1,0 +1,482 @@
+[
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_capi.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_core.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_gpu.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_gpu.d3d12.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_gpu.vulkan.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_message.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_miniz.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_serialization.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -g -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Debug/src/optick_server.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_capi.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_core.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_gpu.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_gpu.d3d12.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_gpu.vulkan.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_message.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_miniz.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_serialization.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O2 -g -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/RelWithDebInfo/src/optick_server.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_capi.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_core.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_gpu.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_gpu.d3d12.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_gpu.vulkan.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_message.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_miniz.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_serialization.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -O3 -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/Release/src/optick_server.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_capi.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_capi.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_core.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_core.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_gpu.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_gpu.d3d12.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.d3d12.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_gpu.vulkan.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_gpu.vulkan.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_message.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_message.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_miniz.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_miniz.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_serialization.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_serialization.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -Os -DNDEBUG -std=gnu++11 -o deps/optick/CMakeFiles/OptickCore.dir/MinSizeRel/src/optick_server.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src/optick_server.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -o shared/CMakeFiles/SharedUtils.dir/Debug/CommonUtility.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -o shared/CMakeFiles/SharedUtils.dir/RelWithDebInfo/CommonUtility.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -o shared/CMakeFiles/SharedUtils.dir/Release/CommonUtility.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -o shared/CMakeFiles/SharedUtils.dir/MinSizeRel/CommonUtility.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/shared/CommonUtility.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -x c++-header -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -c /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/4dGraphics.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/Debug.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/GameCore.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/GameHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/stdafx.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/ImguiBufferedHelper.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/Shader.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/GameRenderHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/GameTickHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/descriptor_allocator.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/VulkanHelpers.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/VulkanConstructs.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Debug\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -g -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Debug/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Debug/VulkanCaches.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -x c++-header -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -c /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/4dGraphics.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/Debug.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameCore.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/stdafx.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/ImguiBufferedHelper.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/Shader.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameRenderHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/GameTickHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/descriptor_allocator.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanHelpers.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanConstructs.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O2 -g -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/RelWithDebInfo/VulkanCaches.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -x c++-header -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -c /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/4dGraphics.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/Debug.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/GameCore.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/GameHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/stdafx.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/ImguiBufferedHelper.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/Shader.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/GameRenderHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/GameTickHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/descriptor_allocator.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/VulkanHelpers.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/VulkanConstructs.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"Release\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -O3 -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/Release/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/Release/VulkanCaches.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -x c++-header -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -c /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/cmake_pch.hxx.cxx"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/4dGraphics.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/4dGraphics.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/Debug.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Debug.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/GameCore.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameCore.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/GameHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/stdafx.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/stdafx.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/ImguiBufferedHelper.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/ImguiBufferedHelper.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/Shader.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/Shader.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/GameRenderHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameRenderHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/GameTickHandler.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/GameTickHandler.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/descriptor_allocator.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/descriptor_allocator.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/VulkanHelpers.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanHelpers.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/VulkanConstructs.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanConstructs.cpp"
+},
+{
+  "directory": "/home/kuba/Desktop/gitproj/4dGraphics/out/build",
+  "command": "/usr/bin/clang++ -DUSE_OPTICK=0 -DCMAKE_INTDIR=\\\"MinSizeRel\\\" -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics -I/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/../Shaders/include -I/home/kuba/Desktop/gitproj/4dGraphics/shared -I/home/kuba/Desktop/gitproj/4dGraphics/deps/optick/src -I/home/kuba/Desktop/gitproj/4dGraphics/shared/GlmHeaders -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include -isystem /home/kuba/Desktop/gitproj/4dGraphics/out/build/vcpkg_installed/x64-linux/include/SDL2 -Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -std=gnu++20 -Winvalid-pch -Xclang -include-pch -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx.pch -Xclang -include -Xclang /home/kuba/Desktop/gitproj/4dGraphics/out/build/4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/cmake_pch.hxx -o 4dGraphics/CMakeFiles/4dGraphics.dir/MinSizeRel/VulkanCaches.cpp.o -c /home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp",
+  "file": "/home/kuba/Desktop/gitproj/4dGraphics/4dGraphics/VulkanCaches.cpp"
+}
+]

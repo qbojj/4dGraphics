@@ -2,36 +2,29 @@
 
 #include "Shader.h"
 
-#include <memory>
-#include <volk.h>
 #include "VulkanHelpers.h"
+#include "VulkanConstructs.h"
 
 #include "Debug.h"
 #include <exception>
+#include <GlmHeaders.h>
 
 #include <taskflow/taskflow.hpp>
-class vulkan_error : public std::runtime_error
-{
-public:
-	vulkan_error(VkResult err, const std::string &message) 
-		: runtime_error( message + ": " + VulkanResultErrorCause(err) ), error(err) {};
-	VkResult error;
-};
 
 struct SDL_Window;
 class GameRenderHandler
 {
 public:
 	GameRenderHandler(tf::Subflow &, SDL_Window*);
+
+
 	void OnDraw(const void* FData);
 	~GameRenderHandler();
-protected:
 
+private:
 	VulkanInstance vk;
 	VulkanDevice vkDev;
-	VulkanRenderDevice vkRDev;
-
-	VulkanState vkState;
+	VulkanContext vkCtx;
 
 	struct computePushConstants{
 		glm::dvec2 start;
@@ -52,4 +45,5 @@ protected:
 	VkResult EndFrame( uint32_t imageIdx );
 	VkResult RecreateSwapchain();
 	void ClearDestructionQueue( uint64_t until );
+	uint64_t getDeviceViability( VkPhysicalDevice );
 };

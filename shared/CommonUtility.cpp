@@ -3,45 +3,31 @@
 #include <exception>
 #include <system_error>
 #include <cstring>
+#include <fstream>
 
 using namespace std;
 
-string GetFileString( const char *pth, bool binary )
+string GetFileString( const string &pth, bool binary )
 {
-    FILE *fp = fopen( pth, binary ? "rb" : "r" );
-    if (!fp) return "";
-    //if( !fp )
-    //{
-    //    //TRACE( DebugLevel::Error, "I/O error: Cannot open '%s'\n", pth );
-    //    throw std::runtime_error( string() + "I/O error: Cannot open '" + pth + "'\n" );
-    //}
-
-    fseek( fp, 0L, SEEK_END );
-    const long int size = ftell( fp );
-    fseek( fp, 0L, SEEK_SET );
-
-    char *data = (char*)( size + 1 > 1024 ? malloc( size + 1 ) : alloca( size + 1 ) );
-    if( !data )
-    {
-        //TRACE( DebugLevel::Error, "Memory error: cannot allocate file buffer\n", pth );
-        fclose( fp );
-        //return "";
-        throw std::bad_alloc();
-    }
-
-    const size_t BytesRead = fread( data, 1, size, fp );
-    fclose( fp );
-
-    data[BytesRead] = '\0';
-
-    string res = binary ? string( data, BytesRead ) : string( data );
-    if( size + 1 > 1024 ) free( data );
-
-    if( binary ) return res;
+    ifstream file( pth, binary ? ios_base::binary : ios_base::in );
+    if( !file ) return "";
     
-    static constexpr unsigned char BOM[] = { 0xEF, 0xBB, 0xBF }; // remove UTF-8 bom if present
-    if( BytesRead > 3 && !memcmp( res.data(), BOM, 3 ) )
-        for( int i = 0; i < 3; i++ ) res[i] = ' ';
+    file.seekg(0, ios::end);
+    streampos length = file.tellg();
+    file.seekg(0, ios::beg);
 
-    return res;
+    string buffer(length, '\0');
+    file.read(buffer.data(), length);
+    
+    if( !file ) return "";
+    file.close();
+
+    if( binary ) return buffer;
+
+    // text mode -> try removing UTF-8 BOM
+    static constexpr unsigned char BOM[] = { 0xEF, 0xBB, 0xBF };
+    if( buffer.size() > 3 && !memcmp( buffer.data(), BOM, 3 ) )
+        return buffer.substr(3);
+
+    return buffer;
 }

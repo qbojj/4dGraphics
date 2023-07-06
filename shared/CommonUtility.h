@@ -5,7 +5,7 @@
 #include <cstring>
 #include <cstddef>
 
-std::string GetFileString(const char *pth, bool binary);
+std::string GetFileString(const std::string &pth, bool binary);
 
 template <typename T, typename V>
 static inline T AlignUp( T val, V alignment ) 

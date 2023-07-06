@@ -1,30 +1,33 @@
 ﻿cmake_minimum_required (VERSION 3.21)
 include(../CMake/CommonMacros.cmake)
-
 project(4dGraphics)
 
 # get by ls -1
 set( 4DGSources
-	"4dGraphics.cpp"
-	"Debug.cpp"
-	"Debug.h"
-	"GameCore.cpp"
-	"GameCore.h"
-	"GameHandler.cpp"
-	"GameHandler.h"
-	"stdafx.cpp"
-	"stdafx.h"
-	"ImguiBufferedHelper.cpp"
-	"ImguiBufferedHelper.h"
-	"Shader.cpp"
-	"Shader.h"
-	"VulkanHelpers.h"
-	"VulkanHelpers.cpp"
-	"Constants.h"
-	"RenderGraph.h"
-	"RenderGraph.cpp"
-	"GameRenderHandler.cpp"
-	"GameTickHandler.cpp"
+	4dGraphics.cpp
+	Debug.cpp
+	Debug.h
+	GameCore.cpp
+	GameCore.h
+	GameHandler.cpp
+	GameHandler.h
+	stdafx.cpp
+	stdafx.h
+	ImguiBufferedHelper.cpp
+	ImguiBufferedHelper.h
+	Shader.cpp
+	Shader.h
+	Constants.h
+	GameRenderHandler.cpp
+	GameTickHandler.cpp
+	descriptor_allocator.h
+	descriptor_allocator.cpp
+	VulkanHelpers.h
+	VulkanHelpers.cpp
+	VulkanConstructs.h
+	VulkanConstructs.cpp
+	VulkanCaches.hpp
+	VulkanCaches.cpp
 )
 
 add_executable( 4dGraphics WIN32 ${4DGSources} )

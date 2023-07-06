@@ -18,7 +18,8 @@
     {
       "name": "sdl2",
       "features": [ "vulkan" ]
-    }
+    },
+    "argparse"
   ],
   "$unusedOldDeps": [
     "meshoptimizer",

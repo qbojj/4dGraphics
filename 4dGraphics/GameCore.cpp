@@ -8,21 +8,23 @@
 #include <exception>
 #include <imgui.h>
 #include <glslang/Public/ShaderLang.h>
+#include <stdexcept>
 
-#include <imgui_impl_sdl.h>
+#include <imgui_impl_sdl2.h>
 
-ImGuiRIIAContext::ImGuiRIIAContext(ImGuiRIIAContext&&o) : context(o.context) { o.context = nullptr; };
-ImGuiRIIAContext::ImGuiRIIAContext(ImFontAtlas*font) : context(ImGui::CreateContext(font)) 
+ImGuiRIIAContext::ImGuiRIIAContext(ImGuiRIIAContext&&o) : context(o.context) { o.context = nullptr; }
+ImGuiRIIAContext::ImGuiRIIAContext(ImFontAtlas *font) : context( ImGui::CreateContext(font) )
 {
     if( !context ) throw std::runtime_error( "Cannot initialize ImGui" );
-};
-ImGuiRIIAContext::~ImGuiRIIAContext() { ImGui::DestroyContext(context); };
+}
+
+ImGuiRIIAContext::~ImGuiRIIAContext() { ImGui::DestroyContext(context); }
 
 ImGuiRIIAContext &ImGuiRIIAContext::operator=(ImGuiRIIAContext&&o)
 { 
     if( this != &o ) { context = o.context; o.context = nullptr; } 
     return *this; 
-};
+}
 ImGuiRIIAContext::operator ImGuiContext*() { return context; } 
 
 GLSLRIIAContext::GLSLRIIAContext() : active(true)

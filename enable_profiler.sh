@@ -1,0 +1,1 @@
+export TF_ENABLE_PROFILER=timings.json
