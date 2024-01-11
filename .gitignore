@@ -1,11 +1,10 @@
 .vs/
 .vscode/
-out/
 build/
+builds/
 cache/
 *.spv
 .cache/
-vcpkg_installed/
 
 imgui.ini
 log.txt

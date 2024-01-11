@@ -1,0 +1,64 @@
+name: build-and-test
+on:
+  push: 
+    pull_request:
+    - main
+    branches: 
+    - main
+  workflow_dispatch:
+    
+env:
+  CMAKE_BUILD_TYPE: ${{ inputs.buildType }} # Release, Debug, RelWithDebInfo, MinSizeRel
+  CMAKE_BUILD_PARALLEL_LEVEL: "" # Enable build parallelism
+
+jobs:
+  job:
+    name: ${{ matrix.os }}-${{ github.workflow }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest] # macos-latest
+    #env:
+    #
+    # [OPTIONAL] Define the vcpkg's triplet 
+    # you want to enforce, otherwise the default one 
+    # for the hosting system will be automatically
+    # choosen (x64 is the default on all platforms, 
+    # e.g. x64-osx).
+    # VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }} 
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+
+      - name: Restore from cache and setup vcpkg executable and data files.
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Prepare for build (Ubuntu)
+        if: contains( inputs.system, 'ubuntu' )
+        run: sudo apt-get install -y libx11-dev libxft-dev libxext-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev
+      
+      # Note: if the preset misses the "configuration", it is possible to explicitly select the
+      # configuration with the additional `--config` flag, e.g.:
+      #   buildPreset: 'ninja-vcpkg'
+      #   buildPresetAdditionalArgs: "[`--config`, `Release`]"
+      #   testPreset: 'ninja-vcpkg'
+      #   testPresetAdditionalArgs: "[`--config`, `Release`]"
+      - name: Run CMake+vcpkg+Ninja+CTest to build packages and generate/build/test the code.
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'ninja-multi-vcpkg'
+          buildPreset: 'ninja-vcpkg-release'
+          testPreset: 'test-release'
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts
+          path: build/Release

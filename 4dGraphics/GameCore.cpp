@@ -1,187 +1,192 @@
-#include "GameCore.h"
+#include "GameCore.hpp"
 
-#include "Debug.h"
+#include "Debug.hpp"
 
-#include "optick.h"
-#include <SDL2/SDL.h>
-#include <string.h>
+#include <GLFW/glfw3.h>
+
 #include <exception>
 #include <imgui.h>
-#include <glslang/Public/ShaderLang.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include <stdexcept>
+#include <string.h>
 
-#include <imgui_impl_sdl2.h>
-
-ImGuiRIIAContext::ImGuiRIIAContext(ImGuiRIIAContext&&o) : context(o.context) { o.context = nullptr; }
-ImGuiRIIAContext::ImGuiRIIAContext(ImFontAtlas *font) : context( ImGui::CreateContext(font) )
-{
-    if( !context ) throw std::runtime_error( "Cannot initialize ImGui" );
+namespace v4dg {
+ImGuiRAIIContext::ImGuiRAIIContext(ImFontAtlas *font)
+    : context(ImGui::CreateContext(font)) {
+  if (!context)
+    throw std::runtime_error("Cannot initialize ImGui");
+  if (!IMGUI_CHECKVERSION())
+    throw std::runtime_error("Imgui runtime version not equal to what version "
+                             "program was compiled with");
+  ImGui::SetCurrentContext(context);
 }
 
-ImGuiRIIAContext::~ImGuiRIIAContext() { ImGui::DestroyContext(context); }
+ImGuiRAIIContext::~ImGuiRAIIContext() { ImGui::DestroyContext(context); }
 
-ImGuiRIIAContext &ImGuiRIIAContext::operator=(ImGuiRIIAContext&&o)
-{ 
-    if( this != &o ) { context = o.context; o.context = nullptr; } 
-    return *this; 
-}
-ImGuiRIIAContext::operator ImGuiContext*() { return context; } 
-
-GLSLRIIAContext::GLSLRIIAContext() : active(true)
-{ 
-    if( !glslang::InitializeProcess() ) throw std::runtime_error( "Cannot initialize glslang" );
-}
-GLSLRIIAContext::~GLSLRIIAContext() { if( active ) glslang::FinalizeProcess(); }
-
-GLSLRIIAContext::GLSLRIIAContext(GLSLRIIAContext&&o) : active(o.active) { o.active = false; }
-
-GameEngine::GameEngine( const char *pName, SDL_Window *window )
-	: m_szName( pName )
-	, m_hWindow( window ? window : Initialize() )
-{
-	if( !m_hWindow ) throw std::runtime_error( "Could not create window" );
+Window::Window(int width, int height, const char *title) : window(nullptr) {
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+  if (!window)
+    throw std::runtime_error("Could not create window");
 }
 
-GameEngine::~GameEngine()
-{
-	SDL_DestroyWindow( m_hWindow );
-	SDL_Quit();
+Window::~Window() { glfwDestroyWindow(window); }
+
+ImGui_GlfwImpl::ImGui_GlfwImpl(const Window &window) {
+  auto &io = ImGui::GetIO();
+
+  if (!io.Fonts->AddFontDefault() ||
+      !io.Fonts->Build())
+    throw std::runtime_error("Could not initialize imgui font");
+
+  ImGui_ImplGlfw_InitForVulkan(window, true);
 }
 
-SDL_Window *GameEngine::Initialize()
-{
-	if( SDL_Init( SDL_INIT_EVENTS | SDL_INIT_VIDEO ) ) return nullptr;
+ImGui_GlfwImpl::~ImGui_GlfwImpl() { ImGui_ImplGlfw_Shutdown(); }
 
-	return SDL_CreateWindow( "4dGraphics", 
-		0, 0,
-		800, 420, 
-		SDL_WINDOW_VULKAN |
-		SDL_WINDOW_RESIZABLE |
-		//SDL_WINDOW_FULLSCREEN_DESKTOP |
-		SDL_WINDOW_ALLOW_HIGHDPI |
-		SDL_WINDOW_HIDDEN |
-		0);
-}
+GameEngine::GameEngine(Window window)
+    : m_window(std::move(window)), m_ImGuiCtx(),
+      m_ImGuiGlfwImpl(m_window) {}
+
+GameEngine::~GameEngine() {}
 
 /*
 void GameEngine::EngineLoop(void* wData)
 {
-	WindowDataContainer* windowData = (WindowDataContainer*)wData;
-	GameEngine* gameEngine = windowData->pGameEngine;
-	GLFWwindow* window = windowData->window;
+        WindowDataContainer* windowData = (WindowDataContainer*)wData;
+        GameEngine* gameEngine = windowData->pGameEngine;
+        GLFWwindow* window = windowData->window;
 
-	{
-		OPTICK_APP( "4dGraphics" );
-	
-		void* FData = NULL;
-		try
-		{
-			TRACE( DebugLevel::Log, "Before OnCreate\n" );
-			if(
-				gameEngine->m_pInputHandler->OnCreate( window ) &&
-				gameEngine->m_pGameHandler->OnCreate( window ) &&
-				gameEngine->m_pRenderHandler->OnCreate( window )
-				)
-			{
-				TRACE( DebugLevel::Log, "After OnCreate\n" );
+        {
+                OPTICK_APP( "4dGraphics" );
 
-				FData = gameEngine->m_pGameHandler->NewFData();
+                void* FData = NULL;
+                try
+                {
+                        TRACE( DebugLevel::Log, "Before OnCreate\n" );
+                        if(
+                                gameEngine->m_pInputHandler->OnCreate( window )
+&& gameEngine->m_pGameHandler->OnCreate( window ) &&
+                                gameEngine->m_pRenderHandler->OnCreate( window )
+                                )
+                        {
+                                TRACE( DebugLevel::Log, "After OnCreate\n" );
 
-				if( !FData ) throw runtime_error( "couldn't create Frame Data" );
+                                FData = gameEngine->m_pGameHandler->NewFData();
 
-				while( !glfwWindowShouldClose( window ) )
-				{
-					{
-						OPTICK_FRAME_EVENT( Optick::FrameType::CPU );
+                                if( !FData ) throw runtime_error( "couldn't
+create Frame Data" );
 
-						{
-							OPTICK_CATEGORY( "process messages", Optick::Category::IO );
-							glfwPollEvents();
-						}
+                                while( !glfwWindowShouldClose( window ) )
+                                {
+                                        {
+                                                OPTICK_FRAME_EVENT(
+Optick::FrameType::CPU );
 
-						{
-							OPTICK_CATEGORY( "Process new Frame", Optick::Category::GameLogic );
-							gameEngine->m_pInputHandler->OnPreTick();
-							gameEngine->m_pGameHandler->OnTick( FData, gameEngine->m_pInputHandler );
-							gameEngine->m_pInputHandler->OnPostTick();
-						}
-					}
+                                                {
+                                                        OPTICK_CATEGORY(
+"process messages", Optick::Category::IO ); glfwPollEvents();
+                                                }
 
-					
-					{
-						OPTICK_FRAME_EVENT( Optick::FrameType::Render );
+                                                {
+                                                        OPTICK_CATEGORY(
+"Process new Frame", Optick::Category::GameLogic );
+                                                        gameEngine->m_pInputHandler->OnPreTick();
+                                                        gameEngine->m_pGameHandler->OnTick(
+FData, gameEngine->m_pInputHandler ); gameEngine->m_pInputHandler->OnPostTick();
+                                                }
+                                        }
 
-						{
-							OPTICK_CATEGORY( "render frame", Optick::Category::Rendering );
-							gameEngine->m_pRenderHandler->OnDraw( FData );
-						}
-					}
-				}
-			}
-			else TRACE( DebugLevel::FatalError, "OnCreate returned false\n" );
-		}
-		catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-		catch( ShutdownException ) {}
-		catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 
-		TRACE( DebugLevel::Log, "Begin closing\n" );
-		glfwSetWindowShouldClose( window, true );
+                                        {
+                                                OPTICK_FRAME_EVENT(
+Optick::FrameType::Render );
 
-		try
-		{
-			if (FData) gameEngine->m_pGameHandler->DeleteFData(FData);
-		}
-		catch (const std::exception& e) { TRACE(DebugLevel::FatalError, "Exception caught in FData delete: %s\n", e.what()); }
-		catch (...) { TRACE(DebugLevel::FatalError, "Unknown Exception caught in FData delete\n"); }
+                                                {
+                                                        OPTICK_CATEGORY( "render
+frame", Optick::Category::Rendering ); gameEngine->m_pRenderHandler->OnDraw(
+FData );
+                                                }
+                                        }
+                                }
+                        }
+                        else TRACE( DebugLevel::FatalError, "OnCreate returned
+false\n" );
+                }
+                catch( const std::exception &e ) { TRACE(
+DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); } catch(
+ShutdownException ) {} catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown
+Exception caught\n" ); }
 
-		try
-		{
-			gameEngine->m_pInputHandler->OnDestroy( window );
-		}
-		catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-		catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+                TRACE( DebugLevel::Log, "Begin closing\n" );
+                glfwSetWindowShouldClose( window, true );
 
-		try
-		{
-			gameEngine->m_pGameHandler->OnDestroy();
-		}
-		catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-		catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+                try
+                {
+                        if (FData)
+gameEngine->m_pGameHandler->DeleteFData(FData);
+                }
+                catch (const std::exception& e) { TRACE(DebugLevel::FatalError,
+"Exception caught in FData delete: %s\n", e.what()); } catch (...) {
+TRACE(DebugLevel::FatalError, "Unknown Exception caught in FData delete\n"); }
 
-		try
-		{
-			gameEngine->m_pRenderHandler->OnDestroy();
-		}
-		catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-		catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
-	
-	}
-	TRACE( DebugLevel::Log, "After OnDestroy\n" );
-	OPTICK_SHUTDOWN();
+                try
+                {
+                        gameEngine->m_pInputHandler->OnDestroy( window );
+                }
+                catch( const std::exception &e ) { TRACE(
+DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); } catch( ... ) {
+TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 
-	try
-	{
-		delete gameEngine->m_pInputHandler;
-		gameEngine->m_pInputHandler = NULL;
-	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+                try
+                {
+                        gameEngine->m_pGameHandler->OnDestroy();
+                }
+                catch( const std::exception &e ) { TRACE(
+DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); } catch( ... ) {
+TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 
-	
-	try
-	{
-		delete gameEngine->m_pGameHandler;
-		gameEngine->m_pGameHandler = NULL;
-	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+                try
+                {
+                        gameEngine->m_pRenderHandler->OnDestroy();
+                }
+                catch( const std::exception &e ) { TRACE(
+DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); } catch( ... ) {
+TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 
-	try
-	{
-		delete gameEngine->m_pRenderHandler;
-		gameEngine->m_pRenderHandler = NULL;
-	}
-	catch( const std::exception &e ) { TRACE( DebugLevel::FatalError, "Exception caught: %s\n", e.what() ); }
-	catch( ... ) { TRACE( DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+        }
+        TRACE( DebugLevel::Log, "After OnDestroy\n" );
+        OPTICK_SHUTDOWN();
+
+        try
+        {
+                delete gameEngine->m_pInputHandler;
+                gameEngine->m_pInputHandler = NULL;
+        }
+        catch( const std::exception &e ) { TRACE( DebugLevel::FatalError,
+"Exception caught: %s\n", e.what() ); } catch( ... ) { TRACE(
+DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+
+
+        try
+        {
+                delete gameEngine->m_pGameHandler;
+                gameEngine->m_pGameHandler = NULL;
+        }
+        catch( const std::exception &e ) { TRACE( DebugLevel::FatalError,
+"Exception caught: %s\n", e.what() ); } catch( ... ) { TRACE(
+DebugLevel::FatalError, "Unknown Exception caught\n" ); }
+
+        try
+        {
+                delete gameEngine->m_pRenderHandler;
+                gameEngine->m_pRenderHandler = NULL;
+        }
+        catch( const std::exception &e ) { TRACE( DebugLevel::FatalError,
+"Exception caught: %s\n", e.what() ); } catch( ... ) { TRACE(
+DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 }
 */
+
+} // namespace v4dg

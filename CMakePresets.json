@@ -1,46 +1,70 @@
 {
     "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
     "configurePresets": [
         {
-            "name": "default",
+            "name": "ninja-multi-vcpkg",
+            "displayName": "Ninja Multi-Config",
+            "description": "Configure with vcpkg toolchain and generate Ninja project files for all configurations",
+            "binaryDir": "${sourceDir}/builds/${presetName}",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/out/build",
-            "installDir": "${sourceDir}/out/install/4DG.app",
-            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                }
+            }
         }
     ],
     "buildPresets": [
         {
-            "name": "default",
-            "configurePreset": "default",
-            "configuration": "RelWithDebInfo",
-            "targets": [ "install" ]
-        },
-        {
-            "name": "generic-build",
-            "hidden": true,
-            "configurePreset": "default",
-            "targets": [ "4dGraphics" ]
-        },
-        {
-            "name": "debug",
-            "inherits": [ "generic-build" ],
+            "name": "ninja-vcpkg-debug",
+            "configurePreset": "ninja-multi-vcpkg",
+            "displayName": "Build (Debug)",
+            "description": "Build with Ninja/vcpkg (Debug)",
             "configuration": "Debug"
         },
         {
-            "name": "release",
-            "inherits": [ "generic-build" ],
+            "name": "ninja-vcpkg-release",
+            "configurePreset": "ninja-multi-vcpkg",
+            "displayName": "Build (Release)",
+            "description": "Build with Ninja/vcpkg (Release)",
             "configuration": "Release"
         },
         {
-            "name": "rel-with-deb-info",
-            "inherits": [ "generic-build" ],
-            "configuration": "RelWithDebInfo"
+            "name": "ninja-vcpkg",
+            "configurePreset": "ninja-multi-vcpkg",
+            "displayName": "Build",
+            "description": "Build with Ninja/vcpkg"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-ninja-vcpkg",
+            "configurePreset": "ninja-multi-vcpkg",
+            "hidden": true
         },
         {
-            "name": "min-size-rel",
-            "inherits": [ "generic-build" ],
-            "configuration": "MinSizeRel"
+            "name": "test-debug",
+            "description": "Test (Debug)",
+            "displayName": "Test (Debug)",
+            "configuration": "Debug",
+            "inherits": [
+                "test-ninja-vcpkg"
+            ]
+        },
+        {
+            "name": "test-release",
+            "description": "Test (Release)",
+            "displayName": "Test (Release)",
+            "configuration": "Release",
+            "inherits": [
+                "test-ninja-vcpkg"
+            ]
         }
     ]
 }

@@ -1,29 +1,38 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
-  "name": "4dgraphics",
-  "version-semver": "0.2.0",
-  "dependencies": [
-    "assimp",
-    "stb",
+ "$unusedOldDeps": [
+    "meshoptimizer",
+    "glslang",
+    "imguizmo",
+    "spirv-tools"
+  ],
+ "dependencies": [
+    "argparse",
+    "fastgltf",
     "glm",
     {
       "name": "imgui",
-      "features": [ "sdl2-binding", "vulkan-binding" ]
+      "features": [
+        "glfw-binding",
+        "vulkan-binding"
+      ]
     },
-    "volk",
-    "vulkan-memory-allocator",
-    "portable-snippets",
-    "glslang",
-    "taskflow",
     {
-      "name": "sdl2",
-      "features": [ "vulkan" ]
+      "name": "glfw3",
+      "features": [
+        "wayland"
+      ]
     },
-    "argparse"
-  ],
-  "$unusedOldDeps": [
-    "meshoptimizer",
-    "imguizmo",
-    "spirv-tools"
+    "stb",
+    "taskflow",
+    "tracy",
+    "vulkan-headers",
+    "vulkan-memory-allocator-hpp",
+    {
+      "name": "ktx",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "unordered-dense"
   ]
 }

@@ -6,14 +6,8 @@ layout( push_constant ) uniform constants
 	dvec2 increment;
 };
 
-layout( set = 0, binding = 0, rgba8 ) uniform writeonly restrict image2D outTexture;
-
-#ifndef USE_VARIANT
-// 0 - parralel
-// 1 - fast seq
-// 2 - seq
-#   define USE_VARIANT 1
-#endif
+layout( set = 0, binding = 0 ) uniform writeonly restrict image2D outTexture;
+layout( constant_id = 2 ) const int variant = 1;
 
 const uint maxN = 512;
 
@@ -55,7 +49,7 @@ uvec4 getLastToInfParalel( dvec4 c )
         imsq = im*im;
 
         act = lessThan( resq + imsq, minInf );
-        n = mix( n, n+1, act );
+        n += uvec4( act );
         N++;
     }
     while( any( act ) && N < maxN );
@@ -103,18 +97,19 @@ uint getLastToInfV3( dvec2 c )
     return n;
 }
 
-const int localSize = USE_VARIANT == 0 ? 4 : 8; 
-layout(local_size_x = localSize, local_size_y = localSize) in;
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
 
 void main()
 {
-    ivec2 screenPos = ivec2( gl_GlobalInvocationID.xy ) * ( USE_VARIANT == 0 ? 2 : 1 );
+    ivec2 screenPos = ivec2( gl_GlobalInvocationID.xy ) * ( variant == 0 ? 2 : 1 );
     ivec2 texSize = imageSize( outTexture );
 
-    if( all( lessThan( screenPos, texSize ) ) )
+    if( any( greaterThanEqual( screenPos, texSize ) ) ) return;
+
+    dvec2 basePos = start + screenPos * increment;
+
+    if( variant == 0 )
     {
-        dvec2 basePos = start + screenPos * increment;
-#if USE_VARIANT == 0
         dvec4 c = basePos.xxyy;
         c.yw += increment;
 
@@ -132,11 +127,7 @@ void main()
             ivec2 pos = screenPos + offsets[i];
             if( all( lessThan( pos, texSize ) ) )
                 imageStore( outTexture, pos, makeColor( n[i] ) );
-        }  
-#elif USE_VARIANT == 1
-        imageStore( outTexture, screenPos, makeColor( getLastToInf( basePos ) ) );
-#else
-        imageStore( outTexture, screenPos, makeColor( getLastToInfV3( basePos ) ) );
-#endif
-    }    
+        }
+    }
+    else imageStore( outTexture, screenPos, makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
 }

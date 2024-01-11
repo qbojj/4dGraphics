@@ -6,7 +6,7 @@ macro(SETUP_COMMON projectname dirname )
 		target_compile_options(${projectname} PRIVATE /permissive- /Zc:inline /Zc:lambda /Zc:preprocessor /Zc:throwingNew ) # add all conformance options on msvc compiler
 	endif()
 
-	target_compile_features( ${projectname} PRIVATE cxx_std_20 c_std_17 )
+	target_compile_features( ${projectname} PRIVATE cxx_std_23 )
 	set_target_properties( ${projectname} PROPERTIES 
 		VISIBILITY_INLINES_HIDDEN true
 		CXX_VISIBILITY_PRESET hidden
