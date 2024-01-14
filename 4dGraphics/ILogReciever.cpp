@@ -5,17 +5,31 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <source_location>
 #include <string_view>
 #include <syncstream>
 #include <typeinfo>
+#include <ranges>
+#include <iostream>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
+
+namespace {
+void standard_format_header(auto &it, std::source_location lc, v4dg::ILogReciever::LogLevel lv) {
+  std::string_view file_name = lc.file_name();
+  file_name = file_name.substr(file_name.find_last_of("/\\") + 1); // extract file name from path
+
+  std::string_view fn_name = lc.function_name();
+  fn_name = fn_name.substr(fn_name.find_first_of(" ") + 1); // remove return type
+  fn_name = fn_name.substr(0, fn_name.find_first_of("(")); // remove arguments + cv_ref qualifiers
+
+  std::format_to(it, "{:<8} {}({}):{}: ", lv, file_name, fn_name, lc.line());
+}
+}
 
 namespace v4dg {
 std::string to_string(ILogReciever::LogLevel lv) {
@@ -44,12 +58,10 @@ void NullLogReciever::do_log(std::string_view, std::format_args,
   return;
 }
 
-FileLogReciever::FileLogReciever(std::filesystem::path path)
+FileLogReciever::FileLogReciever(const std::filesystem::path &path)
     : m_file(path), m_epoch(std::chrono::steady_clock::now()) {
-  if (!m_file.is_open()) {
-    throw std::runtime_error(std::format(
-        "Failed to open log file \"{}\" for writing", path.native()));
-  }
+  if (!m_file.is_open())
+    throw exception("Failed to open log file \"{}\" for writing", path.native());
 
   m_file << std::format("Log file opened at {}\n",
                         std::chrono::system_clock::now());
@@ -63,20 +75,21 @@ void FileLogReciever::do_log(std::string_view fmt, std::format_args args,
 
   auto ss = std::osyncstream(m_file);
   auto it = std::ostreambuf_iterator<char>(ss);
-  std::format_to(it, "[{:%Q%q}] {:<12} {}({}):{}: ", time, lv, lc.file_name(),
-                 lc.function_name(), lc.line());
+  std::format_to(it, "[{:%Q%q}] ", time);
+  standard_format_header(it, lc, lv);
   std::vformat_to(it, fmt, args);
   it = '\n';
+  ss.flush();
 }
 
 void CerrLogReciever::do_log(std::string_view fmt, std::format_args args,
                              std::source_location lc, LogLevel lv) {
   auto ss = std::osyncstream(std::cerr);
   auto it = std::ostreambuf_iterator<char>(ss);
-  std::format_to(it, "{:<12} {}({}):{}: ", lv, lc.file_name(),
-                 lc.function_name(), lc.line());
+  standard_format_header(it, lc, lv);
   std::vformat_to(it, fmt, args);
   it = '\n';
+  ss.flush();
 }
 
 #ifdef _WIN32
@@ -86,8 +99,7 @@ void OutputDebugStringLogReciever::do_log(std::string_view fmt,
                                           LogLevel lv) {
   std::string str;
   auto it = std::back_inserter(str);
-  std::format_to(it, "{:<12} {}({}):{}: ", lv, lc.file_name(),
-                 lc.function_name(), lc.line());
+  standard_format_header(it, lc, lv);
   std::vformat_to(it, fmt, args);
   OutputDebugStringA(str.c_str());
 }
@@ -96,25 +108,21 @@ void MessageBoxLogReciever::do_log(std::string_view fmt, std::format_args args,
                                    std::source_location lc, LogLevel lv) {
   std::string str;
   auto it = std::back_inserter(str);
-  std::format_to(it, "{:<12} {}({}):{}: ", lv, lc.file_name(),
-                 lc.function_name(), lc.line());
+  standard_format_header(it, lc, lv);
   std::vformat_to(it, fmt, args);
   MessageBoxA(nullptr, str.c_str(), "4dGraphics", MB_OK);
 }
 #endif
 
 MultiLogReciever::MultiLogReciever(
-    std::vector<std::shared_ptr<ILogReciever>> recievers) {
+    std::span<const std::shared_ptr<ILogReciever>> recievers) {
   m_recievers.reserve(recievers.size());
-  for (auto &reciever : recievers) {
-    if (!reciever)
-      continue;
-
+  for (auto &reciever :
+       recievers | std::views::filter([](auto &r) { return !!r; })) {
     // Flatten MultiLogRecievers
     if (typeid(*reciever) == typeid(MultiLogReciever)) {
-      auto &multi = static_cast<MultiLogReciever &>(*reciever);
-      m_recievers.insert(m_recievers.end(), multi.m_recievers.begin(),
-                         multi.m_recievers.end());
+      auto &other = static_cast<MultiLogReciever &>(*reciever).m_recievers;
+      m_recievers.insert(m_recievers.end(), other.begin(), other.end());
     } else {
       m_recievers.push_back(std::move(reciever));
     }
@@ -125,8 +133,10 @@ MultiLogReciever::MultiLogReciever(
 
 void MultiLogReciever::do_log(std::string_view fmt, std::format_args args,
                               std::source_location lc, LogLevel lv) {
+  // only format once
+  std::string formatted = std::vformat(fmt, args);
   for (auto &reciever : m_recievers)
-    reciever->log(fmt, args, lc, lv);
+    reciever->log("{}", std::make_format_args(formatted), lc, lv);
 }
 
 const std::shared_ptr<NullLogReciever> nullLogReciever =

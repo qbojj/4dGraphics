@@ -1,10 +1,4 @@
 {
- "$unusedOldDeps": [
-    "meshoptimizer",
-    "glslang",
-    "imguizmo",
-    "spirv-tools"
-  ],
  "dependencies": [
     "argparse",
     "fastgltf",
@@ -25,14 +19,9 @@
     "stb",
     "taskflow",
     "tracy",
-    "vulkan-headers",
+    "vulkan",
     "vulkan-memory-allocator-hpp",
-    {
-      "name": "ktx",
-      "features": [
-        "vulkan"
-      ]
-    },
-    "unordered-dense"
+    "unordered-dense",
+    "shaderc"
   ]
 }

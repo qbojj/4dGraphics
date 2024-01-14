@@ -40,15 +40,5 @@ if(4DG_ALL_WARINGS)
   endif()
 endif()
 
+add_subdirectory(Shaders)
 add_subdirectory(4dGraphics)
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT
-                                                            4dGraphics)
-
-install(TARGETS 4dGraphics)
-include(InstallRequiredSystemLibraries)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixBundle.cmake.in
-               ${CMAKE_CURRENT_BINARY_DIR}/FixBundle.cmake @ONLY)
-
-install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/FixBundle.cmake)

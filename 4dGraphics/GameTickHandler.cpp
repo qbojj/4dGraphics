@@ -4,7 +4,7 @@
 #include "Debug.hpp"
 #include "GameCore.hpp"
 
-#include <SDL2/SDL_vulkan.h>
+#include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
@@ -15,17 +15,17 @@ using namespace std;
 void *GameTickHandler::NewFData() { return new FrameData; }
 
 void GameTickHandler::DeleteFData(void *FData) { delete (FrameData *)FData; }
-
+/*
 GameTickHandler::GameTickHandler(tf::Subflow &, SDL_Window *wnd) {
   TimeStart = std::chrono::high_resolution_clock::now();
 
   int width, height;
-  SDL_Vulkan_GetDrawableSize(wnd, &width, &height);
+  ImGui::GetWindowSize(wnd, &width, &height);
 
   pc.start = glm::dvec2(-2, -2);
   pc.increment = glm::dvec2(4, 4) / double(width);
 }
-
+*/
 inline void GameTickHandler::Move(glm::vec3 v) { CamPos += CamRot * v; }
 
 int modulo(int v, int m) {

@@ -12,6 +12,30 @@
 #include <string.h>
 
 namespace v4dg {
+std::mutex GlfwContext::glfwInitMutex;
+int GlfwContext::glfwInitCount = 0;
+
+GlfwContext::GlfwContext() {
+  std::scoped_lock lock(glfwInitMutex);
+  if (glfwInitCount++ == 0) {
+    if (!glfwInit()) {
+      glfwSetErrorCallback([](int error, const char *description) {
+        logger.Error("GLFW error {}: {}", error, description);
+      });
+      glfwInitCount--;
+      throw std::runtime_error("Cannot initialize GLFW");
+    }
+  }
+}
+
+GlfwContext::~GlfwContext() {
+  try {
+    std::scoped_lock lock(glfwInitMutex);
+    if (--glfwInitCount == 0)
+      glfwTerminate();
+  } catch (...) {}
+}
+
 ImGuiRAIIContext::ImGuiRAIIContext(ImFontAtlas *font)
     : context(ImGui::CreateContext(font)) {
   if (!context)

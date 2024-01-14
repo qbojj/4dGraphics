@@ -6,6 +6,9 @@
 #include <imgui.h>
 #include <taskflow/taskflow.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+
 struct FrameData {
   glm::dvec2 start, increment;
   // glm::uvec2 WndSize;
@@ -20,7 +23,7 @@ public:
   void *NewFData();
   void DeleteFData(void *FData);
 
-  GameTickHandler(tf::Subflow &, SDL_Window *);
+  //GameTickHandler(tf::Subflow &, SDL_Window *);
   void OnTick(void *_FData);
 
   glm::quat CamRot = glm::identity<glm::quat>();

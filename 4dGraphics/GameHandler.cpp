@@ -2,6 +2,7 @@
 
 #include "Debug.hpp"
 #include "cppHelpers.hpp"
+#include "Device.hpp"
 
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
@@ -20,6 +21,8 @@ MyGameHandler::~MyGameHandler() {
 }
 
 int MyGameHandler::Run() {
+  auto instance = make_handle<Instance>();
+  auto device = make_handle<Device>(instance);
   /*
   tf::Executor executor;
 

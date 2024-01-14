@@ -9,7 +9,7 @@
 #include <format>
 #include <memory>
 
-v4dg::Logger v4dg::logger;
+v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways, v4dg::cerrLogReciever);
 
 void parse_args(int argc, char *argv[]) {
   argparse::ArgumentParser parser;
@@ -105,6 +105,8 @@ main(int argc, char *argv[]) {
 
   std::srand((unsigned int)std::time(NULL));
   parse_args(argc, argv);
+
+  v4dg::logger.setLogLevel(v4dg::Logger::LogLevel::Debug);
 
   return v4dg::MyGameHandler{}.Run();
 }

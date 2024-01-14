@@ -23,7 +23,6 @@ enum class BindlessType : uint8_t {
 class BindlessResource {
 public:
   bool valid() const {
-    assert(m_resource == 0 || std::popcount(m_resource) == 1);
     return m_resource != 0;
   };
 
@@ -59,11 +58,7 @@ private:
     assert(type_v <= type_mask);
     assert(version_v <= version_mask);
 
-    m_resource = (index << index_shift) | (type_v << type_shift) | (version_v << version_shift);
-
-    bool parity = std::popcount(m_resource) & 1;
-    m_resource |= uint32_t{!parity} << 31;
-    // m_resource has odd parity
+    m_resource = (index << index_shift) | (type_v << type_shift) | (version_v << version_shift) | (1<<31);
   }
 
   void bump_version() {

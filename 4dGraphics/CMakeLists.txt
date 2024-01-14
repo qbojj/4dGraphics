@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.21)
 include(../CMake/CommonMacros.cmake)
 project(4dGraphics)
 
@@ -6,7 +6,7 @@ find_package(argparse CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(SDL2 CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(Taskflow CONFIG REQUIRED)
@@ -25,15 +25,16 @@ target_link_libraries(
   PRIVATE WarningSettings
           argparse::argparse
           fastgltf::fastgltf
-          $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+          glfw
+          glm::glm
+          Vulkan::Headers
           imgui::imgui
           Taskflow::Taskflow
-          Vulkan::Headers
-          unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp
-          glm::glm
           Tracy::TracyClient
-          unordered_dense::unordered_dense)
+          unordered_dense::unordered_dense
+          unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
+
+add_dependencies(4dGraphics Shaders)
 
 target_include_directories(
   4dGraphics
@@ -51,8 +52,9 @@ target_compile_definitions(
           GLM_FORCE_SWIZZLE
           GLM_FORCE_RADIANS
           GLM_FORCE_CTOR_INIT
-          GLM_ENABLE_EXPERIMENTAL)
-          
+          GLM_ENABLE_EXPERIMENTAL
+          TRACY_VK_USE_SYMBOL_TABLE=1)
+
 setup_common(4dGraphics "4dGraphics")
 
 add_custom_command(
@@ -64,3 +66,8 @@ add_custom_command(
     # $<TARGET_FILE:4dGraphics> is added to never have an empty set to copy
     $<TARGET_FILE_DIR:4dGraphics>
   COMMAND_EXPAND_LISTS)
+
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT
+                                                            4dGraphics)
+
+install(TARGETS 4dGraphics)

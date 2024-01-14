@@ -46,7 +46,7 @@ private:
 
 class FileLogReciever : public ILogReciever {
 public:
-  FileLogReciever(std::filesystem::path path);
+  FileLogReciever(const std::filesystem::path &path);
 
 private:
   void do_log(std::string_view fmt, std::format_args args,
@@ -78,7 +78,7 @@ private:
 
 class MultiLogReciever final : public ILogReciever {
 public:
-  MultiLogReciever(std::vector<std::shared_ptr<ILogReciever>> recievers);
+  MultiLogReciever(std::span<const std::shared_ptr<ILogReciever>> recievers);
 
 private:
   void do_log(std::string_view fmt, std::format_args args,

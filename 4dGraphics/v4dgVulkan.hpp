@@ -78,13 +78,14 @@ private:
 
 namespace std {
 template <typename T>
-  requires requires(const T &t) {
-    { ::vk::to_string(t) } -> std::same_as<std::string>;
-  }
-struct formatter<T> : formatter<std::string> {
+  requires requires(const T &t) { ::vk::to_string(t); }
+struct formatter<T> : formatter<std::string_view> {
   template <typename FormatContext>
   auto format(const T &t, FormatContext &ctx) const {
-    return formatter<std::string>::format(::vk::to_string(t), ctx);
+    return formatter<std::string_view>::format(::vk::to_string(t), ctx);
   }
 };
+
+template <size_t N>
+struct formatter<vk::ArrayWrapper1D<char, N>> : formatter<std::string_view> {};
 } // namespace std

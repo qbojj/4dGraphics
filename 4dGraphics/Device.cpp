@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <SDL2/SDL_vulkan.h>
+#include <GLFW/glfw3.h>
 
 #include <format>
 #include <iostream>
@@ -82,12 +82,7 @@ debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
 
     logger.GenericLog(level, "{}", message);
   } catch (const std::exception &e) {
-    try {
-      logger.Error("Exception in debugMessageFuncCpp: {}", e.what());
-    } catch (const std::exception &e2) {
-      std::cerr << "Exception in debugMessageFuncCpp: " << e.what()
-                << "\nException in logger.Error: " << e2.what() << "\n";
-    }
+    logger.Error("Exception caught in debug message callback: {}", e.what());
   }
 
   return vk::False;
@@ -157,9 +152,9 @@ Instance::Instance(vk::Optional<const vk::AllocationCallbacks> allocator)
                                  debugMessengerCreateInfo())
                            : vk::raii::DebugUtilsMessengerEXT{nullptr}) {}
 
-std::vector<vk::ArrayWrapper1D<char, vk::MaxExtensionNameSize>>
+std::vector<extension_storage>
 Instance::chooseLayers() const {
-  std::vector<vk::ArrayWrapper1D<char, vk::MaxExtensionNameSize>> layers;
+  std::vector<extension_storage> layers;
 
   std::vector<std::string_view> requestedLayers{
       "VK_LAYER_KHRONOS_shader_object",
@@ -181,6 +176,7 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
   std::vector<std::string_view> requiredInstanceExts = {
       VK_KHR_SURFACE_EXTENSION_NAME,
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+      VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
       VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
   };
 
@@ -190,13 +186,13 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
   };
 
-  std::vector<const char *> sdl_exts;
-  unsigned int sdl_ext_count = 0;
-  while (!SDL_Vulkan_GetInstanceExtensions(nullptr, &sdl_ext_count,
-                                           sdl_exts.data()))
-    sdl_exts.resize(sdl_ext_count);
+  auto window_exts = [] {
+    uint32_t count;
+    const char **exts = glfwGetRequiredInstanceExtensions(&count);
+    return std::span{exts, count};
+  }();
 
-  for (const auto &ext : sdl_exts)
+  for (const auto &ext : window_exts)
     unique_add(requiredInstanceExts, ext);
 
   for (const auto &ext : m_context.enumerateInstanceExtensionProperties() |
@@ -241,6 +237,17 @@ Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
   if (!debugUtilsEnabled())
     ici.unlink<vk::DebugUtilsMessengerCreateInfoEXT>();
 
+  logger.Log("Creating Vulkan instance with {} layers and {} extensions",
+             m_layers.size(), m_extensions.size());
+
+  logger.Log("Layers:");
+  for (const auto &layer : m_layers)
+    logger.Log("\t{}", std::string_view{layer});
+
+  logger.Log("Extensions:");
+  for (const auto &ext : m_extensions)
+    logger.Log("\t{}", std::string_view{ext});
+
   return m_context.createInstance(ici.get<>(), allocator);
 }
 
@@ -284,21 +291,36 @@ Device::Device(Handle<Instance> instance)
 
 bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd) const {
   auto props = pd.getProperties();
-  if (props.apiVersion < vk::ApiVersion13)
-    return false;
+  logger.Debug("Checking physical device {}", props.deviceName);
 
-  std::vector<std::string_view> requiredExtensions{
+  if (props.apiVersion < vk::ApiVersion13) {
+    logger.Debug("Physical device {} does not support Vulkan 1.3",
+                 props.deviceName);
+    return false;
+  }
+
+  std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
       VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
-      VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
-      VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
   };
 
   auto exts =
       pd.enumerateDeviceExtensionProperties() | transform_ext_props_to_string;
-  auto ext_present = [&](auto &ext) { return contains(exts, ext); };
 
-  return std::ranges::all_of(requiredExtensions, ext_present);
+  auto ext_present = [&](auto &ext) {
+    if (!contains(exts, ext)) {
+      logger.Debug("Physical device {} does not support required extension {}",
+                   props.deviceName, ext);
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  bool ok = std::ranges::all_of(requiredExtensions, ext_present);
+  logger.Debug("Physical device {} {} suitable", props.deviceName,
+               ok ? "is" : "is not");
+  return ok;
 }
 
 vk::raii::PhysicalDevice Device::choosePhysicalDevice() const {
@@ -317,33 +339,39 @@ vk::raii::PhysicalDevice Device::choosePhysicalDevice() const {
     auto a_type = a.getProperties().deviceType;
     auto b_type = b.getProperties().deviceType;
 
-    static constexpr std::array<vk::PhysicalDeviceType, 3> type_preference{
+    static constexpr std::array prefered{
         vk::PhysicalDeviceType::eDiscreteGpu,
         vk::PhysicalDeviceType::eIntegratedGpu,
         vk::PhysicalDeviceType::eVirtualGpu,
     };
 
-    auto a_it =
-        std::find(type_preference.begin(), type_preference.end(), a_type);
-    auto b_it =
-        std::find(type_preference.begin(), type_preference.end(), b_type);
+    auto a_it = std::find(prefered.begin(), prefered.end(), a_type);
+    auto b_it = std::find(prefered.begin(), prefered.end(), b_type);
 
     return a_it < b_it;
   });
 
+  logger.Debug("Found {} suitable physical devices", phys_devices.size());
+  for (auto &pd : phys_devices) {
+    auto props = pd.getProperties();
+    logger.Debug("\tSuitable physical device: {} ({})", props.deviceName,
+                 props.deviceType);
+  }
+
+  logger.Log("Choosing physical device {}",
+             phys_devices.front().getProperties().deviceName);
   return phys_devices.front();
 }
 
 std::vector<extension_storage> Device::chooseExtensions() const {
   std::vector<extension_storage> extensions;
 
-  std::vector<std::string_view> requiredExtensions{
+  std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
       VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
-      VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
   };
 
-  std::vector<std::string_view> wantedExtensions{
+  std::array wantedExtensions{
       VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
       VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
   };
@@ -377,80 +405,34 @@ Device::chooseFeatures() const {
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
       vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>>();
 
-  auto deviceFeatures = m_physicalDevice.getFeatures2<
-      vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
-      vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
-      vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>();
-
   auto &feature_chain = *all_features;
-
-  auto &a_features = deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
 
   feature_chain.get<vk::PhysicalDeviceFeatures2>()
       .features.setFullDrawIndexUint32(vk::True)
-      .setImageCubeArray(vk::True)
-      .setIndependentBlend(vk::True)
-      .setGeometryShader(vk::True)
-      .setTessellationShader(vk::True)
       .setSampleRateShading(vk::True)
 
-      .setLogicOp(vk::True)
-
-      .setMultiDrawIndirect(vk::True)
-      .setDrawIndirectFirstInstance(vk::True)
-
-      .setMultiViewport(vk::True)
       .setSamplerAnisotropy(vk::True)
-
-      .setTextureCompressionASTC_LDR(a_features.textureCompressionASTC_LDR)
-      .setTextureCompressionBC(a_features.textureCompressionBC)
-      .setTextureCompressionETC2(a_features.textureCompressionETC2)
 
       .setVertexPipelineStoresAndAtomics(vk::True)
       .setFragmentStoresAndAtomics(vk::True)
+
       .setShaderStorageImageExtendedFormats(vk::True)
+
       .setShaderUniformBufferArrayDynamicIndexing(vk::True)
       .setShaderSampledImageArrayDynamicIndexing(vk::True)
       .setShaderStorageBufferArrayDynamicIndexing(vk::True)
       .setShaderStorageImageArrayDynamicIndexing(vk::True)
-      .setShaderFloat64(a_features.shaderFloat64)
-      .setShaderInt64(a_features.shaderInt64)
-      .setShaderInt16(a_features.shaderInt16)
+
       .setShaderResourceMinLod(vk::True);
 
-  auto &a_features11 = deviceFeatures.get<vk::PhysicalDeviceVulkan11Features>();
-
   feature_chain.get<vk::PhysicalDeviceVulkan11Features>()
-      .setStorageBuffer16BitAccess(a_features11.storageBuffer16BitAccess)
-      .setUniformAndStorageBuffer16BitAccess(
-          a_features11.uniformAndStorageBuffer16BitAccess)
-      .setStoragePushConstant16(a_features11.storagePushConstant16)
-      .setStorageInputOutput16(a_features11.storageInputOutput16)
-      .setMultiview(vk::True)
-      .setMultiviewGeometryShader(vk::True)
-      .setMultiviewTessellationShader(vk::True)
-      .setVariablePointersStorageBuffer(vk::True)
-      .setVariablePointers(vk::True)
       .setShaderDrawParameters(vk::True);
 
-  auto &a_features12 = deviceFeatures.get<vk::PhysicalDeviceVulkan12Features>();
-
   feature_chain.get<vk::PhysicalDeviceVulkan12Features>()
-      .setSamplerMirrorClampToEdge(a_features12.samplerMirrorClampToEdge)
-      .setDrawIndirectCount(vk::True)
-      .setStorageBuffer8BitAccess(a_features12.storageBuffer8BitAccess)
-      .setUniformAndStorageBuffer8BitAccess(
-          a_features12.uniformAndStorageBuffer8BitAccess)
-      .setStoragePushConstant8(a_features12.storagePushConstant8)
-      .setShaderBufferInt64Atomics(a_features12.shaderBufferInt64Atomics)
-      .setShaderSharedInt64Atomics(a_features12.shaderSharedInt64Atomics)
-      .setShaderFloat16(a_features12.shaderFloat16)
-      .setShaderInt8(a_features12.shaderInt8)
-      .setDescriptorIndexing(vk::True)
       .setShaderInputAttachmentArrayDynamicIndexing(vk::True)
       .setShaderUniformTexelBufferArrayDynamicIndexing(vk::True)
       .setShaderStorageTexelBufferArrayDynamicIndexing(vk::True)
+
       .setShaderUniformBufferArrayNonUniformIndexing(vk::True)
       .setShaderSampledImageArrayNonUniformIndexing(vk::True)
       .setShaderStorageBufferArrayNonUniformIndexing(vk::True)
@@ -458,51 +440,58 @@ Device::chooseFeatures() const {
       .setShaderInputAttachmentArrayNonUniformIndexing(vk::True)
       .setShaderUniformTexelBufferArrayNonUniformIndexing(vk::True)
       .setShaderStorageTexelBufferArrayNonUniformIndexing(vk::True)
-      .setDescriptorBindingUniformBufferUpdateAfterBind(vk::True)
-      .setDescriptorBindingSampledImageUpdateAfterBind(vk::True)
-      .setDescriptorBindingStorageImageUpdateAfterBind(vk::True)
-      .setDescriptorBindingStorageBufferUpdateAfterBind(vk::True)
-      .setDescriptorBindingUniformTexelBufferUpdateAfterBind(vk::True)
-      .setDescriptorBindingStorageTexelBufferUpdateAfterBind(vk::True)
+
       .setDescriptorBindingUpdateUnusedWhilePending(vk::True)
       .setDescriptorBindingPartiallyBound(vk::True)
       .setDescriptorBindingVariableDescriptorCount(vk::True)
       .setRuntimeDescriptorArray(vk::True)
-      .setSamplerFilterMinmax(a_features12.samplerFilterMinmax)
+
       .setScalarBlockLayout(vk::True)
-      .setImagelessFramebuffer(vk::True)
       .setUniformBufferStandardLayout(vk::True)
+
       .setShaderSubgroupExtendedTypes(vk::True)
       .setSeparateDepthStencilLayouts(vk::True)
-      .setHostQueryReset(a_features12.hostQueryReset)
-      .setTimelineSemaphore(vk::True)
-      .setBufferDeviceAddress(vk::True)
-      .setVulkanMemoryModel(vk::True);
 
-  auto &a_features13 = deviceFeatures.get<vk::PhysicalDeviceVulkan13Features>();
+      .setHostQueryReset(vk::True)
+      .setTimelineSemaphore(vk::True)
+      .setImagelessFramebuffer(vk::True)
+
+      // 1.3 required
+      .setBufferDeviceAddress(vk::True)
+      .setVulkanMemoryModel(vk::True)
+      .setVulkanMemoryModelDeviceScope(vk::True);
 
   feature_chain.get<vk::PhysicalDeviceVulkan13Features>()
+      .setInlineUniformBlock(vk::True)
+
       .setShaderDemoteToHelperInvocation(vk::True)
       .setShaderTerminateInvocation(vk::True)
+
       .setSubgroupSizeControl(vk::True)
       .setComputeFullSubgroups(vk::True)
+
       .setSynchronization2(vk::True)
-      .setTextureCompressionASTC_HDR(a_features13.textureCompressionASTC_HDR)
+
+      .setShaderZeroInitializeWorkgroupMemory(vk::True)
+
       .setDynamicRendering(vk::True)
+
       .setShaderIntegerDotProduct(vk::True)
       .setMaintenance4(vk::True);
 
   feature_chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()
       .setMemoryPriority(vk::True);
-    
+
   if (!contains(m_extensions, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME))
     feature_chain.unlink<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 
   feature_chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>()
       .setSwapchainMaintenance1(vk::True);
 
-  return {std::move(all_features),
-          &all_features->get<vk::PhysicalDeviceFeatures2>()};
+  if (!contains(m_extensions, VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME))
+    feature_chain.unlink<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>();
+
+  return {std::move(all_features), &all_features->get<>()};
 }
 
 vk::raii::Device Device::initDevice() const {
@@ -577,21 +566,22 @@ vma::UniqueAllocator Device::initAllocator() const {
 }
 
 std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
-  auto rg =
-      m_physicalDevice.getQueueFamilyProperties() | std::views::enumerate |
-      std::views::transform([&](const auto &pair) -> std::vector<Handle<Queue>> {
-        auto &[family_, qfp] = pair;
-        uint32_t family = family_;
+  auto rg = m_physicalDevice.getQueueFamilyProperties() |
+            std::views::enumerate |
+            std::views::transform(
+                [&](const auto &pair) -> std::vector<Handle<Queue>> {
+                  auto &[family_, qfp] = pair;
+                  uint32_t family = family_;
 
-        auto rg2 =
-            std::views::iota(0u, qfp.queueCount) |
-            std::views::transform([&](uint32_t i) {
-              return make_handle<Queue>(vk::raii::Queue{m_device, family, i},
-                                        qfp.queueFlags, family, i);
-            });
+                  auto rg2 = std::views::iota(0u, qfp.queueCount) |
+                             std::views::transform([&](uint32_t i) {
+                               return make_handle<Queue>(
+                                   vk::raii::Queue{m_device, family, i},
+                                   qfp.queueFlags, family, i);
+                             });
 
-        return {rg2.begin(), rg2.end()};
-      });
+                  return {rg2.begin(), rg2.end()};
+                });
 
   return {rg.begin(), rg.end()};
 }

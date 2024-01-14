@@ -1,15 +1,17 @@
-#version 450
+#version 460 core
+#include "bindless.glsl"
 
 layout( push_constant ) uniform constants
 {
 	dvec2 start;
 	dvec2 increment;
+    uint outImage;
 };
 
-layout( set = 0, binding = 0 ) uniform writeonly restrict image2D outTexture;
-layout( constant_id = 2 ) const int variant = 1;
+STORAGE_IMAGE(image2D, image2Ds, rgba8, writeonly)
 
-const uint maxN = 512;
+layout( constant_id = 0 ) const int variant = 1;
+layout( constant_id = 1 ) const uint maxN = 512;
 
 vec3 hsv2rgb(vec3 c)
 {
@@ -97,12 +99,12 @@ uint getLastToInfV3( dvec2 c )
     return n;
 }
 
-layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 void main()
 {
-    ivec2 screenPos = ivec2( gl_GlobalInvocationID.xy ) * ( variant == 0 ? 2 : 1 );
-    ivec2 texSize = imageSize( outTexture );
+    ivec2 screenPos = ivec2(gl_GlobalInvocationID.xy) * (variant == 0 ? 2 : 1);
+    ivec2 texSize = imageSize(image2Ds[imageIdx(outImage)]);
 
     if( any( greaterThanEqual( screenPos, texSize ) ) ) return;
 
@@ -126,8 +128,9 @@ void main()
         {
             ivec2 pos = screenPos + offsets[i];
             if( all( lessThan( pos, texSize ) ) )
-                imageStore( outTexture, pos, makeColor( n[i] ) );
+                imageStore(image2Ds[imageIdx(outImage)], pos, makeColor( n[i] ) );
         }
     }
-    else imageStore( outTexture, screenPos, makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
+    else imageStore(image2Ds[imageIdx(outImage)], screenPos, 
+        makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
 }

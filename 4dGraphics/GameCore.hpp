@@ -3,14 +3,27 @@
 #include "cppHelpers.hpp"
 
 #include <GLFW/glfw3.h>
+#include <imgui.h>
 
 #include <string>
+#include <atomic>
+#include <mutex>
 
-struct SDL_Window;
+struct GLFWwindow;
 struct ImGuiContext;
 struct ImFontAtlas;
 
 namespace v4dg {
+class GlfwContext {
+public:
+  GlfwContext();
+  ~GlfwContext();
+
+private:
+  static std::mutex glfwInitMutex;
+  static int glfwInitCount;
+};
+
 class ImGuiRAIIContext {
 public:
   ImGuiRAIIContext(ImGuiRAIIContext &&o) : context(std::exchange(o.context, nullptr)) {}
@@ -49,6 +62,7 @@ public:
   }
 
 private:
+  [[no_unique_address]] GlfwContext glfwCtx;
   native_type window;
 };
 

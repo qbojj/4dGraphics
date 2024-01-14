@@ -7,6 +7,8 @@
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+#include <tracy/TracyVulkan.hpp>
+
 #include <cstdint>
 #include <format>
 #include <functional>
@@ -128,6 +130,8 @@ private:
   vma::UniqueAllocator m_allocator;
 
   std::vector<std::vector<Handle<Queue>>> m_queues;
+
+  TracyVkCtx m_tracyScope;
 
   bool physicalDeviceSuitable(const vk::raii::PhysicalDevice &) const;
 
