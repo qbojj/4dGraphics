@@ -6,12 +6,17 @@
 #include "VulkanConstructs.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
+#include "BindlessManager.hpp"
+#include "Swapchain.hpp"
 
 #include <taskflow/taskflow.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#include <ankerl/unordered_dense.h>
 
 #include <vector>
+#include <stack>
+#include <cassert>
 
 namespace v4dg {
 class Context;
@@ -22,74 +27,113 @@ public:
     Graphics,
     AsyncCompute,
     AsyncTransfer,
-    VideoDecode,
-    VideoEncode,
-    OpticalFlow,
+  };
+  using qt_desc = std::pair<Type, vk::QueueFlags>;
+  static constexpr std::array<qt_desc,3> QueueTypes{
+    qt_desc{Type::Graphics, vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute},
+    qt_desc{Type::AsyncCompute, vk::QueueFlagBits::eCompute},
+    qt_desc{Type::AsyncTransfer, vk::QueueFlagBits::eTransfer},
   };
 
-  PerQueueFamily(Handle<Device> device, uint32_t family);
+  PerQueueFamily() = delete;
+  PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev);
 
-  auto &device() const { return m_device; }
   auto &queue() const { return m_queue; }
-  auto &allocator() const { return m_dsAllocatorPool; }
+  const auto &semaphore() const { return m_semaphore; }
+  uint64_t semaphoreValue() const { return m_semaphore_value; }
+
+  void setSemaphoreValue(uint64_t value) { m_semaphore_value = value; }
+
+  auto &commandBufferManager() { return m_command_buffer_manager; }
+
+private:
+  Handle<Queue> m_queue;
+
+  // timeline semaphore
+  vk::raii::Semaphore m_semaphore;
+  uint64_t m_semaphore_value{0};
+
+  command_buffer_manager m_command_buffer_manager;
+};
+
+struct PerFrame {
+  PerFrame(const vk::raii::Device &device, size_t queues)
+    : m_semaphore_ready_values(queues, 0)
+    , m_image_ready(device, {{}, {}})
+    , m_render_finished(device, {{}, {}}) {}
   
-  vk::QueueFlags flags() const { return m_flags; }
-  uint32_t timestampValidBits() const { return m_timestampValidBits; }
-  vk::Extent3D minImageTransferGranularity() const { return m_minImageTransferGranularity; }
-
-private:
-  Handle<Device> m_device;
-  DSAllocatorPool m_dsAllocatorPool;
-
-  vk::QueueFlags m_flags;
-  uint32_t m_timestampValidBits;
-  vk::Extent3D m_minImageTransferGranularity;
-
-  Handle<Queue> m_queue;
-  vk::raii::Semaphore m_semaphore;
-  uint64_t m_semaphore_value{0};
+  std::vector<uint64_t> m_semaphore_ready_values;
+  vk::raii::Semaphore m_image_ready;
+  vk::raii::Semaphore m_render_finished;
 };
 
-class PerFrame {
-public:
-private:
-  Handle<Device> m_device;
-  Handle<Queue> m_queue;
-  vk::raii::Fence m_fence;
-  vk::raii::Semaphore m_semaphore;
-  uint64_t m_semaphore_value{0};
-};
+struct PerThread { 
+  struct PerFrame {
+    PerFrame(const vk::raii::Device &device, uint32_t graphics_family)
+      : m_command_buffer_manager(device, graphics_family) {}
+    
+    void flush() {
+      m_destruction_stack.flush();
+      m_command_buffer_manager.reset();
+    }
 
-// thread context of member of Context executor
-class ThreadContext {
-public:
-  static ThreadContext &get() {
-    thread_local ThreadContext ctx;
-    return ctx;
-  }
+    DestructionStack m_destruction_stack;
 
-  Context &context() const { return *m_context; }
-  uint32_t threadId() const { return m_thread_id; }
+    // only for graphics queue as async compute/transfer are
+    //   are expected to have only small number of command buffers per frame
+    //   so they can be 
+    command_buffer_manager m_command_buffer_manager;
+  };
 
-private:
-  friend class Context;
-  void init(Context *ctx, uint32_t thread_id) {
-    m_context = ctx;
-    m_thread_id = thread_id;
-  }
+  PerThread(const vk::raii::Device &device, uint32_t graphics_family)
+    : m_per_frame(make_per_frame<PerFrame>(device, graphics_family)) {}
 
-  Context *m_context;
-  uint32_t m_thread_id;
-};
-
-class PerThread { 
-public:
-private:
-
+  per_frame<PerFrame> m_per_frame;
 };
 
 class Context {
 public:
+  using QueueType=PerQueueFamily::Type;
+
+  Context(Handle<Instance> instance, Handle<Device> device);
+
+  auto &instance() const { return *m_instance; }
+  auto &device() const { return *m_device; }
+
+  auto &vkInstance() const { return instance().instance(); }
+  auto &vkPhysicalDevice() const { return device().physicalDevice(); }
+  auto &vkDevice() const { return device().device(); }
+
+  uint32_t frame_ref() const { return m_frame_idx % max_frames_in_flight; }
+
+  PerFrame &get_frame_ctx() {
+    return m_per_frame[frame_ref()];
+  }
+
+  PerThread &get_thread_ctx() {
+    int id = m_executor.this_worker_id();
+    assert(id != -1); // only call from worker thread
+    return m_per_thread[id];
+  }
+
+  auto &get_thread_frame_ctx() {
+    return get_thread_ctx().m_per_frame[frame_ref()];
+  }
+
+  DestructionStack &get_destruction_stack() {
+    return get_thread_frame_ctx().m_destruction_stack;
+  }
+
+  auto &get_queue(QueueType type) {
+    return m_families[static_cast<size_t>(type)];
+  }
+
+  void next_frame();
+
+  auto &executor() {
+    return m_executor;
+  }
+
 private:
   Handle<Instance> m_instance;
   Handle<Device> m_device;
@@ -97,10 +141,14 @@ private:
   tf::Executor m_executor;
 
   // single queue per family (for now)
-  std::vector<PerQueueFamily> m_familes;
+  using PerQueueFamilyArray = std::array<std::optional<PerQueueFamily>, PerQueueFamily::QueueTypes.size()>;
+  PerQueueFamilyArray m_families;
 
-  std::vector<PerFrame> m_frames_in_flight;
-  
+  uint64_t m_frame_idx{0};
+  per_frame<PerFrame> m_per_frame;
+  std::vector<PerThread> m_per_thread;
+
+  PerQueueFamilyArray getFamilies() const;
 };
 
 

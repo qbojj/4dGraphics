@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+﻿cmake_minimum_required(VERSION 3.21)
 include(../CMake/CommonMacros.cmake)
 project(4dGraphics)
 
@@ -34,19 +34,16 @@ target_link_libraries(
           unordered_dense::unordered_dense
           unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
 
-add_dependencies(4dGraphics Shaders)
-
 target_include_directories(
   4dGraphics
-  PUBLIC ${PROJECT_SOURCE_DIR} ${Stb_INCLUDE_DIR}
-  PRIVATE ${PROJECT_SOURCE_DIR}/../Shaders/include ${})
+  PUBLIC ${PROJECT_SOURCE_DIR} ${Stb_INCLUDE_DIR})
 
 target_compile_definitions(
   4dGraphics
   PRIVATE WIN32_LEAN_AND_MEAN
           VK_ENABLE_BETA_EXTENSIONS=1
           VK_NO_PROTOTYPES=1
-          TRACY_ENABLE
+          TRACY_ENABLE=1
           GLM_FORCE_SILENT_WARNINGS
           GLM_FORCE_DEPTH_ZERO_TO_ONE
           GLM_FORCE_SWIZZLE

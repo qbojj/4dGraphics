@@ -36,6 +36,13 @@
             "configuration": "Release"
         },
         {
+            "name": "ninja-vcpkg-relwithdebinfo",
+            "configurePreset": "ninja-multi-vcpkg",
+            "displayName": "Build (RelWithDebInfo)",
+            "description": "Build with Ninja/vcpkg (RelWithDebInfo)",
+            "configuration": "RelWithDebInfo"
+        },
+        {
             "name": "ninja-vcpkg",
             "configurePreset": "ninja-multi-vcpkg",
             "displayName": "Build",
@@ -53,6 +60,15 @@
             "description": "Test (Debug)",
             "displayName": "Test (Debug)",
             "configuration": "Debug",
+            "inherits": [
+                "test-ninja-vcpkg"
+            ]
+        },
+        {
+            "name": "test-relwithdebinfo",
+            "description": "Test (RelWithDebInfo)",
+            "displayName": "Test (RelWithDebInfo)",
+            "configuration": "RelWithDebInfo",
             "inherits": [
                 "test-ninja-vcpkg"
             ]

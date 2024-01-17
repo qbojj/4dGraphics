@@ -11,10 +11,6 @@
 #include <taskflow/algorithm/critical.hpp>
 #include <taskflow/algorithm/for_each.hpp>
 
-#include <GLFW/glfw3.h>
-
-#include <tracy/Tracy.hpp>
-
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_extension_inspection.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
@@ -23,6 +19,9 @@
 #include <vulkan/vulkan_to_string.hpp>
 
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+
+#include <tracy/Tracy.hpp>
+#include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <atomic>

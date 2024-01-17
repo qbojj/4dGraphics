@@ -150,7 +150,7 @@ private:
   vk::SamplerCreateInfo sci;
   vk::SamplerReductionModeCreateInfo srmci;
   vk::SamplerYcbcrConversionInfo syci;
-}; // namespace detail
+};
 
 class DescriptorSetLayoutInfo {
 public:
@@ -274,9 +274,9 @@ public:
 // typedef permament_handle_cache<SamplerYcbcrConversionInfo>
 // sampler_ycbcr_conversion_cache;
 typedef permament_handle_cache<SamplerInfo> sampler_cache;
-typedef permament_handle_cache<DescriptorSetLayoutInfo>
-    descriptor_set_layout_cache;
-typedef permament_handle_cache<PipelineLayoutInfo> pipeline_layout_cache;
+
+// typedef permament_handle_cache<DescriptorSetLayoutInfo> descriptor_set_layout_cache;
+// typedef permament_handle_cache<PipelineLayoutInfo> pipeline_layout_cache;
 // typedef permament_handle_cache<RenderPassInfo> render_pass_cache;
 
 // typedef handle_cache<ShaderModuleInfo> ShaderModuleCache;

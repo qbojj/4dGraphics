@@ -6,7 +6,7 @@ namespace v4dg {
 command_buffer_manager::command_buffer_manager(const vk::raii::Device &dev,
                                                uint32_t family,
                                                vk::CommandPoolCreateFlags flags)
-    : m_device(dev), m_pool(m_device, {flags, family}) {}
+    : m_device(&dev), m_pool(*m_device, {flags, family}) {}
 
 void command_buffer_manager::reset(vk::CommandPoolResetFlags flags) {
   m_pool.reset(flags);
@@ -30,13 +30,13 @@ command_buffer_manager::get(vk::CommandBufferLevel level, category cat) {
   if (used == cmdBuffCnt) {
     pool.buffers.reserve(cmdBuffCnt + block_count);
 
-    auto cbs = (*m_device).allocateCommandBuffers({*m_pool, level, block_count},
-                                                  *m_device.getDispatcher());
+    auto cbs = m_pool.getDevice().allocateCommandBuffers({*m_pool, level, block_count},
+                                                  *m_pool.getDispatcher());
 
     pool.buffers.insert(pool.buffers.end(), cbs.begin(), cbs.end());
   }
 
-  return vulkan_raii_view<vk::raii::CommandBuffer>{m_device,
-                                                   pool.buffers[pool.used++]};
+  return vulkan_raii_view<vk::raii::CommandBuffer>{
+      vk::raii::CommandBuffer(*m_device, pool.buffers[pool.used++], *m_pool)};
 }
 } // namespace v4dg

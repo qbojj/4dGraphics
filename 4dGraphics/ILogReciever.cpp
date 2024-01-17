@@ -24,9 +24,16 @@ void standard_format_header(auto &it, std::source_location lc, v4dg::ILogRecieve
   file_name = file_name.substr(file_name.find_last_of("/\\") + 1); // extract file name from path
 
   std::string_view fn_name = lc.function_name();
-  fn_name = fn_name.substr(fn_name.find_first_of(" ") + 1); // remove return type
-  fn_name = fn_name.substr(0, fn_name.find_first_of("(")); // remove arguments + cv_ref qualifiers
-
+  
+  auto s = fn_name.find_first_of(" ");
+  if ( s == std::string_view::npos )
+    s = 0;
+  else
+    ++s;
+  
+  auto e = fn_name.find_first_of("(", s);
+  
+  fn_name = fn_name.substr(s, e - s);
   std::format_to(it, "{:<8} {}({}):{}: ", lv, file_name, fn_name, lc.line());
 }
 }

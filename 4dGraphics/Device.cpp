@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_extension_inspection.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -26,9 +27,10 @@ debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
 
   try {
     std::string message =
-        std::format("{}: {}:\n"
+        std::format("\n"
+                    "{}: {}:\n"
                     "\tmessageIDName   = <{}>\n"
-                    "\tmessageIdNumber = {}\n"
+                    "\tmessageIdNumber = {:x}\n"
                     "\tmessage         = <{}>\n",
                     severity, types, pCallbackData->pMessageIdName,
                     pCallbackData->messageIdNumber, pCallbackData->pMessage);
@@ -58,7 +60,7 @@ debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
       format_append(
           "\tObject {}\n"
           "\t\tobjectType   = {}\n"
-          "\t\tobjectHandle = {}\n",
+          "\t\tobjectHandle = {:x}\n",
           i, static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType),
           pCallbackData->pObjects[i].objectHandle);
 
@@ -104,19 +106,21 @@ debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       pUserData));
 }
 
-bool contains(auto &container, const auto &ext) {
+bool contains(const auto &container, const auto &ext) {
   return std::find(container.begin(), container.end(), ext) != container.end();
 }
 
-auto make_ext_storage(const auto &ext) {
+auto make_ext_storage(const auto &ext_) {
+  std::string_view ext = ext_;
   extension_storage storage;
-  std::fill(storage.begin(), storage.end(), 0);
-  std::strncpy(storage.data(), &ext[0], storage.size());
+  assert(ext.size() < storage.size());
+
+  std::ranges::fill(storage, '\0');
+  std::ranges::copy(ext, storage.begin());
   return storage;
 }
 
-void unique_add(auto &dst, const auto &ext_) {
-  auto ext = make_ext_storage(ext_);
+void unique_add(auto &dst, const auto &ext) {
   if (!contains(dst, ext)) {
     dst.push_back(ext);
   }
@@ -133,10 +137,9 @@ std::vector<const char *> to_c_vector(auto &strings) {
   return {rg.begin(), rg.end()};
 }
 
-auto transform_ext_props_to_string = std::views::transform(
-    [](const vk::ExtensionProperties &exp) -> std::string_view {
-      return exp.extensionName;
-    });
+auto transform_to_ext_storage = std::views::transform([](const auto &ext) {
+  return make_ext_storage(ext);
+});
 } // namespace
 
 namespace v4dg {
@@ -145,15 +148,14 @@ Instance::Instance(vk::Optional<const vk::AllocationCallbacks> allocator)
       m_apiVer(std::min(m_maxApiVer, m_context.enumerateInstanceVersion())),
       m_layers(chooseLayers()), m_extensions(chooseExtensions()),
       m_debugUtilsEnabled(
-          contains(m_extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME)),
+          contains(m_extensions, make_ext_storage(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))),
       m_instance(initInstance(allocator)),
       m_debugMessenger(m_debugUtilsEnabled
                            ? m_instance.createDebugUtilsMessengerEXT(
                                  debugMessengerCreateInfo())
                            : vk::raii::DebugUtilsMessengerEXT{nullptr}) {}
 
-std::vector<extension_storage>
-Instance::chooseLayers() const {
+std::vector<extension_storage> Instance::chooseLayers() const {
   std::vector<extension_storage> layers;
 
   std::vector<std::string_view> requestedLayers{
@@ -192,21 +194,32 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
     return std::span{exts, count};
   }();
 
+  logger.Debug("Required window extensions:");
+  for (const auto &ext : window_exts)
+    logger.Debug("\t{}", std::string_view{ext});
+
   for (const auto &ext : window_exts)
     unique_add(requiredInstanceExts, ext);
+  
+  std::vector<extension_storage> avaiable_exts;
 
-  for (const auto &ext : m_context.enumerateInstanceExtensionProperties() |
-                             transform_ext_props_to_string)
-    unique_add_if_present(extensions, wantedInstanceExts, ext);
+  for (const auto &ext : m_context.enumerateInstanceExtensionProperties())
+    unique_add(avaiable_exts, ext.extensionName);
 
   for (const auto &layer : m_layers)
     for (const auto &ext :
-         m_context.enumerateInstanceExtensionProperties(std::string{layer}) |
-             transform_ext_props_to_string)
-      unique_add_if_present(extensions, wantedInstanceExts, ext);
+         m_context.enumerateInstanceExtensionProperties(std::string{layer}))
+      unique_add(avaiable_exts, ext.extensionName);
 
-  for (const auto &ext : requiredInstanceExts)
-    unique_add(extensions, make_ext_storage(ext));
+  for (const auto &ext : wantedInstanceExts | transform_to_ext_storage) {
+    unique_add_if_present(extensions, avaiable_exts, ext);
+  }
+
+  for (const auto &ext : requiredInstanceExts | transform_to_ext_storage) {
+    if (!contains(avaiable_exts, ext))
+      throw exception("Required instance extension {} not supported", ext);
+    unique_add(extensions, ext);
+  }
 
   return extensions;
 }
@@ -254,17 +267,16 @@ Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
 vk::DebugUtilsMessengerCreateInfoEXT Instance::debugMessengerCreateInfo() {
   return {{},
           vk::DebugUtilsMessageSeverityFlagBitsEXT::eError |
-              vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-              vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-              vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo,
+              vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning,
           vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-              vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
-              vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+              vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+              vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
           &debugMessageFunc};
 }
 
-Device::Device(Handle<Instance> instance)
-    : m_instance(std::move(instance)), m_physicalDevice(choosePhysicalDevice()),
+Device::Device(Handle<Instance> instance, vk::SurfaceKHR surface)
+    : m_instance(std::move(instance)),
+      m_physicalDevice(choosePhysicalDevice(surface)),
       m_apiVer(std::min(m_instance->maxApiVer(),
                         m_physicalDevice.getProperties().apiVersion)),
       m_extensions(chooseExtensions()), m_features(chooseFeatures()),
@@ -289,7 +301,32 @@ Device::Device(Handle<Instance> instance)
   m_meshShader = msf && msf->meshShader;
 }
 
-bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd) const {
+std::vector<extension_storage>
+Device::enumerateExtensions(const vk::raii::PhysicalDevice &pd) const {
+  std::vector<extension_storage> avaiable_exts;
+
+  for (const auto &ext : pd.enumerateDeviceExtensionProperties())
+    unique_add(avaiable_exts, ext.extensionName);
+
+  for (const auto &lay_exts : m_instance->layers())
+    for (const auto &ext : pd.enumerateDeviceExtensionProperties(
+             std::string{lay_exts}))
+      unique_add(avaiable_exts, ext.extensionName);
+  
+  // remove promoted extensions to core
+  std::ranges::remove_if(avaiable_exts, [](const auto &ext) {
+    if(!vk::isPromotedExtension(ext))
+      return false;
+
+    auto promoted = vk::getExtensionPromotedTo(ext);
+    return contains(std::span<const char* const>{{"VK_VERSION_1_3", "VK_VERSION_1_2", "VK_VERSION_1_1"}}, promoted);
+  });
+  
+  return avaiable_exts;
+}
+
+bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd,
+                                    vk::SurfaceKHR surface) const {
   auto props = pd.getProperties();
   logger.Debug("Checking physical device {}", props.deviceName);
 
@@ -301,14 +338,13 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd) const {
 
   std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+      VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
   };
 
-  auto exts =
-      pd.enumerateDeviceExtensionProperties() | transform_ext_props_to_string;
+  auto exts = enumerateExtensions(pd);
 
   auto ext_present = [&](auto &ext) {
-    if (!contains(exts, ext)) {
+    if (!contains(exts, make_ext_storage(ext))) {
       logger.Debug("Physical device {} does not support required extension {}",
                    props.deviceName, ext);
       return false;
@@ -317,16 +353,28 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd) const {
     }
   };
 
-  bool ok = std::ranges::all_of(requiredExtensions, ext_present);
-  logger.Debug("Physical device {} {} suitable", props.deviceName,
-               ok ? "is" : "is not");
-  return ok;
+  auto families = pd.getQueueFamilyProperties();
+
+  return std::ranges::all_of(requiredExtensions, ext_present) &&
+         std::ranges::any_of(families,
+                             [](auto &qfp) {
+                               return static_cast<bool>(
+                                   qfp.queueFlags &
+                                   vk::QueueFlagBits::eGraphics);
+                             }) &&
+         (!surface ||
+          std::ranges::any_of(std::views::iota(0u, families.size()),
+                              [&](uint32_t family) {
+                                return pd.getSurfaceSupportKHR(family, surface);
+                              }));
 }
 
-vk::raii::PhysicalDevice Device::choosePhysicalDevice() const {
-  auto phys_devices_view =
-      m_instance->instance().enumeratePhysicalDevices() |
-      std::views::filter([&](auto &pd) { return physicalDeviceSuitable(pd); });
+vk::raii::PhysicalDevice
+Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
+  auto phys_devices_view = m_instance->instance().enumeratePhysicalDevices() |
+                           std::views::filter([&](auto &pd) {
+                             return physicalDeviceSuitable(pd, surface);
+                           });
 
   std::vector<vk::raii::PhysicalDevice> phys_devices{phys_devices_view.begin(),
                                                      phys_devices_view.end()};
@@ -368,7 +416,7 @@ std::vector<extension_storage> Device::chooseExtensions() const {
 
   std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+      VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
   };
 
   std::array wantedExtensions{
@@ -376,23 +424,16 @@ std::vector<extension_storage> Device::chooseExtensions() const {
       VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
   };
 
-  auto lay_exts = m_instance->layers() |
-                  std::views::transform([&](const extension_storage &layer) {
-                    return m_physicalDevice.enumerateDeviceExtensionProperties(
-                               std::string{layer}) |
-                           transform_ext_props_to_string;
-                  });
+  auto avaiable_exts = enumerateExtensions(m_physicalDevice);
 
-  for (const auto &ext : m_physicalDevice.enumerateDeviceExtensionProperties() |
-                             transform_ext_props_to_string)
-    unique_add_if_present(extensions, wantedExtensions, ext);
+  for (const auto &ext : wantedExtensions | transform_to_ext_storage)
+    unique_add_if_present(extensions, avaiable_exts, ext);
 
-  for (const auto &lay_exts : lay_exts)
-    for (const auto &ext : lay_exts)
-      unique_add_if_present(extensions, wantedExtensions, ext);
-
-  for (const auto &ext : requiredExtensions)
+  for (const auto &ext : requiredExtensions | transform_to_ext_storage) {
+    if (!contains(avaiable_exts, ext))
+      throw exception("Required device extension {} not supported", ext);
     unique_add(extensions, ext);
+  }
 
   return extensions;
 }
@@ -573,11 +614,17 @@ std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
                   auto &[family_, qfp] = pair;
                   uint32_t family = family_;
 
+                  auto flags = qfp.queueFlags;
+                  if (flags & (vk::QueueFlagBits::eGraphics |
+                               vk::QueueFlagBits::eCompute))
+                    flags |= vk::QueueFlagBits::eTransfer;
+
                   auto rg2 = std::views::iota(0u, qfp.queueCount) |
                              std::views::transform([&](uint32_t i) {
                                return make_handle<Queue>(
-                                   vk::raii::Queue{m_device, family, i},
-                                   qfp.queueFlags, family, i);
+                                   vk::raii::Queue{m_device, family, i}, family,
+                                   i, flags, qfp.timestampValidBits,
+                                   qfp.minImageTransferGranularity);
                              });
 
                   return {rg2.begin(), rg2.end()};
