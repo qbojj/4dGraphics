@@ -7,7 +7,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_extension_inspection.hpp>
 
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL_vulkan.h>
 
 #include <format>
 #include <iostream>
@@ -183,16 +183,14 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
   };
 
   std::vector<std::string_view> wantedInstanceExts{
-      VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
       VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
   };
 
-  auto window_exts = [] {
-    uint32_t count;
-    const char **exts = glfwGetRequiredInstanceExtensions(&count);
-    return std::span{exts, count};
-  }();
+  uint32_t window_ext_count;
+  SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, nullptr);
+  std::vector<const char *> window_exts(window_ext_count);
+  SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, window_exts.data());
 
   logger.Debug("Required window extensions:");
   for (const auto &ext : window_exts)

@@ -4,10 +4,6 @@
 #include "Debug.hpp"
 #include "GameCore.hpp"
 
-#include <GLFW/glfw3.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
-
 #include <tracy/Tracy.hpp>
 
 using namespace std;

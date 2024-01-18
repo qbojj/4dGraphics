@@ -5,13 +5,13 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <iterator>
+#include <ranges>
 #include <source_location>
 #include <string_view>
 #include <syncstream>
 #include <typeinfo>
-#include <ranges>
-#include <iostream>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -19,24 +19,40 @@
 #endif
 
 namespace {
-void standard_format_header(auto &it, std::source_location lc, v4dg::ILogReciever::LogLevel lv) {
+void standard_format_header(auto &it, std::source_location lc,
+                            v4dg::ILogReciever::LogLevel lv,
+                            bool remove_type = true, size_t max_len = 40) {
   std::string_view file_name = lc.file_name();
-  file_name = file_name.substr(file_name.find_last_of("/\\") + 1); // extract file name from path
+  file_name = file_name.substr(file_name.find_last_of("/\\") +
+                               1); // extract file name from path
 
   std::string_view fn_name = lc.function_name();
-  
-  auto s = fn_name.find_first_of(" ");
-  if ( s == std::string_view::npos )
-    s = 0;
-  else
-    ++s;
-  
-  auto e = fn_name.find_first_of("(", s);
-  
-  fn_name = fn_name.substr(s, e - s);
-  std::format_to(it, "{:<8} {}({}):{}: ", lv, file_name, fn_name, lc.line());
+
+  if (remove_type && fn_name.contains(' ')) {
+    // remove type (it may contain templates and we do not
+    // want spaces in them to interfere with the formatting)
+    // e.g std::vector<int, std::allocator<int> > fn() -> fn()
+
+    size_t s = 0;
+    int par_level = 0;
+    while (s < fn_name.size()) {
+      if (fn_name[s] == '<')
+        ++par_level;
+      else if (fn_name[s] == '>')
+        --par_level;
+      else if (par_level == 0 && fn_name[s] == ' ')
+        break;
+      ++s;
+    }
+
+    s = fn_name.find_first_not_of(" ", s);
+    fn_name = fn_name.substr(s);
+  }
+
+  std::format_to(it, "{:<8} {}({:.{}}{}):{}: ", lv, file_name, fn_name, max_len,
+                 fn_name.size() > max_len ? "..." : "", lc.line());
 }
-}
+} // namespace
 
 namespace v4dg {
 std::string to_string(ILogReciever::LogLevel lv) {
@@ -68,7 +84,8 @@ void NullLogReciever::do_log(std::string_view, std::format_args,
 FileLogReciever::FileLogReciever(const std::filesystem::path &path)
     : m_file(path), m_epoch(std::chrono::steady_clock::now()) {
   if (!m_file.is_open())
-    throw exception("Failed to open log file \"{}\" for writing", path.native());
+    throw exception("Failed to open log file \"{}\" for writing",
+                    path.native());
 
   m_file << std::format("Log file opened at {}\n",
                         std::chrono::system_clock::now());
@@ -83,7 +100,7 @@ void FileLogReciever::do_log(std::string_view fmt, std::format_args args,
   auto ss = std::osyncstream(m_file);
   auto it = std::ostreambuf_iterator<char>(ss);
   std::format_to(it, "[{:%Q%q}] ", time);
-  standard_format_header(it, lc, lv);
+  standard_format_header(it, lc, lv, false, 1024);
   std::vformat_to(it, fmt, args);
   it = '\n';
   ss.flush();
@@ -113,11 +130,12 @@ void OutputDebugStringLogReciever::do_log(std::string_view fmt,
 
 void MessageBoxLogReciever::do_log(std::string_view fmt, std::format_args args,
                                    std::source_location lc, LogLevel lv) {
-  std::string str;
-  auto it = std::back_inserter(str);
+  std::string caption;
+  auto it = std::back_inserter(caption);
   standard_format_header(it, lc, lv);
-  std::vformat_to(it, fmt, args);
-  MessageBoxA(nullptr, str.c_str(), "4dGraphics", MB_OK);
+
+  std::string msg = std::vformat(it, fmt, args);
+  MessageBoxA(nullptr, msg.c_str(), caption.c_str(), MB_OK);
 }
 #endif
 

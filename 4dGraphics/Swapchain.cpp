@@ -33,8 +33,12 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
     }
   }
 
-  extent.width = std::clamp(extent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
-  extent.height = std::clamp(extent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
+  extent.width =
+      std::clamp(extent.width, surfaceCapabilities.minImageExtent.width,
+                 surfaceCapabilities.maxImageExtent.width);
+  extent.height =
+      std::clamp(extent.height, surfaceCapabilities.minImageExtent.height,
+                 surfaceCapabilities.maxImageExtent.height);
 
   if (extent.width == 0 || extent.height == 0)
     throw exception("Invalid swapchain extent");
@@ -42,7 +46,6 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
   vk::Format format;
 
   auto size_one = [](auto &&range) { return ++range.begin() == range.end(); };
-
   auto first_element = [](auto &&range) { return *range.begin(); };
 
   if (size_one(surfaceFormats) &&
@@ -60,7 +63,16 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
       if (std::ranges::contains(surfaceFormats, preferred_format)) {
         format = preferred_format;
       } else {
-        format = *surfaceFormats.begin();
+        if (std::ranges::contains(surfaceFormats, vk::Format::eB8G8R8A8Unorm))
+          format = vk::Format::eB8G8R8A8Unorm;
+        else if (std::ranges::contains(surfaceFormats,
+                                       vk::Format::eR8G8B8A8Unorm))
+          format = vk::Format::eR8G8B8A8Unorm;
+        else {
+          // every implementation I know of supports either BGRA8 or RGBA8
+          //  so this should never happen
+          format = *surfaceFormats.begin();
+        }
       }
     }
   }
@@ -89,25 +101,26 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
 
   if (!(surfaceCapabilities.supportedCompositeAlpha & compositeAlpha))
     compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-  
-  uint32_t imageCount = std::max(image_count, surfaceCapabilities.minImageCount);
+
+  uint32_t imageCount =
+      std::max(image_count, surfaceCapabilities.minImageCount);
   if (surfaceCapabilities.maxImageCount != 0)
     imageCount = std::min(imageCount, surfaceCapabilities.maxImageCount);
 
-  return Swapchain(ctx,
-                   vk::SwapchainCreateInfoKHR(
-                       {}, surface, imageCount, format,
-                       vk::ColorSpaceKHR::eSrgbNonlinear, extent, 1, imageUsage,
-                       vk::SharingMode::eExclusive, 0, nullptr, preTransform,
-                       compositeAlpha, presentMode, true, oldSwapchain));
+  return Swapchain(
+      ctx, vk::SwapchainCreateInfoKHR(
+               {},
+               surface, imageCount, format, vk::ColorSpaceKHR::eSrgbNonlinear,
+               extent, 1, imageUsage, vk::SharingMode::eExclusive, 0, nullptr,
+               preTransform, compositeAlpha, presentMode, true, oldSwapchain));
 }
 
 Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
     : m_format(ci.imageFormat), m_colorSpace(ci.imageColorSpace),
       m_presentMode(ci.presentMode), m_extent(ci.imageExtent),
       m_preTransform(ci.preTransform), m_compositeAlpha(ci.compositeAlpha),
-      m_imageUsage(ci.imageUsage),
-      m_swapchain(ctx.vkDevice(), ci), m_images(m_swapchain.getImages()) {
+      m_imageUsage(ci.imageUsage), m_swapchain(ctx.vkDevice(), ci),
+      m_images(m_swapchain.getImages()) {
   for (auto &image : m_images)
     m_imageViews.push_back(
         {ctx.vkDevice(),

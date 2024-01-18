@@ -1,15 +1,35 @@
 #include "Context.hpp"
 
+#include "Debug.hpp"
 #include "CommandBufferManager.hpp"
 #include "v4dgCore.hpp"
+
+#include <tracy/Tracy.hpp>
+#include <taskflow/taskflow.hpp>
 
 #include <bit>
 #include <ranges>
 #include <vector>
+#include <exception>
 
 namespace v4dg {
+namespace {
+  class WorkerInterface : public tf::WorkerInterface { 
+  public:
+     void scheduler_prologue(tf::Worker& worker) override {
+        // set thread name
+        std::string name = "v4dg worker " + std::to_string(worker.id());
+        tracy::SetThreadName(name.c_str());
+     }
+
+     void scheduler_epilogue(tf::Worker&, std::exception_ptr) override {
+        // do nothing
+     }
+  };
+}
 PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
-    : m_queue(std::move(queue)), m_semaphore(nullptr), m_command_buffer_manager(dev, m_queue->family()) {
+    : m_queue(std::move(queue)), m_semaphore(nullptr),
+      m_command_buffer_manager(dev, m_queue->family()) {
   vk::StructureChain<vk::SemaphoreCreateInfo, vk::SemaphoreTypeCreateInfo> sci{
       {}, {vk::SemaphoreType::eTimeline, 0}};
 
@@ -18,14 +38,31 @@ PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
 
 Context::Context(Handle<Instance> instance, Handle<Device> device)
     : m_instance(std::move(instance)), m_device(std::move(device)),
+      m_executor(std::thread::hardware_concurrency(),
+        std::make_shared<WorkerInterface>()),
+      m_main_thread_id(std::this_thread::get_id()),
       m_families(getFamilies()),
-      m_per_frame{make_per_frame<PerFrame>(vkDevice(), m_families.size())} {
+      m_per_frame{make_per_frame<PerFrame>(vkDevice(), m_families.size())},
+      m_pipeline_cache(nullptr) {
   auto &graphics_queue = get_queue(PerQueueFamily::Type::Graphics);
   uint32_t graphics_family = graphics_queue->queue()->family();
 
   m_per_thread.reserve(m_executor.num_workers());
   for (size_t i{}; i < m_executor.num_workers(); ++i)
     m_per_thread.emplace_back(vkDevice(), graphics_family);
+
+  auto pipeline_cache_data = getPipelineCacheData();
+  m_pipeline_cache = vkDevice().createPipelineCache(
+      {{}, pipeline_cache_data.size(), pipeline_cache_data.data()});
+}
+
+Context::~Context() {
+  try {
+    auto data = m_pipeline_cache.getData();
+    savePipelineCacheData({reinterpret_cast<std::byte*>(data.data()), data.size() * sizeof(data[0])});
+  } catch (const std::exception &e) {
+    logger.Error("failed to save pipeline cache ({})", e.what());
+  }
 }
 
 auto Context::getFamilies() const -> PerQueueFamilyArray {
@@ -109,18 +146,44 @@ void Context::next_frame() {
     }
   }
 
-  auto result = vkDevice().waitSemaphores({{}, semaphores, values},
-                                          std::numeric_limits<uint64_t>::max());
-  if (result != vk::Result::eSuccess)
-    throw exception("waitSemaphores failed: {}", result);
-  
-  // clear destruction stack
-  //  maybe using workers?
+  {
+    ZoneScopedN("wait for semaphores");
+    auto result = vkDevice().waitSemaphores({{}, semaphores, values},
+                                            std::numeric_limits<uint64_t>::max());
+    if (result != vk::Result::eSuccess)
+      throw exception("waitSemaphores failed: {}", result);
+  }
+
+  ZoneScopedN("clear destruction stacks");
+  cur_frame.m_destruction_stack.flush();
+
   for (auto &per_thread : m_per_thread)
-    per_thread.m_per_frame[frame_ref()].flush();
+    per_thread.m_per_frame[frame_ref()].m_destruction_stack.flush();
 
   for (auto &q : m_families)
-    if (q)
+    if (q) {
       q->commandBufferManager().reset();
+    }
+}
+
+std::vector<std::byte> Context::getPipelineCacheData() {
+  // load pipeline cache from file
+  std::vector<std::byte> data;
+  std::ifstream file("pipeline_cache.bin", std::ios::binary);
+  if (file) {
+    file.seekg(0, std::ios::end);
+    data.resize(file.tellg());
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char *>(data.data()), data.size());
+  }
+  
+  return data;
+}
+
+void Context::savePipelineCacheData(std::span<const std::byte> data) {
+  // save pipeline cache to file
+  std::ofstream file("pipeline_cache.bin", std::ios::binary);
+  if (file)
+    file.write(reinterpret_cast<const char *>(data.data()), data.size());
 }
 } // namespace v4dg

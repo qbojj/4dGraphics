@@ -110,12 +110,10 @@ public:
   }
 
   void GenericLogV(LogLevel lv, std::string_view fmt, std::format_args args,
-                   std::source_location lc = std::source_location::current()) noexcept {
-    if (lv < getLogLevel())
-      return;
-    
+                   std::source_location lc = std::source_location::current()) noexcept {    
     try {
-      m_logReciever->log(fmt, args, lc, lv);
+      if (lv >= getLogLevel())
+        m_logReciever->log(fmt, args, lc, lv);
     } catch (const std::exception &e) {
       std::cerr << "Exception caught in log reciever: " << e.what() << '\n';
     } catch (...) {

@@ -17,6 +17,9 @@
 #include <vector>
 #include <stack>
 #include <cassert>
+#include <span>
+#include <array>
+#include <optional>
 
 namespace v4dg {
 class Context;
@@ -65,6 +68,9 @@ struct PerFrame {
   std::vector<uint64_t> m_semaphore_ready_values;
   vk::raii::Semaphore m_image_ready;
   vk::raii::Semaphore m_render_finished;
+
+  // for the main thread
+  DestructionStack m_destruction_stack;
 };
 
 struct PerThread { 
@@ -96,6 +102,7 @@ public:
   using QueueType=PerQueueFamily::Type;
 
   Context(Handle<Instance> instance, Handle<Device> device);
+  ~Context();
 
   auto &instance() const { return *m_instance; }
   auto &device() const { return *m_device; }
@@ -121,6 +128,8 @@ public:
   }
 
   DestructionStack &get_destruction_stack() {
+    if (std::this_thread::get_id() == m_main_thread_id)
+      return get_frame_ctx().m_destruction_stack;
     return get_thread_frame_ctx().m_destruction_stack;
   }
 
@@ -134,11 +143,17 @@ public:
     return m_executor;
   }
 
+  auto &pipeline_cache() {
+    return m_pipeline_cache;
+  }
+
 private:
   Handle<Instance> m_instance;
   Handle<Device> m_device;
 
   tf::Executor m_executor;
+
+  std::thread::id m_main_thread_id;
 
   // single queue per family (for now)
   using PerQueueFamilyArray = std::array<std::optional<PerQueueFamily>, PerQueueFamily::QueueTypes.size()>;
@@ -148,7 +163,12 @@ private:
   per_frame<PerFrame> m_per_frame;
   std::vector<PerThread> m_per_thread;
 
+  vk::raii::PipelineCache m_pipeline_cache;
+
   PerQueueFamilyArray getFamilies() const;
+  
+  static std::vector<std::byte> getPipelineCacheData();
+  static void savePipelineCacheData(std::span<const std::byte> data);
 };
 
 

@@ -1,8 +1,10 @@
 #include "Debug.hpp"
 #include "GameHandler.hpp"
 #include "ILogReciever.hpp"
+#include "GameCore.hpp"
 
 #include <argparse/argparse.hpp>
+#include <SDL2/SDL_main.h>
 
 #include <cstdlib>
 #include <exception>
@@ -16,7 +18,7 @@ void parse_args(int argc, char *argv[]) {
 
   parser.add_argument("-d", "--debug-level")
       .help("set debug level. possible values (d, l, w, e, f, q)")
-      .default_value('l');
+      .default_value("l").nargs(1);
   parser.add_argument("--log-path").help("set path of log file");
   parser.add_argument("-q", "--quiet")
       .help("disable logging to terminal")
@@ -44,7 +46,11 @@ void parse_args(int argc, char *argv[]) {
 
   v4dg::Logger::LogLevel ll;
 
-  switch (parser.get<char>("-d")) {
+  auto debug_level = parser.get<std::string>("-d");
+  if (debug_level.size() != 1)
+    throw std::runtime_error(
+        std::format("unsupported debug level {}", parser.get<char>("-d")));
+  switch (debug_level[0]) {
     using enum v4dg::Logger::LogLevel;
   case 'd':
     ll = Debug;
@@ -69,8 +75,6 @@ void parse_args(int argc, char *argv[]) {
         std::format("unsupported debug level {}", parser.get<char>("-d")));
   }
 
-  v4dg::logger.setLogLevel(ll);
-
   using sp_lr = std::shared_ptr<v4dg::ILogReciever>;
   std::vector<sp_lr> recievers;
 
@@ -90,6 +94,7 @@ void parse_args(int argc, char *argv[]) {
     recievers.push_back(v4dg::messageBoxLogReciever);
 #endif
 
+  v4dg::logger.setLogLevel(ll);
   v4dg::logger.setLogReciever(
       recievers.size() == 0 ? v4dg::nullLogReciever
       : recievers.size() == 1
@@ -106,7 +111,7 @@ main(int argc, char *argv[]) {
   std::srand((unsigned int)std::time(NULL));
   parse_args(argc, argv);
 
-  v4dg::logger.setLogLevel(v4dg::Logger::LogLevel::Debug);
+  v4dg::SDL_GlobalContext gc;
 
   return v4dg::MyGameHandler{}.Run();
 }

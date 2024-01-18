@@ -2,28 +2,17 @@
 
 #include "cppHelpers.hpp"
 
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL.h>
 #include <imgui.h>
 
 #include <string>
-#include <atomic>
-#include <mutex>
+#include <utility>
 
 struct GLFWwindow;
 struct ImGuiContext;
 struct ImFontAtlas;
 
 namespace v4dg {
-class GlfwContext {
-public:
-  GlfwContext();
-  ~GlfwContext();
-
-private:
-  static std::mutex glfwInitMutex;
-  static int glfwInitCount;
-};
-
 class ImGuiRAIIContext {
 public:
   ImGuiRAIIContext(ImGuiRAIIContext &&o) : context(std::exchange(o.context, nullptr)) {}
@@ -40,9 +29,32 @@ private:
   ::ImGuiContext *context;
 };
 
+class SDL_GlobalContext {
+public:
+  ~SDL_GlobalContext();
+};
+
+class SDL_Context {
+public:
+  SDL_Context() = delete;
+  SDL_Context(Uint32 subsystems);
+  ~SDL_Context();
+
+  SDL_Context(const SDL_Context &) = delete;
+  SDL_Context(SDL_Context &&o) : subsystems(std::exchange(o.subsystems, {})) {}
+
+  SDL_Context &operator=(SDL_Context o) {
+    std::swap(subsystems, o.subsystems);
+    return *this;
+  }
+
+private:
+  Uint32 subsystems;
+};
+
 class Window {
 public:
-  using native_type = ::GLFWwindow *;
+  using native_type = ::SDL_Window *;
 
   Window() = delete;
   Window(nullptr_t) : window(nullptr) {}
@@ -62,20 +74,20 @@ public:
   }
 
 private:
-  [[no_unique_address]] GlfwContext glfwCtx;
+  SDL_Context sdlCtx{SDL_INIT_VIDEO};
   native_type window;
 };
 
-class ImGui_GlfwImpl {
+class ImGui_SDLImpl {
 public:
-  ImGui_GlfwImpl() = delete;
-  ImGui_GlfwImpl(const Window &window);
-  ~ImGui_GlfwImpl();
+  ImGui_SDLImpl() = delete;
+  ImGui_SDLImpl(const Window &window);
+  ~ImGui_SDLImpl();
 
-  ImGui_GlfwImpl(const ImGui_GlfwImpl &) = delete;
-  ImGui_GlfwImpl(ImGui_GlfwImpl &&) = delete;
-  ImGui_GlfwImpl &operator=(const ImGui_GlfwImpl &) = delete;
-  ImGui_GlfwImpl &operator=(ImGui_GlfwImpl &&) = delete;
+  ImGui_SDLImpl(const ImGui_SDLImpl &) = delete;
+  ImGui_SDLImpl(ImGui_SDLImpl &&) = delete;
+  ImGui_SDLImpl &operator=(const ImGui_SDLImpl &) = delete;
+  ImGui_SDLImpl &operator=(ImGui_SDLImpl &&) = delete;
 };
 
 class GameEngine {
@@ -85,7 +97,7 @@ public:
 
   Window m_window;
   ImGuiRAIIContext m_ImGuiCtx;
-  ImGui_GlfwImpl m_ImGuiGlfwImpl;
+  ImGui_SDLImpl m_ImGuiSdlImpl;
 };
 
 } // namespace v4dg

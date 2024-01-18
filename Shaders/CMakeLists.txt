@@ -29,8 +29,8 @@ set(SHADER_OUTPUTS)
 # Compile shaders using glslc and generate make dependencies
 foreach(SHADER_FILE ${SHADER_FILES})
   file(RELATIVE_PATH SHADER_NAME ${SHADER_DIR} ${SHADER_FILE})
-  set(SHADER_OUTPUT ${SHADER_NAME}.spv)
-  set(SHADER_DEPENDENCY ${SHADER_NAME}.d)
+  set(SHADER_OUTPUT $<CONFIG>/${SHADER_NAME}.spv)
+  set(SHADER_DEPENDENCY $<CONFIG>/${SHADER_NAME}.d)
 
   add_custom_command(
     OUTPUT ${SHADER_OUTPUT}

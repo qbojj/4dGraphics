@@ -58,6 +58,7 @@ DSAllocator::allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
   // we failed multiple times. something is very wrong.
   vk::resultCheck(res, "v4dg::DSAllocator::allocate");
   assert(0);
+  return {};
 }
 
 DSAllocatorPool::DSAllocatorPool(

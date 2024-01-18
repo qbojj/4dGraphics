@@ -6,7 +6,7 @@ find_package(argparse CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
+find_package(SDL2 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(Taskflow CONFIG REQUIRED)
@@ -25,10 +25,11 @@ target_link_libraries(
   PRIVATE WarningSettings
           argparse::argparse
           fastgltf::fastgltf
-          glfw
           glm::glm
           Vulkan::Headers
           imgui::imgui
+          $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
+          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
           Taskflow::Taskflow
           Tracy::TracyClient
           unordered_dense::unordered_dense

@@ -22,6 +22,7 @@ vk::DescriptorType BindlessResource::type_to_vk(BindlessType t) noexcept {
     return vk::DescriptorType::eAccelerationStructureKHR;
   default:
     assert(false && "invalid v4dg::BindlessType");
+    return {};
   };
 }
 

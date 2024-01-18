@@ -2,76 +2,64 @@
 
 #include "Debug.hpp"
 
-#include <GLFW/glfw3.h>
-
-#include <exception>
+#include <SDL2/SDL.h>
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
+#include <imgui_impl_sdl2.h>
+
+#include <cstring>
+#include <exception>
 #include <stdexcept>
-#include <string.h>
 
 namespace v4dg {
-std::mutex GlfwContext::glfwInitMutex;
-int GlfwContext::glfwInitCount = 0;
+namespace {
+[[noreturn]] void sdl_error_to_exception() {
+  throw exception("STL error: {}", SDL_GetError());
+}
+} // namespace
 
-GlfwContext::GlfwContext() {
-  std::scoped_lock lock(glfwInitMutex);
-  if (glfwInitCount++ == 0) {
-    if (!glfwInit()) {
-      glfwSetErrorCallback([](int error, const char *description) {
-        logger.Error("GLFW error {}: {}", error, description);
-      });
-      glfwInitCount--;
-      throw std::runtime_error("Cannot initialize GLFW");
-    }
-  }
+SDL_GlobalContext::~SDL_GlobalContext() { SDL_Quit(); }
+
+SDL_Context::SDL_Context(Uint32 subsystems) : subsystems(subsystems) {
+  if (SDL_InitSubSystem(subsystems))
+    sdl_error_to_exception();
 }
 
-GlfwContext::~GlfwContext() {
-  try {
-    std::scoped_lock lock(glfwInitMutex);
-    if (--glfwInitCount == 0)
-      glfwTerminate();
-  } catch (...) {}
-}
+SDL_Context::~SDL_Context() { SDL_QuitSubSystem(subsystems); }
 
 ImGuiRAIIContext::ImGuiRAIIContext(ImFontAtlas *font)
     : context(ImGui::CreateContext(font)) {
   if (!context)
-    throw std::runtime_error("Cannot initialize ImGui");
+    throw exception("Cannot initialize ImGui");
   if (!IMGUI_CHECKVERSION())
-    throw std::runtime_error("Imgui runtime version not equal to what version "
-                             "program was compiled with");
+    throw exception("Imgui runtime version not equal to what version "
+                    "program was compiled with");
   ImGui::SetCurrentContext(context);
 }
 
 ImGuiRAIIContext::~ImGuiRAIIContext() { ImGui::DestroyContext(context); }
 
 Window::Window(int width, int height, const char *title) : window(nullptr) {
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+  window = SDL_CreateWindow(title, 0, 0, width, height,
+                            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
   if (!window)
-    throw std::runtime_error("Could not create window");
+    sdl_error_to_exception();
 }
 
-Window::~Window() { glfwDestroyWindow(window); }
+Window::~Window() { SDL_DestroyWindow(window); }
 
-ImGui_GlfwImpl::ImGui_GlfwImpl(const Window &window) {
+ImGui_SDLImpl::ImGui_SDLImpl(const Window &window) {
   auto &io = ImGui::GetIO();
 
-  if (!io.Fonts->AddFontDefault() ||
-      !io.Fonts->Build())
+  if (!io.Fonts->AddFontDefault() || !io.Fonts->Build())
     throw std::runtime_error("Could not initialize imgui font");
 
-  ImGui_ImplGlfw_InitForVulkan(window, true);
+  ImGui_ImplSDL2_InitForVulkan(window);
 }
 
-ImGui_GlfwImpl::~ImGui_GlfwImpl() { ImGui_ImplGlfw_Shutdown(); }
+ImGui_SDLImpl::~ImGui_SDLImpl() { ImGui_ImplSDL2_Shutdown(); }
 
 GameEngine::GameEngine(Window window)
-    : m_window(std::move(window)), m_ImGuiCtx(),
-      m_ImGuiGlfwImpl(m_window) {}
+    : m_window(std::move(window)), m_ImGuiCtx(), m_ImGuiSdlImpl(m_window) {}
 
 GameEngine::~GameEngine() {}
 

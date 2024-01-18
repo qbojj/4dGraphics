@@ -6,14 +6,16 @@
     {
       "name": "imgui",
       "features": [
-        "glfw-binding",
+        "sdl2-binding",
         "vulkan-binding"
       ]
     },
     {
-      "name": "glfw3",
+      "name": "sdl2",
       "features": [
-        "wayland"
+          "vulkan",
+          "wayland",
+          "x11"
       ]
     },
     "stb",
