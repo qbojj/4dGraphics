@@ -171,7 +171,7 @@ void Context::next_frame() {
   }
 
   ZoneScopedN("clear destruction stacks");
-  cur_frame.flush();
+  next_frame.flush();
 
   for (auto &per_thread : m_per_thread) {
     auto &per_f = per_thread.m_per_frame[frame_ref()];

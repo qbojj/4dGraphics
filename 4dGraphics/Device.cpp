@@ -4,8 +4,8 @@
 #include "v4dgVulkan.hpp"
 
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_extension_inspection.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <SDL2/SDL_vulkan.h>
 
@@ -33,7 +33,8 @@ debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
                     "\tmessageIdNumber = {:x}\n"
                     "\tmessage         = <{}>\n",
                     severity, types, pCallbackData->pMessageIdName,
-                    pCallbackData->messageIdNumber, pCallbackData->pMessage);
+                    static_cast<uint32_t>(pCallbackData->messageIdNumber),
+                    pCallbackData->pMessage);
 
     auto format_append = [&]<typename... Ts>(std::format_string<Ts...> fmt,
                                              Ts &&...args) {
@@ -137,21 +138,20 @@ std::vector<const char *> to_c_vector(auto &strings) {
   return {rg.begin(), rg.end()};
 }
 
-auto transform_to_ext_storage = std::views::transform([](const auto &ext) {
-  return make_ext_storage(ext);
-});
+auto transform_to_ext_storage = std::views::transform(
+    [](const auto &ext) { return make_ext_storage(ext); });
 } // namespace
 
 Instance::Instance(vk::raii::Context context,
-  vk::Optional<const vk::AllocationCallbacks> allocator)
+                   vk::Optional<const vk::AllocationCallbacks> allocator)
     : m_context(std::move(context)), m_maxApiVer(vk::ApiVersion13),
       m_apiVer(std::min(m_maxApiVer, m_context.enumerateInstanceVersion())),
       m_layers(chooseLayers()), m_extensions(chooseExtensions()),
-      m_debugUtilsEnabled(
-          contains(m_extensions, make_ext_storage(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))),
+      m_debugUtilsEnabled(contains(
+          m_extensions, make_ext_storage(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))),
       m_instance(initInstance(allocator)),
       m_debugMessenger(m_debugUtilsEnabled
-                           ? m_instance.createDebugUtilsMessengerEXT(
+                           ? instance().createDebugUtilsMessengerEXT(
                                  debugMessengerCreateInfo())
                            : vk::raii::DebugUtilsMessengerEXT{nullptr}) {}
 
@@ -189,7 +189,8 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
   uint32_t window_ext_count;
   SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, nullptr);
   std::vector<const char *> window_exts(window_ext_count);
-  SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, window_exts.data());
+  SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count,
+                                   window_exts.data());
 
   logger.Debug("Required window extensions:");
   for (const auto &ext : window_exts)
@@ -197,7 +198,7 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
 
   for (const auto &ext : window_exts)
     unique_add(requiredInstanceExts, ext);
-  
+
   std::vector<extension_storage> avaiable_exts;
 
   for (const auto &ext : m_context.enumerateInstanceExtensionProperties())
@@ -272,9 +273,8 @@ vk::DebugUtilsMessengerCreateInfoEXT Instance::debugMessengerCreateInfo() {
 }
 
 Device::Device(const Instance &instance, vk::SurfaceKHR surface)
-    : m_instance(&instance),
-      m_physicalDevice(choosePhysicalDevice(surface)),
-      m_apiVer(std::min(m_instance->maxApiVer(),
+    : m_instance(instance), m_physicalDevice(choosePhysicalDevice(surface)),
+      m_apiVer(std::min(instance.maxApiVer(),
                         m_physicalDevice.getProperties().apiVersion)),
       m_extensions(chooseExtensions()), m_features(chooseFeatures()),
       m_device(initDevice()), m_allocator(initAllocator()),
@@ -305,20 +305,23 @@ Device::enumerateExtensions(const vk::raii::PhysicalDevice &pd) const {
   for (const auto &ext : pd.enumerateDeviceExtensionProperties())
     unique_add(avaiable_exts, ext.extensionName);
 
-  for (const auto &lay_exts : m_instance->layers())
-    for (const auto &ext : pd.enumerateDeviceExtensionProperties(
-             std::string{lay_exts}))
+  for (const auto &lay_exts : instance().layers())
+    for (const auto &ext :
+         pd.enumerateDeviceExtensionProperties(std::string{lay_exts}))
       unique_add(avaiable_exts, ext.extensionName);
-  
+
   // remove promoted extensions to core
   std::ranges::remove_if(avaiable_exts, [](const auto &ext) {
-    if(!vk::isPromotedExtension(ext))
+    if (!vk::isPromotedExtension(ext))
       return false;
 
     auto promoted = vk::getExtensionPromotedTo(ext);
-    return contains(std::span<const char* const>{{"VK_VERSION_1_3", "VK_VERSION_1_2", "VK_VERSION_1_1"}}, promoted);
+    return contains(
+        std::span<const char *const>{
+            {"VK_VERSION_1_3", "VK_VERSION_1_2", "VK_VERSION_1_1"}},
+        promoted);
   });
-  
+
   return avaiable_exts;
 }
 
@@ -369,7 +372,7 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd,
 
 vk::raii::PhysicalDevice
 Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
-  auto phys_devices_view = m_instance->instance().enumeratePhysicalDevices() |
+  auto phys_devices_view = instance().instance().enumeratePhysicalDevices() |
                            std::views::filter([&](auto &pd) {
                              return physicalDeviceSuitable(pd, surface);
                            });
@@ -469,21 +472,21 @@ Device::chooseFeatures() const {
       .setShaderSampledImageArrayDynamicIndexing(vk::True)
       .setShaderStorageBufferArrayDynamicIndexing(vk::True)
       .setShaderStorageImageArrayDynamicIndexing(vk::True)
-      
+
       // VK_KHR_roadmap_2024
       .setMultiDrawIndirect(vk::True)
       .setShaderImageGatherExtended(vk::True)
-      .setShaderInt16(vk::True)
-      ;
+      .setShaderInt16(vk::True);
 
-  feature_chain.get<vk::PhysicalDeviceVulkan11Features>()
+  feature_chain
+      .get<vk::PhysicalDeviceVulkan11Features>()
       // VK_KHR_roadmap_2022
       // VK_KHR_roadmap_2024
       .setShaderDrawParameters(vk::True)
-      .setStorageBuffer16BitAccess(vk::True)
-      ;
+      .setStorageBuffer16BitAccess(vk::True);
 
-  feature_chain.get<vk::PhysicalDeviceVulkan12Features>()
+  feature_chain
+      .get<vk::PhysicalDeviceVulkan12Features>()
       // 1.2 required
       .setUniformBufferStandardLayout(vk::True)
 
@@ -529,7 +532,8 @@ Device::chooseFeatures() const {
       .setShaderFloat16(vk::True)
       .setStorageBuffer8BitAccess(vk::True);
 
-  feature_chain.get<vk::PhysicalDeviceVulkan13Features>()
+  feature_chain
+      .get<vk::PhysicalDeviceVulkan13Features>()
       // Vulkan 1.3 required
       .setInlineUniformBlock(vk::True)
 
@@ -619,13 +623,13 @@ vma::UniqueAllocator Device::initAllocator() const {
   vma::AllocatorCreateInfo aci{};
 
   aci.flags = flags;
-  aci.instance = *m_instance->instance();
+  aci.instance = *instance().instance();
   aci.physicalDevice = *m_physicalDevice;
   aci.device = *m_device;
   aci.vulkanApiVersion = m_apiVer;
 
   vma::VulkanFunctions functions{
-      m_instance->instance().getDispatcher()->vkGetInstanceProcAddr,
+      instance().instance().getDispatcher()->vkGetInstanceProcAddr,
       m_device.getDispatcher()->vkGetDeviceProcAddr,
   };
 
@@ -635,28 +639,28 @@ vma::UniqueAllocator Device::initAllocator() const {
 }
 
 std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
-  auto rg = m_physicalDevice.getQueueFamilyProperties() |
-            std::views::enumerate |
-            std::views::transform(
-                [&](const auto &pair) -> std::vector<Handle<Queue>> {
-                  auto &[family_, qfp] = pair;
-                  uint32_t family = family_;
+  auto rg =
+      m_physicalDevice.getQueueFamilyProperties() | std::views::enumerate |
+      std::views::transform(
+          [&](const auto &pair) -> std::vector<Handle<Queue>> {
+            auto &[family_, qfp] = pair;
+            uint32_t family = family_;
 
-                  auto flags = qfp.queueFlags;
-                  if (flags & (vk::QueueFlagBits::eGraphics |
-                               vk::QueueFlagBits::eCompute))
-                    flags |= vk::QueueFlagBits::eTransfer;
+            auto flags = qfp.queueFlags;
+            if (flags &
+                (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
+              flags |= vk::QueueFlagBits::eTransfer;
 
-                  auto rg2 = std::views::iota(0u, qfp.queueCount) |
-                             std::views::transform([&](uint32_t i) {
-                               return make_handle<Queue>(
-                                   vk::raii::Queue{m_device, family, i}, family,
-                                   i, flags, qfp.timestampValidBits,
-                                   qfp.minImageTransferGranularity);
-                             });
-
-                  return {rg2.begin(), rg2.end()};
+            auto rg2 =
+                std::views::iota(0u, qfp.queueCount) |
+                std::views::transform([&](uint32_t i) {
+                  return make_handle<Queue>(
+                      vk::raii::Queue{m_device, family, i}, family, i, flags,
+                      qfp.timestampValidBits, qfp.minImageTransferGranularity);
                 });
+
+            return {rg2.begin(), rg2.end()};
+          });
 
   return {rg.begin(), rg.end()};
 }

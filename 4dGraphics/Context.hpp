@@ -9,6 +9,7 @@
 #include "VulkanConstructs.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
+#include "CommandBuffer.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <taskflow/taskflow.hpp>
@@ -102,7 +103,7 @@ struct PerThread {
 
     // only for graphics queue as async compute/transfer are
     //   are expected to have only small number of command buffers per frame
-    //   so they can be
+    //   so they can be allocated on per queue basis
     command_buffer_manager m_command_buffer_manager;
   };
 
@@ -167,10 +168,18 @@ public:
   void next_frame();
 
   auto &executor() { return m_executor; }
-
   auto &pipeline_cache() { return m_pipeline_cache; }
 
+  // wait for all work to finish
   void cleanup();
+
+  CommandBuffer getGraphicsCommandBuffer(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary,
+    command_buffer_manager::category cat = command_buffer_manager::category::c0_100) {
+    return {
+        get_thread_frame_ctx().m_command_buffer_manager.get(level, cat),
+        *this
+    };
+  }
 
 private:
   const Instance &m_instance;

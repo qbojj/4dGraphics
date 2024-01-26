@@ -97,7 +97,7 @@ class Device {
 public:
   Device(const Instance &instance, vk::SurfaceKHR surface = {});
 
-  const auto &instance() const { return *m_instance; }
+  const auto &instance() const { return m_instance; }
   const vk::raii::PhysicalDevice &physicalDevice() const {
     return m_physicalDevice;
   }
@@ -113,9 +113,9 @@ public:
   template <vulkan_handle T, typename... Args>
   void setDebugName(const T &object, std::format_string<Args...> name,
                     Args &&...args) const {
-    if constexpr (!is_production)
+    if constexpr (is_production)
       return;
-    if (!m_instance->debugUtilsEnabled())
+    if (!instance().debugUtilsEnabled())
       return;
     
     std::string nameStr = std::format(name, std::forward<Args>(args)...);
@@ -135,6 +135,24 @@ public:
     });
   }
 
+  void beginDebugLabel(const vk::raii::CommandBuffer &commandBuffer,
+                       std::string_view name,
+                       const std::array<float,4> color = {0.f, 0.f, 0.f, 1.f}) const {
+    if constexpr (is_production)
+      return;
+    if (!instance().debugUtilsEnabled())
+      return;
+    commandBuffer.beginDebugUtilsLabelEXT({name.data(), color});
+  }
+
+  void endDebugLabel(const vk::raii::CommandBuffer &commandBuffer) const {
+    if constexpr (is_production)
+      return;
+    if (!instance().debugUtilsEnabled())
+      return;
+    commandBuffer.endDebugUtilsLabelEXT();
+  }
+
   const auto &queues() const { return m_queues; }
 
 public:
@@ -145,7 +163,7 @@ public:
   bool m_meshShader;
 
 private:
-  const Instance *m_instance;
+  const Instance &m_instance;
 
   vk::raii::PhysicalDevice m_physicalDevice;
 

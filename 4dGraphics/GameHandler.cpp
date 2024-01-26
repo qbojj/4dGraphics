@@ -27,16 +27,6 @@ namespace {
 vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
                                      SDL_Window *window) {
   VkSurfaceKHR raw_surface;
-  if (!instance.getProcAddr("vkCreateXlibSurfaceKHR")) {
-    logger.Warning("Xlib not supported");
-  }
-  if (!instance.getProcAddr("vkCreateXcbSurfaceKHR")) {
-    logger.Warning("Xcb not supported");
-  }
-  if (!instance.getProcAddr("vkCreateWaylandSurfaceKHR")) {
-    logger.Warning("Wayland not supported");
-  }
-
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE)
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
 
@@ -124,6 +114,7 @@ MyGameHandler::MyGameHandler()
   vk::ComputePipelineCreateInfo pci{{}, shader_data.get(), *pipeline_layout};
 
   pipeline = vk::raii::Pipeline{device.device(), context.pipeline_cache(), pci};
+  device.setDebugName(pipeline, "mandelbrot pipeline");
 }
 
 MyGameHandler::~MyGameHandler() { context.cleanup(); }
@@ -216,17 +207,14 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
                                             vk::ImageView view) {
   ZoneScoped;
 
-  auto cb = context.get_thread_frame_ctx().m_command_buffer_manager.get(
-      vk::CommandBufferLevel::ePrimary,
-      command_buffer_manager::category::c0_100);
-  auto ds_alloc = context.get_frame_ctx().m_ds_allocator.get_allocator();
+  auto cb = context.getGraphicsCommandBuffer();
 
   cb->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   cb->pipelineBarrier(
-      vk::PipelineStageFlagBits::eNone,
+      vk::PipelineStageFlagBits::eComputeShader,
       vk::PipelineStageFlagBits::eComputeShader, {}, {}, {},
-      vk::ImageMemoryBarrier{vk::AccessFlagBits::eNone,
+      vk::ImageMemoryBarrier{vk::AccessFlagBits::eMemoryRead,
                              vk::AccessFlagBits::eShaderWrite,
                              vk::ImageLayout::eUndefined,
                              vk::ImageLayout::eGeneral,
@@ -237,7 +225,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
 
   // render mandelbrot
   {
-    cb->beginDebugUtilsLabelEXT({"mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f}});
+    cb.beginDebugLabel("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
     cb->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
     vk::DescriptorImageInfo dii{
@@ -246,7 +234,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
         vk::ImageLayout::eGeneral,
     };
 
-    auto ds = ds_alloc.allocate(*descriptor_set_layout);
+    auto ds = cb.ds_allocator().allocate(*descriptor_set_layout);
     context.vkDevice().updateDescriptorSets(
         vk::WriteDescriptorSet{
             ds, 0, 0, vk::DescriptorType::eStorageImage, dii, {}, {}},
@@ -260,7 +248,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
     cb->dispatch(detail::AlignUp(swapchain.extent().width, 8) / 8,
                  detail::AlignUp(swapchain.extent().height, 8) / 8, 1);
 
-    cb->endDebugUtilsLabelEXT();
+    cb.endDebugLabel();
   }
 
   // render imgui
@@ -268,7 +256,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
       vk::PipelineStageFlagBits::eComputeShader,
       vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
       vk::ImageMemoryBarrier{vk::AccessFlagBits::eShaderWrite,
-                             vk::AccessFlagBits::eColorAttachmentWrite,
+                             vk::AccessFlagBits::eColorAttachmentRead,
                              vk::ImageLayout::eGeneral,
                              vk::ImageLayout::eColorAttachmentOptimal,
                              vk::QueueFamilyIgnored,
@@ -283,16 +271,16 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
 
   cb->beginRendering({{}, {{}, swapchain.extent()}, 1, 0, rai});
   {
-    cb->beginDebugUtilsLabelEXT({"imgui", {0.0f, 1.0f, 0.0f, 1.0f}});
+    cb.beginDebugLabel("imgui", {0.0f, 1.0f, 1.0f, 1.0f});
     ZoneScopedN("render imgui");
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
-    cb->endDebugUtilsLabelEXT();
+    cb.endDebugLabel();
   }
   cb->endRendering();
 
   cb->pipelineBarrier(
       vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
+      vk::PipelineStageFlagBits::eBottomOfPipe, {}, {}, {},
       vk::ImageMemoryBarrier{vk::AccessFlagBits::eColorAttachmentWrite,
                              vk::AccessFlagBits::eNone,
                              vk::ImageLayout::eColorAttachmentOptimal,
@@ -301,7 +289,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
                              vk::QueueFamilyIgnored,
                              image,
                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
-
+  
   cb->end();
 
   return *cb;
@@ -314,17 +302,18 @@ void MyGameHandler::submit(vk::CommandBuffer cb) {
 
   std::vector<vk::SemaphoreSubmitInfo> waitSSI, signalSSI;
 
+  auto sem_value = queue_g->semaphoreValue();
   waitSSI.emplace_back(*context.get_frame_ctx().m_image_ready, 0,
-                       vk::PipelineStageFlagBits2::eColorAttachmentOutput);
-  waitSSI.emplace_back(*queue_g->semaphore(), queue_g->semaphoreValue(),
-                       vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+                       vk::PipelineStageFlagBits2::eAllCommands);
+  waitSSI.emplace_back(*queue_g->semaphore(), sem_value,
+                       vk::PipelineStageFlagBits2::eAllCommands);
 
   signalSSI.emplace_back(*context.get_frame_ctx().m_render_finished, 0,
-                         vk::PipelineStageFlagBits2::eColorAttachmentOutput);
-  signalSSI.emplace_back(*queue_g->semaphore(), queue_g->semaphoreValue() + 1,
-                         vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+                         vk::PipelineStageFlagBits2::eAllCommands);
+  signalSSI.emplace_back(*queue_g->semaphore(), sem_value + 1,
+                         vk::PipelineStageFlagBits2::eAllCommands);
 
-  queue_g->setSemaphoreValue(queue_g->semaphoreValue() + 1);
+  queue_g->setSemaphoreValue(sem_value + 1);
 
   std::vector<vk::CommandBufferSubmitInfo> cbs;
   cbs.emplace_back(cb);
