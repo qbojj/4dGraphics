@@ -42,3 +42,6 @@ endif()
 
 add_subdirectory(Shaders)
 add_subdirectory(4dGraphics)
+
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT
+                                                            4dGraphics)

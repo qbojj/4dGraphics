@@ -11,6 +11,7 @@
 #include <mutex>
 #include <deque>
 #include <memory>
+#include <utility>
 
 namespace v4dg {
 enum class BindlessType : uint8_t {
@@ -20,8 +21,18 @@ enum class BindlessType : uint8_t {
   eAccelerationStructureKHR,
 };
 
+class BindlessManager;
 class BindlessResource {
 public:
+  BindlessResource() = default;
+  BindlessResource(const BindlessResource &) = delete;
+  BindlessResource(BindlessResource &&o) : m_resource(std::exchange(o.m_resource, 0)) {}
+  BindlessResource &operator=(BindlessResource o) {
+    assert(!valid() && "cannot reassign a valid BindlessResource");
+    std::swap(m_resource, o.m_resource);
+    return *this;
+  }
+
   bool valid() const {
     return m_resource != 0;
   };
@@ -39,6 +50,9 @@ public:
   auto operator<=>(const BindlessResource &) const = default;
   explicit operator bool() const { return valid(); }
   bool operator!() const { return !valid(); }
+
+  void move_out_now(BindlessManager &manager);
+  DestructionItem move_out(BindlessManager &manager);
 
 private:
   static constexpr uint32_t index_mask = (1 << 23) - 1;
@@ -75,9 +89,7 @@ private:
 
 class BindlessManager {
 public:
-  using UniqueResource = std::unique_ptr<BindlessResource, class UniqueResourceDeleter>;
-
-  BindlessManager(Handle<Device> device);
+  BindlessManager(const Device &device);
 
   const auto &get_layouts() const { return m_layouts; }
 
@@ -85,6 +97,8 @@ public:
             vk::PipelineBindPoint bind_point) const {
     cb.bindDescriptorSets(bind_point, *m_pipelineLayout, 0, m_sets, {});
   }
+
+  void free(BindlessResource res);
 
 private:
   class BindlessHeap {
@@ -105,16 +119,7 @@ private:
     std::deque<BindlessResource> m_free;
   };
 
-  class UniqueResourceDeleter {
-  public:
-    UniqueResourceDeleter(BindlessHeap *heap) : m_heap(heap) {}
-    void operator()(BindlessResource res) const;
-
-  private:
-    BindlessHeap *m_heap;
-  };
-
-  Handle<Device> m_device;
+  const Device *m_device;
   std::array<vk::raii::DescriptorSetLayout, 4> m_layouts;
   vk::raii::PipelineLayout m_pipelineLayout;
 
@@ -122,6 +127,6 @@ private:
   std::array<vk::DescriptorSet, 4> m_sets;
   std::array<BindlessHeap, 4> m_heaps;
 
-  static std::array<uint32_t, 4> calculate_sizes(Device &device);
+  static std::array<uint32_t, 4> calculate_sizes(const Device &device);
 };
 } // namespace v4dg

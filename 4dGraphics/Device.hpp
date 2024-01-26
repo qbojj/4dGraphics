@@ -58,7 +58,8 @@ using extension_storage = vk::ArrayWrapper1D<char,vk::MaxExtensionNameSize>;
 
 class Instance {
 public:
-  Instance(vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
+  Instance(vk::raii::Context context,
+    vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
 
   const vk::raii::Context &context() const { return m_context; }
   const vk::raii::Instance &instance() const { return m_instance; }
@@ -94,7 +95,7 @@ private:
 
 class Device {
 public:
-  Device(Handle<Instance> instance, vk::SurfaceKHR surface = {});
+  Device(const Instance &instance, vk::SurfaceKHR surface = {});
 
   const auto &instance() const { return *m_instance; }
   const vk::raii::PhysicalDevice &physicalDevice() const {
@@ -144,7 +145,7 @@ public:
   bool m_meshShader;
 
 private:
-  Handle<Instance> m_instance;
+  const Instance *m_instance;
 
   vk::raii::PhysicalDevice m_physicalDevice;
 

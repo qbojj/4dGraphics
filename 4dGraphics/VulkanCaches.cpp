@@ -29,7 +29,7 @@ SamplerInfo::SamplerInfo(vk::SamplerCreateFlags flags) noexcept {
   setYcbcrConversion();
 }
 
-vk::raii::Sampler SamplerInfo::create(Device *dev) const {
+vk::raii::Sampler SamplerInfo::create(const Device *dev) const {
   vk::StructureChain<vk::SamplerCreateInfo, vk::SamplerReductionModeCreateInfo,
                      vk::SamplerYcbcrConversionInfo>
       chain(sci, srmci, syci);
@@ -88,7 +88,7 @@ DescriptorSetLayoutInfo &DescriptorSetLayoutInfo::add_binding(
 }
 
 vk::raii::DescriptorSetLayout
-DescriptorSetLayoutInfo::create(Device *dev) const {
+DescriptorSetLayoutInfo::create(const Device *dev) const {
   vk::StructureChain<vk::DescriptorSetLayoutCreateInfo,
                      vk::DescriptorSetLayoutBindingFlagsCreateInfo>
       chain{
@@ -100,7 +100,7 @@ DescriptorSetLayoutInfo::create(Device *dev) const {
 }
 
 vk::raii::PipelineLayout
-PipelineLayoutInfo::create(Device *dev) const {
+PipelineLayoutInfo::create(const Device *dev) const {
   return {dev->device(), {flags, setLayouts, pushRanges}};
 }
 

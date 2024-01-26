@@ -1,6 +1,7 @@
 #include "CommandBufferManager.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace v4dg {
 command_buffer_manager::command_buffer_manager(const vk::raii::Device &dev,
@@ -28,6 +29,7 @@ command_buffer_manager::get(vk::CommandBufferLevel level, category cat) {
   size_t cmdBuffCnt = pool.buffers.size();
   size_t used = pool.used;
   if (used == cmdBuffCnt) {
+    ZoneScopedN("CommandBufferManager::get::allocate");
     pool.buffers.reserve(cmdBuffCnt + block_count);
 
     auto cbs = m_pool.getDevice().allocateCommandBuffers({*m_pool, level, block_count},

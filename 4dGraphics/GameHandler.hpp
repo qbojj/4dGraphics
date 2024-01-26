@@ -4,6 +4,7 @@
 #include "GameTickHandler.hpp"
 #include "cppHelpers.hpp"
 #include "Context.hpp"
+#include "PipelineBuilder.hpp"
 
 namespace v4dg {
 class ImGui_VulkanImpl {
@@ -22,10 +23,10 @@ public:
   int Run();
 
 private:
-  SDL_Context sdlContext{SDL_INIT_EVERYTHING};
-  Handle<Instance> instance;
+  SDL_Context sdlContext{SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER};
+  Instance instance;
   vk::raii::SurfaceKHR surface;
-  Handle<Device> device;
+  Device device;
   Context context;
   Swapchain swapchain;
   ImGui_VulkanImpl imguiVulkanImpl;
@@ -34,6 +35,15 @@ private:
   bool has_focus{true};
 
   vk::Extent2D wanted_extent{0, 0};
+
+  vk::raii::DescriptorSetLayout descriptor_set_layout;
+  vk::raii::PipelineLayout pipeline_layout;
+  vk::raii::Pipeline pipeline;
+
+  struct MandelbrotPushConstants {
+    float x, y, scale{1. / 1024};
+    uint32_t max_iter{512};
+  } mandelbrot_push_constants;
 
   void recreate_swapchain();
   uint32_t wait_for_image();

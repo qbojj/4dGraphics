@@ -5,7 +5,7 @@ project(4dGraphics)
 find_package(argparse CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(Vulkan REQUIRED)
+find_package(VulkanHeaders REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
@@ -14,9 +14,18 @@ find_package(unofficial-vulkan-memory-allocator-hpp CONFIG REQUIRED)
 find_package(Tracy CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
 
-file(GLOB 4DGSources *.cpp *.hpp *.h)
+file(GLOB SOURCES *.cpp)
+file(GLOB HEADERS *.hpp *.h)
 
-add_executable(4dGraphics WIN32 ${4DGSources})
+add_executable(4dGraphics WIN32)
+target_sources(4dGraphics
+  PRIVATE
+    ${SOURCES}
+  PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+    FILES ${HEADERS}
+  )
 
 target_precompile_headers(4dGraphics PRIVATE stdafx.hpp)
 
@@ -44,6 +53,7 @@ target_compile_definitions(
   PRIVATE WIN32_LEAN_AND_MEAN
           VK_ENABLE_BETA_EXTENSIONS=1
           VK_NO_PROTOTYPES=1
+          VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
           TRACY_ENABLE=1
           GLM_FORCE_SILENT_WARNINGS
           GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -64,8 +74,5 @@ add_custom_command(
     # $<TARGET_FILE:4dGraphics> is added to never have an empty set to copy
     $<TARGET_FILE_DIR:4dGraphics>
   COMMAND_EXPAND_LISTS)
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT
-                                                            4dGraphics)
 
 install(TARGETS 4dGraphics)

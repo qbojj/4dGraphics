@@ -1,17 +1,14 @@
 #version 460 core
-#include "bindless.glsl"
 
 layout( push_constant ) uniform constants
 {
-	dvec2 start;
-	dvec2 increment;
-    uint outImage;
+    float x, y, scale;
+    uint max_iter;
 };
 
-STORAGE_IMAGE(image2D, image2Ds, rgba8, writeonly)
+layout( set=0, binding=0, rgba8 ) uniform image2D image;
 
 layout( constant_id = 0 ) const int variant = 1;
-layout( constant_id = 1 ) const uint maxN = 512;
 
 vec3 hsv2rgb(vec3 c)
 {
@@ -22,8 +19,7 @@ vec3 hsv2rgb(vec3 c)
 
 vec4 makeColor( uint n )
 {
-    vec3 hsv = vec3( float(n) / float(maxN), 1., float( n < maxN ) );
-
+    vec3 hsv = vec3( float(n) / float(max_iter), 1., float( n < max_iter ) );
     return vec4( hsv2rgb( hsv ), 1. );
 }
 
@@ -54,7 +50,7 @@ uvec4 getLastToInfParalel( dvec4 c )
         n += uvec4( act );
         N++;
     }
-    while( any( act ) && N < maxN );
+    while( any( act ) && N < max_iter );
 
     return n;
 }
@@ -73,7 +69,7 @@ uint getLastToInf( dvec2 c )
 
         n++;
     }
-    while( dot(z, z) < minInf && n < maxN );
+    while( dot(z, z) < minInf && n < max_iter );
 
     return n;
 }
@@ -94,7 +90,7 @@ uint getLastToInfV3( dvec2 c )
 
         n++;
     }
-    while( zsq.x + zsq.y < minInf && n < maxN );
+    while( zsq.x + zsq.y < minInf && n < max_iter );
 
     return n;
 }
@@ -104,16 +100,18 @@ layout(local_size_x = 8, local_size_y = 8) in;
 void main()
 {
     ivec2 screenPos = ivec2(gl_GlobalInvocationID.xy) * (variant == 0 ? 2 : 1);
-    ivec2 texSize = imageSize(image2Ds[imageIdx(outImage)]);
+    ivec2 texSize = imageSize(image);
 
     if( any( greaterThanEqual( screenPos, texSize ) ) ) return;
 
-    dvec2 basePos = start + screenPos * increment;
+    ivec2 imageOff = screenPos - texSize / 2;
+
+    dvec2 basePos = dvec2(x, y) + imageOff * scale;
 
     if( variant == 0 )
     {
         dvec4 c = basePos.xxyy;
-        c.yw += increment;
+        c.yw += scale;
 
         uvec4 n = getLastToInfParalel( c );
 
@@ -128,9 +126,9 @@ void main()
         {
             ivec2 pos = screenPos + offsets[i];
             if( all( lessThan( pos, texSize ) ) )
-                imageStore(image2Ds[imageIdx(outImage)], pos, makeColor( n[i] ) );
+                imageStore(image, pos, makeColor( n[i] ) );
         }
     }
-    else imageStore(image2Ds[imageIdx(outImage)], screenPos, 
+    else imageStore(image, screenPos, 
         makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
 }

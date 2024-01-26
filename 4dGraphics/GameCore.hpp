@@ -19,16 +19,17 @@ public:
   ImGuiRAIIContext(ImFontAtlas *font = nullptr);
   ~ImGuiRAIIContext();
 
+  ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
+  
   ImGuiRAIIContext &operator=(ImGuiRAIIContext o) { std::swap(context, o.context); return *this; }
   operator ::ImGuiContext *() const { return context; }
 
-  ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
-  ImGuiRAIIContext &operator=(const ImGuiRAIIContext &) = delete;
 
 private:
   ::ImGuiContext *context;
 };
 
+// calls SDL_Quit() on destruction
 class SDL_GlobalContext {
 public:
   ~SDL_GlobalContext();

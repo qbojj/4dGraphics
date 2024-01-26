@@ -5,11 +5,33 @@
 
 #include <argparse/argparse.hpp>
 #include <SDL2/SDL_main.h>
+#include <tracy/Tracy.hpp>
 
 #include <cstdlib>
 #include <exception>
 #include <format>
 #include <memory>
+#include <new>
+
+#ifdef DEBUG_ALLOCATIONS
+void *operator new(std::size_t count) {
+  void *ptr = malloc(count);
+  if (!ptr)
+    throw std::bad_alloc();
+  TracyAlloc(ptr, count);
+  return ptr;
+}
+
+void operator delete(void *ptr) noexcept {
+  free(ptr);
+  TracyFree(ptr);
+}
+
+void operator delete(void *ptr, std::size_t) noexcept {
+  free(ptr);
+  TracyFree(ptr);
+}
+#endif
 
 v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways, v4dg::cerrLogReciever);
 
@@ -110,6 +132,10 @@ main(int argc, char *argv[]) {
 
   std::srand((unsigned int)std::time(NULL));
   parse_args(argc, argv);
+
+  v4dg::logger.Log("starting");
+  v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
+  v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
 
   v4dg::SDL_GlobalContext gc;
 

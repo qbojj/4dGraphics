@@ -20,7 +20,7 @@
 
 namespace v4dg {
 namespace detail {
-void hash_combine(::std::size_t &seed, ::std::size_t hash) noexcept {
+inline void hash_combine(::std::size_t &seed, ::std::size_t hash) noexcept {
   seed = ::ankerl::unordered_dense::detail::wyhash::mix(seed + hash, UINT64_C(0x5ed1dbb3b4bc2e98));
 }
 
@@ -64,7 +64,7 @@ template <> struct omni_hash<void> {
   }
 };
 
-void add_hash(::std::size_t &seed, auto &&...args) noexcept {
+inline void add_hash(::std::size_t &seed, auto &&...args) noexcept {
   (hash_combine(seed, omni_hash{}(std::forward<decltype(args)>(args))), ...);
 }
 
@@ -73,7 +73,7 @@ void add_hash(::std::size_t &seed, auto &&...args) noexcept {
 class SamplerInfo {
 public:
   using handle_type = vk::raii::Sampler;
-  using handle_data = Device *;
+  using handle_data = const Device *;
   struct hash {
     size_t operator()(const SamplerInfo &) const noexcept;
   };
@@ -144,7 +144,7 @@ public:
 
   auto operator<=>(const SamplerInfo &) const = default;
 
-  vk::raii::Sampler create(Device *) const;
+  vk::raii::Sampler create(const Device *) const;
 
 private:
   vk::SamplerCreateInfo sci;
@@ -155,7 +155,7 @@ private:
 class DescriptorSetLayoutInfo {
 public:
   using handle_type = vk::raii::DescriptorSetLayout;
-  using handle_data = Device *;
+  using handle_data = const Device *;
   struct hash {
     size_t operator()(const DescriptorSetLayoutInfo &) const noexcept;
   };
@@ -172,7 +172,7 @@ public:
 
   auto operator<=>(const DescriptorSetLayoutInfo &) const = default;
 
-  vk::raii::DescriptorSetLayout create(Device *) const;
+  vk::raii::DescriptorSetLayout create(const Device *) const;
 
 private:
   vk::DescriptorSetLayoutCreateFlags flags;
@@ -184,7 +184,7 @@ private:
 class PipelineLayoutInfo {
 public:
   using handle_type = vk::raii::PipelineLayout;
-  using handle_data = Device *;
+  using handle_data = const Device *;
   struct hash {
     size_t operator()(const PipelineLayoutInfo &) const noexcept;
   };
@@ -209,7 +209,7 @@ public:
 
   auto operator<=>(const PipelineLayoutInfo &) const = default;
 
-  vk::raii::PipelineLayout create(Device *) const;
+  vk::raii::PipelineLayout create(const Device *) const;
 
 private:
   vk::PipelineLayoutCreateFlags flags;
@@ -221,56 +221,46 @@ private:
 class RenderPassInfo {
 public:
   using handle_type = vk::raii::RenderPass;
-  using handle_data = Device *;
+  using handle_data = const Device *;
 
   RenderPassInfo(vk::RenderPassCreateFlags flags = {}) : flags(flags) {}
 
   void normalize();
-  vk::raii::RenderPass create(Device *) const;
+  vk::raii::RenderPass create(const Device *) const;
 
 private:
   vk::RenderPassCreateFlags flags;
 };
 
-// TODO
-class ShaderModuleInfo {
-public:
-  using handle_type = vk::raii::ShaderModule;
-  using handle_data = Device *;
-
-private:
-  std::filesystem::path shaderfile;
-};
-
+/*
 // TODO
 class GraphicsPipelineInfo {
 public:
   using handle_type = vk::raii::Pipeline;
-  using handle_data = Device *;
+  using handle_data = const Device *;
 };
 
 // TODO
 class ComputePipelineInfo {
 public:
   using handle_type = vk::raii::Pipeline;
-  using handle_data = Device *;
+  using handle_data = const Device *;
 };
 
 // TODO
 class RayTracingPipelineInfo {
 public:
   using handle_type = vk::raii::Pipeline;
-  using handle_data = Device *;
-  static constexpr bool b_dynamic_handle = true;
+  using handle_data = const Device *;
 };
 
 // TODO
 class SamplerYcbcrConversionInfo {
 public:
   using handle_type = vk::raii::SamplerYcbcrConversion;
-  using handle_data = Device *;
+  using handle_data = const Device *;
 };
-
+*/
 // typedef permament_handle_cache<SamplerYcbcrConversionInfo>
 // sampler_ycbcr_conversion_cache;
 typedef permament_handle_cache<SamplerInfo> sampler_cache;
@@ -279,7 +269,6 @@ typedef permament_handle_cache<SamplerInfo> sampler_cache;
 // typedef permament_handle_cache<PipelineLayoutInfo> pipeline_layout_cache;
 // typedef permament_handle_cache<RenderPassInfo> render_pass_cache;
 
-// typedef handle_cache<ShaderModuleInfo> ShaderModuleCache;
 // typedef handle_cache<GraphicsPipelineInfo> GraphicsPipelineCache;
 // typedef handle_cache<ComputePipelineInfo> ComputePipelineCache;
 // typedef handle_cache<RayTracingPipelineInfo> RayTracingPipelineCache;

@@ -1,6 +1,7 @@
 #include "GameCore.hpp"
 
 #include "Debug.hpp"
+#include "v4dgCore.hpp"
 
 #include <SDL2/SDL.h>
 #include <imgui.h>

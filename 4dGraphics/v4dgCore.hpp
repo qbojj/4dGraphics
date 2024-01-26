@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Debug.hpp"
+
 #include <array>
 #include <concepts>
 #include <cstdint>
@@ -10,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <source_location>
 
 namespace v4dg {
 #ifdef NDEBUG
@@ -18,11 +21,7 @@ constexpr bool is_debug = false;
 constexpr bool is_debug = true;
 #endif
 
-#ifdef V4DG_PRODUCTION
-constexpr bool is_production = true;
-#else
 constexpr bool is_production = false;
-#endif
 
 constexpr size_t max_frames_in_flight = 3;
 template <typename T> using per_frame = std::array<T, max_frames_in_flight>;
@@ -52,8 +51,10 @@ public:
   exception() noexcept = default;
   
   template <typename... Args>
-  explicit exception(std::format_string<Args...> fmt, Args &&...args)
-      : std::runtime_error(std::format(fmt, std::forward<Args>(args)...)) {}
+  explicit exception(Logger::format_string_with_location<Args...> fmt, Args &&...args)
+      : std::runtime_error(std::format(fmt.fmt, std::forward<Args>(args)...)) {
+        logger.Warning(fmt, std::forward<Args>(args)...);
+      }
 };
 
 } // namespace v4dg

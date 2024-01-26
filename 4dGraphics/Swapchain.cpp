@@ -121,6 +121,7 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
       m_preTransform(ci.preTransform), m_compositeAlpha(ci.compositeAlpha),
       m_imageUsage(ci.imageUsage), m_swapchain(ctx.vkDevice(), ci),
       m_images(m_swapchain.getImages()) {
+  m_imageViews.reserve(m_images.size());
   for (auto &image : m_images)
     m_imageViews.push_back(
         {ctx.vkDevice(),
@@ -129,8 +130,7 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
           vk::ImageViewType::e2D,
           m_format,
           {},
-          {vk::ImageAspectFlagBits::eColor, 0, vk::RemainingMipLevels, 0,
-           vk::RemainingArrayLayers}}});
+          {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
 }
 
 DestructionItem Swapchain::move_out() {

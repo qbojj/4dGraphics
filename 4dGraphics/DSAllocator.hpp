@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <optional>
 
 namespace v4dg {
 
@@ -21,25 +22,60 @@ public:
   DSAllocator(DSAllocatorPool &owner);
   ~DSAllocator();
 
-  std::vector<vk::DescriptorSet>
+  template<typename A = std::allocator<vk::DescriptorSet>>
+  std::vector<vk::DescriptorSet, A>
   allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
-           std::span<const uint32_t> descriptorCounts = {});
+           std::span<const uint32_t> descriptorCounts = {},
+           const A &alloc = {}) {
+    std::vector<vk::DescriptorSet, A> out(setLayouts.size(), {}, alloc);
+    allocate_internal(setLayouts, descriptorCounts, out);
+    return out;
+  }
+  
+  vk::DescriptorSet
+  allocate(vk::DescriptorSetLayout setLayout,
+           std::optional<uint32_t> descriptorCount = {}) {
+    vk::DescriptorSet out{};
+    std::span<const uint32_t> descriptorCounts{};
+    if (descriptorCount)
+      descriptorCounts = {{*descriptorCount}};
+    allocate_internal({{setLayout}}, descriptorCounts, {&out,1});
+    return out;
+  }
 
 private:
+  void allocate_internal(std::span<const vk::DescriptorSetLayout> setLayouts,
+                         std::span<const uint32_t> descriptorCounts,
+                         std::span<vk::DescriptorSet> out);
   DSAllocatorPool *m_owner;
   vk::raii::DescriptorPool m_pool;
 };
 
+struct DSAllocatorWeights{
+  struct DescriptorWieght{
+    vk::DescriptorType type;
+    float weight;
+  };
+
+  std::vector<DescriptorWieght> m_weights{};
+
+  // data weight is in m_weights
+  float m_inlineUniformBindingWeight{0.0f};
+
+  std::vector<std::vector<vk::DescriptorType>> m_mutableTypeLists{};
+
+  vk::raii::DescriptorPool create(const vk::raii::Device &device,
+                                  std::uint32_t maxSets,
+                                  vk::DescriptorPoolCreateFlags flags = {}) const;
+};
+
 class DSAllocatorPool {
 public:
-  DSAllocatorPool(Handle<Device> device,
-                  std::shared_ptr<vk::DescriptorPoolCreateInfo> createInfo,
-                  std::uint32_t framesInFlight = max_frames_in_flight);
+  DSAllocatorPool(const vk::raii::Device &device,
+                  DSAllocatorWeights weights);
 
   void advance_frame(vk::Bool32 trim = vk::False,
                      vk::DescriptorPoolResetFlags ResetFlags = {});
-
-  void set_frames_in_flight(std::uint32_t framesInFlight);
 
   DSAllocator get_allocator() { return {*this}; }
 
@@ -59,17 +95,13 @@ private:
     dpvec full;
   };
 
-  Handle<Device> m_device;
-  std::shared_ptr<vk::DescriptorPoolCreateInfo> m_createInfo;
+  const vk::raii::Device &m_device;
+  DSAllocatorWeights m_weights;
 
   std::mutex m_mut;
   std::uint32_t m_frameIdx{0};
 
-  std::uint32_t m_framesInFlight;
-  per_frame<frame_storage> m_perFramePools;
+  per_frame<frame_storage> m_perFramePools; // destruction queue
   dpvec m_cleanPools;
-
-  // stats (10 frame moving average)
-  std::uint32_t m_totalPools, m_allUsedPools;
 };
 } // namespace v4dg

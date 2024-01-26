@@ -17,8 +17,8 @@
 #include <span>
 #include <string>
 
+namespace v4dg {
 namespace {
-using namespace v4dg;
 vk::Bool32
 debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
                     vk::DebugUtilsMessageTypeFlagsEXT types,
@@ -142,9 +142,9 @@ auto transform_to_ext_storage = std::views::transform([](const auto &ext) {
 });
 } // namespace
 
-namespace v4dg {
-Instance::Instance(vk::Optional<const vk::AllocationCallbacks> allocator)
-    : m_context(), m_maxApiVer(vk::ApiVersion13),
+Instance::Instance(vk::raii::Context context,
+  vk::Optional<const vk::AllocationCallbacks> allocator)
+    : m_context(std::move(context)), m_maxApiVer(vk::ApiVersion13),
       m_apiVer(std::min(m_maxApiVer, m_context.enumerateInstanceVersion())),
       m_layers(chooseLayers()), m_extensions(chooseExtensions()),
       m_debugUtilsEnabled(
@@ -177,7 +177,6 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
 
   std::vector<std::string_view> requiredInstanceExts = {
       VK_KHR_SURFACE_EXTENSION_NAME,
-      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
       VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
       VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
   };
@@ -272,8 +271,8 @@ vk::DebugUtilsMessengerCreateInfoEXT Instance::debugMessengerCreateInfo() {
           &debugMessageFunc};
 }
 
-Device::Device(Handle<Instance> instance, vk::SurfaceKHR surface)
-    : m_instance(std::move(instance)),
+Device::Device(const Instance &instance, vk::SurfaceKHR surface)
+    : m_instance(&instance),
       m_physicalDevice(choosePhysicalDevice(surface)),
       m_apiVer(std::min(m_instance->maxApiVer(),
                         m_physicalDevice.getProperties().apiVersion)),
@@ -336,7 +335,8 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd,
 
   std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+      VK_KHR_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_EXTENSION_NAME,
   };
 
   auto exts = enumerateExtensions(pd);
@@ -414,12 +414,14 @@ std::vector<extension_storage> Device::chooseExtensions() const {
 
   std::array requiredExtensions{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+      VK_KHR_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_EXTENSION_NAME,
   };
 
   std::array wantedExtensions{
       VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
       VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
+      VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
   };
 
   auto avaiable_exts = enumerateExtensions(m_physicalDevice);
@@ -447,45 +449,42 @@ Device::chooseFeatures() const {
   auto &feature_chain = *all_features;
 
   feature_chain.get<vk::PhysicalDeviceFeatures2>()
-      .features.setFullDrawIndexUint32(vk::True)
+      .features
+
+      .setShaderFloat64(vk::True)
+
+      // VK_KHR_roadmap_2022
+      .setFullDrawIndexUint32(vk::True)
+      .setImageCubeArray(vk::True)
+      .setIndependentBlend(vk::True)
       .setSampleRateShading(vk::True)
-
+      .setDrawIndirectFirstInstance(vk::True)
+      .setDepthClamp(vk::True)
+      .setDepthBiasClamp(vk::True)
       .setSamplerAnisotropy(vk::True)
-
-      .setVertexPipelineStoresAndAtomics(vk::True)
+      .setOcclusionQueryPrecise(vk::True)
       .setFragmentStoresAndAtomics(vk::True)
-
       .setShaderStorageImageExtendedFormats(vk::True)
-
       .setShaderUniformBufferArrayDynamicIndexing(vk::True)
       .setShaderSampledImageArrayDynamicIndexing(vk::True)
       .setShaderStorageBufferArrayDynamicIndexing(vk::True)
       .setShaderStorageImageArrayDynamicIndexing(vk::True)
-
-      .setShaderResourceMinLod(vk::True);
+      
+      // VK_KHR_roadmap_2024
+      .setMultiDrawIndirect(vk::True)
+      .setShaderImageGatherExtended(vk::True)
+      .setShaderInt16(vk::True)
+      ;
 
   feature_chain.get<vk::PhysicalDeviceVulkan11Features>()
-      .setShaderDrawParameters(vk::True);
+      // VK_KHR_roadmap_2022
+      // VK_KHR_roadmap_2024
+      .setShaderDrawParameters(vk::True)
+      .setStorageBuffer16BitAccess(vk::True)
+      ;
 
   feature_chain.get<vk::PhysicalDeviceVulkan12Features>()
-      .setShaderInputAttachmentArrayDynamicIndexing(vk::True)
-      .setShaderUniformTexelBufferArrayDynamicIndexing(vk::True)
-      .setShaderStorageTexelBufferArrayDynamicIndexing(vk::True)
-
-      .setShaderUniformBufferArrayNonUniformIndexing(vk::True)
-      .setShaderSampledImageArrayNonUniformIndexing(vk::True)
-      .setShaderStorageBufferArrayNonUniformIndexing(vk::True)
-      .setShaderStorageImageArrayNonUniformIndexing(vk::True)
-      .setShaderInputAttachmentArrayNonUniformIndexing(vk::True)
-      .setShaderUniformTexelBufferArrayNonUniformIndexing(vk::True)
-      .setShaderStorageTexelBufferArrayNonUniformIndexing(vk::True)
-
-      .setDescriptorBindingUpdateUnusedWhilePending(vk::True)
-      .setDescriptorBindingPartiallyBound(vk::True)
-      .setDescriptorBindingVariableDescriptorCount(vk::True)
-      .setRuntimeDescriptorArray(vk::True)
-
-      .setScalarBlockLayout(vk::True)
+      // 1.2 required
       .setUniformBufferStandardLayout(vk::True)
 
       .setShaderSubgroupExtendedTypes(vk::True)
@@ -498,9 +497,40 @@ Device::chooseFeatures() const {
       // 1.3 required
       .setBufferDeviceAddress(vk::True)
       .setVulkanMemoryModel(vk::True)
-      .setVulkanMemoryModelDeviceScope(vk::True);
+      .setVulkanMemoryModelDeviceScope(vk::True)
+
+      // VK_KHR_roadmap_2022
+      .setSamplerMirrorClampToEdge(vk::True)
+      .setDescriptorIndexing(vk::True)
+      .setShaderUniformTexelBufferArrayDynamicIndexing(vk::True)
+      .setShaderStorageTexelBufferArrayDynamicIndexing(vk::True)
+
+      .setShaderUniformBufferArrayNonUniformIndexing(vk::True)
+      .setShaderSampledImageArrayNonUniformIndexing(vk::True)
+      .setShaderStorageBufferArrayNonUniformIndexing(vk::True)
+      .setShaderStorageImageArrayNonUniformIndexing(vk::True)
+      .setShaderUniformTexelBufferArrayNonUniformIndexing(vk::True)
+      .setShaderStorageTexelBufferArrayNonUniformIndexing(vk::True)
+
+      .setDescriptorBindingSampledImageUpdateAfterBind(vk::True)
+      .setDescriptorBindingStorageImageUpdateAfterBind(vk::True)
+      .setDescriptorBindingStorageBufferUpdateAfterBind(vk::True)
+      .setDescriptorBindingUniformTexelBufferUpdateAfterBind(vk::True)
+      .setDescriptorBindingStorageTexelBufferUpdateAfterBind(vk::True)
+
+      .setDescriptorBindingUpdateUnusedWhilePending(vk::True)
+      .setDescriptorBindingPartiallyBound(vk::True)
+      .setDescriptorBindingVariableDescriptorCount(vk::True)
+      .setRuntimeDescriptorArray(vk::True)
+      .setScalarBlockLayout(vk::True)
+
+      // VK_KHR_roadmap_2024
+      .setShaderInt8(vk::True)
+      .setShaderFloat16(vk::True)
+      .setStorageBuffer8BitAccess(vk::True);
 
   feature_chain.get<vk::PhysicalDeviceVulkan13Features>()
+      // Vulkan 1.3 required
       .setInlineUniformBlock(vk::True)
 
       .setShaderDemoteToHelperInvocation(vk::True)

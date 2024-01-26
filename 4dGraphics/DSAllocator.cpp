@@ -17,26 +17,24 @@ namespace v4dg {
 DSAllocator::DSAllocator(DSAllocatorPool &owner) : m_owner(&owner), m_pool(nullptr) {}
 DSAllocator::~DSAllocator() { m_owner->ret_allocator(std::move(m_pool)); }
 
-std::vector<vk::DescriptorSet>
-DSAllocator::allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
-                      std::span<const uint32_t> descriptorCounts) {
+void 
+DSAllocator::allocate_internal(std::span<const vk::DescriptorSetLayout> setLayouts,
+                      std::span<const uint32_t> descriptorCounts,
+                      std::span<vk::DescriptorSet> out) {
   assert(m_owner);
 
   if (!descriptorCounts.empty() && descriptorCounts.size() != setLayouts.size())
     throw std::invalid_argument("v4dg::DSAllocator::allocate: "
                                 "descriptorCounts.size() != setLayouts.size()");
 
-  std::vector<vk::DescriptorSet> out(setLayouts.size());
-
-  vk::Result res{};
-
+  if (!*m_pool)
+    m_pool = m_owner->get_new_pool();
+  
   auto device = m_pool.getDevice();
   auto *disp = m_pool.getDispatcher();
 
-  if (!*m_pool)
-    m_pool = m_owner->get_new_pool();
-
-  for (uint32_t i = 0; i < 64; i++) {
+  vk::Result res{};
+  for (uint32_t i = 0; i < 256; i++) {
     vk::StructureChain<vk::DescriptorSetAllocateInfo,
                        vk::DescriptorSetVariableDescriptorCountAllocateInfo>
         createInfo{{*m_pool, setLayouts}, {descriptorCounts}};
@@ -44,7 +42,7 @@ DSAllocator::allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
     res = device.allocateDescriptorSets(&createInfo.get<>(), out.data(), *disp);
 
     if (res == vk::Result::eSuccess)
-      return out;
+      return;
 
     // is it out of pool memory error?
     vk::resultCheck(
@@ -57,56 +55,54 @@ DSAllocator::allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
 
   // we failed multiple times. something is very wrong.
   vk::resultCheck(res, "v4dg::DSAllocator::allocate");
-  assert(0);
-  return {};
+  assert(false);
+}
+
+vk::raii::DescriptorPool
+DSAllocatorWeights::create(const vk::raii::Device &device,
+                           std::uint32_t maxSets,
+                           vk::DescriptorPoolCreateFlags flags) const {
+  auto to_count = [&](float weight) {
+    return static_cast<uint32_t>(weight * maxSets);
+  };
+
+  std::vector<vk::DescriptorPoolSize> sizes{};
+  sizes.reserve(m_weights.size());
+  for (const auto &weight : m_weights)
+    sizes.emplace_back(weight.type, to_count(weight.weight));
+  
+  std::vector<vk::MutableDescriptorTypeListVALVE> mutableTypeLists{};
+  mutableTypeLists.reserve(m_mutableTypeLists.size());
+  for (const auto &list : m_mutableTypeLists)
+    mutableTypeLists.emplace_back(list);
+
+  vk::StructureChain<vk::DescriptorPoolCreateInfo,
+                     vk::DescriptorPoolInlineUniformBlockCreateInfo,
+                     vk::MutableDescriptorTypeCreateInfoEXT> chain{
+                      {flags, maxSets, sizes},
+                      {to_count(m_inlineUniformBindingWeight)},
+                      {mutableTypeLists}
+                     };
+  
+  if (m_inlineUniformBindingWeight == 0.0f)
+    chain.unlink<vk::DescriptorPoolInlineUniformBlockCreateInfo>();
+  
+  if (mutableTypeLists.empty())
+    chain.unlink<vk::MutableDescriptorTypeCreateInfoEXT>();
+
+  return {device, chain.get<>()};
 }
 
 DSAllocatorPool::DSAllocatorPool(
-    Handle<Device> device,
-    std::shared_ptr<vk::DescriptorPoolCreateInfo> createInfo,
-    std::uint32_t framesInFlight)
-    : m_device(std::move(device)), m_createInfo(std::move(createInfo)),
-      m_framesInFlight(0) {
-  set_frames_in_flight(framesInFlight);
-}
-
-void DSAllocatorPool::set_frames_in_flight(std::uint32_t framesInFlight) {
-  if (framesInFlight > max_frames_in_flight)
-    throw std::invalid_argument("v4dg::DSAllocatorPool::set_frames_in_flight: "
-                                "framesInFlight > max_frames_in_flight");
-
-  std::unique_lock lock(m_mut);
-
-  if (framesInFlight == m_framesInFlight)
-    return;
-
-  // reorder pools as if they started from the current frame
-  if (m_frameIdx != 0) {
-    std::rotate(m_perFramePools.begin(), m_perFramePools.begin() + m_frameIdx,
-                m_perFramePools.begin() + framesInFlight);
-    m_frameIdx = 0;
-  }
-
-  // move pools after the new framesInFlight to current (must wait the longest)
-  auto &dst = m_perFramePools.front();
-
-  for (std::uint32_t i = framesInFlight; i < m_framesInFlight; i++) {
-    frame_storage &storage = m_perFramePools[i];
-    for (auto &pool : storage.usable)
-      dst.usable.emplace_back(std::move(pool));
-    for (auto &pool : storage.full)
-      dst.full.emplace_back(std::move(pool));
-
-    storage.usable.clear();
-    storage.full.clear();
-  }
-
-  m_framesInFlight = framesInFlight;
-}
+    const vk::raii::Device &device,
+    DSAllocatorWeights weights)
+    : m_device(device), m_weights(std::move(weights)) {}
 
 void DSAllocatorPool::advance_frame(vk::Bool32 trim,
                                     vk::DescriptorPoolResetFlags ResetFlags) {
   std::unique_lock lock(m_mut);
+
+  m_frameIdx = (m_frameIdx + 1) % max_frames_in_flight;
 
   if (trim)
     m_cleanPools.clear();
@@ -162,7 +158,7 @@ vk::raii::DescriptorPool DSAllocatorPool::get_new_pool_internal() {
     pool = std::move(m_cleanPools.back());
     m_cleanPools.pop_back();
   } else {
-    pool = m_device->device().createDescriptorPool(*m_createInfo);
+    pool = m_weights.create(m_device, 1024 * 2);
   }
 
   return pool;

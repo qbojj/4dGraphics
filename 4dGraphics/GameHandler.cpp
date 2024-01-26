@@ -4,6 +4,7 @@
 #include "Debug.hpp"
 #include "Device.hpp"
 #include "Swapchain.hpp"
+#include "VulkanCaches.hpp"
 #include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.h>
@@ -26,6 +27,16 @@ namespace {
 vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
                                      SDL_Window *window) {
   VkSurfaceKHR raw_surface;
+  if (!instance.getProcAddr("vkCreateXlibSurfaceKHR")) {
+    logger.Warning("Xlib not supported");
+  }
+  if (!instance.getProcAddr("vkCreateXcbSurfaceKHR")) {
+    logger.Warning("Xcb not supported");
+  }
+  if (!instance.getProcAddr("vkCreateWaylandSurfaceKHR")) {
+    logger.Warning("Wayland not supported");
+  }
+
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE)
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
 
@@ -78,10 +89,10 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 
 MyGameHandler::MyGameHandler()
-    : GameEngine(), instance(make_handle<Instance>()),
-      surface(sdl_get_surface(instance->instance(), m_window)),
-      device(make_handle<Device>(instance, *surface)),
-      context(instance, device),
+    : GameEngine(), instance(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+                        SDL_Vulkan_GetVkGetInstanceProcAddr())),
+      surface(sdl_get_surface(instance.instance(), m_window)),
+      device(instance, *surface), context(device),
       swapchain(SwapchainBuilder{
           .surface = *surface,
           .preferred_present_mode = vk::PresentModeKHR::eMailbox,
@@ -91,9 +102,31 @@ MyGameHandler::MyGameHandler()
           .image_count = 3,
       }
                     .build(context)),
-      imguiVulkanImpl(swapchain, context) {}
+      imguiVulkanImpl(swapchain, context),
+      descriptor_set_layout(DescriptorSetLayoutInfo()
+                                .add_binding(0,
+                                             vk::DescriptorType::eStorageImage,
+                                             vk::ShaderStageFlagBits::eCompute)
+                                .create(&device)),
+      pipeline_layout(PipelineLayoutInfo()
+                          .add_set(*descriptor_set_layout)
+                          .add_push({vk::ShaderStageFlagBits::eCompute, 0u,
+                                     sizeof(MandelbrotPushConstants)})
+                          .create(&device)),
+      pipeline(nullptr) {
 
-MyGameHandler::~MyGameHandler() {}
+  auto shader =
+      load_shader_module("Shaders/Mandelbrot.comp.spv", device.device());
+  if (!shader)
+    throw exception("Could not load shader module");
+
+  ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, **shader);
+  vk::ComputePipelineCreateInfo pci{{}, shader_data.get(), *pipeline_layout};
+
+  pipeline = vk::raii::Pipeline{device.device(), context.pipeline_cache(), pci};
+}
+
+MyGameHandler::~MyGameHandler() { context.cleanup(); }
 
 void MyGameHandler::recreate_swapchain() {
   auto builder = swapchain.recreate_builder();
@@ -168,6 +201,14 @@ void MyGameHandler::gui() {
   ImGui::ShowDemoWindow();
   ImGui::ShowMetricsWindow();
 
+  ImGui::Begin("Mandelbrot");
+  ImGui::SliderFloat("x", &mandelbrot_push_constants.x, -2.0f, 2.0f);
+  ImGui::SliderFloat("y", &mandelbrot_push_constants.y, -2.0f, 2.0f);
+  ImGui::SliderFloat("scale", &mandelbrot_push_constants.scale, 0.0f, 4.0f);
+  ImGui::SliderInt("max iter", (int *)&mandelbrot_push_constants.max_iter, 0,
+                   1000);
+  ImGui::End();
+
   ImGui::Render();
 }
 
@@ -178,19 +219,57 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
   auto cb = context.get_thread_frame_ctx().m_command_buffer_manager.get(
       vk::CommandBufferLevel::ePrimary,
       command_buffer_manager::category::c0_100);
-
-  TracyMessageL("command buffer acquired");
+  auto ds_alloc = context.get_frame_ctx().m_ds_allocator.get_allocator();
 
   cb->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  TracyMessageL("command buffer begin");
-
   cb->pipelineBarrier(
-      vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
+      vk::PipelineStageFlagBits::eNone,
+      vk::PipelineStageFlagBits::eComputeShader, {}, {}, {},
       vk::ImageMemoryBarrier{vk::AccessFlagBits::eNone,
-                             vk::AccessFlagBits::eColorAttachmentWrite,
+                             vk::AccessFlagBits::eShaderWrite,
                              vk::ImageLayout::eUndefined,
+                             vk::ImageLayout::eGeneral,
+                             vk::QueueFamilyIgnored,
+                             vk::QueueFamilyIgnored,
+                             image,
+                             {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
+
+  // render mandelbrot
+  {
+    cb->beginDebugUtilsLabelEXT({"mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f}});
+    cb->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+
+    vk::DescriptorImageInfo dii{
+        {},
+        view,
+        vk::ImageLayout::eGeneral,
+    };
+
+    auto ds = ds_alloc.allocate(*descriptor_set_layout);
+    context.vkDevice().updateDescriptorSets(
+        vk::WriteDescriptorSet{
+            ds, 0, 0, vk::DescriptorType::eStorageImage, dii, {}, {}},
+        {});
+
+    cb->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipeline_layout, 0,
+                           ds, {});
+    cb->pushConstants<MandelbrotPushConstants>(
+        *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
+        mandelbrot_push_constants);
+    cb->dispatch(detail::AlignUp(swapchain.extent().width, 8) / 8,
+                 detail::AlignUp(swapchain.extent().height, 8) / 8, 1);
+
+    cb->endDebugUtilsLabelEXT();
+  }
+
+  // render imgui
+  cb->pipelineBarrier(
+      vk::PipelineStageFlagBits::eComputeShader,
+      vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
+      vk::ImageMemoryBarrier{vk::AccessFlagBits::eShaderWrite,
+                             vk::AccessFlagBits::eColorAttachmentWrite,
+                             vk::ImageLayout::eGeneral,
                              vk::ImageLayout::eColorAttachmentOptimal,
                              vk::QueueFamilyIgnored,
                              vk::QueueFamilyIgnored,
@@ -199,13 +278,15 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
 
   vk::RenderingAttachmentInfo rai(
       view, vk::ImageLayout::eColorAttachmentOptimal,
-      vk::ResolveModeFlagBits::eNone, {}, {}, vk::AttachmentLoadOp::eClear,
+      vk::ResolveModeFlagBits::eNone, {}, {}, vk::AttachmentLoadOp::eLoad,
       vk::AttachmentStoreOp::eStore, {}, {});
 
   cb->beginRendering({{}, {{}, swapchain.extent()}, 1, 0, rai});
   {
+    cb->beginDebugUtilsLabelEXT({"imgui", {0.0f, 1.0f, 0.0f, 1.0f}});
     ZoneScopedN("render imgui");
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
+    cb->endDebugUtilsLabelEXT();
   }
   cb->endRendering();
 
@@ -213,7 +294,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
       vk::PipelineStageFlagBits::eColorAttachmentOutput,
       vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
       vk::ImageMemoryBarrier{vk::AccessFlagBits::eColorAttachmentWrite,
-                             vk::AccessFlagBits::eMemoryRead,
+                             vk::AccessFlagBits::eNone,
                              vk::ImageLayout::eColorAttachmentOptimal,
                              vk::ImageLayout::ePresentSrcKHR,
                              vk::QueueFamilyIgnored,
@@ -260,11 +341,15 @@ void MyGameHandler::present(uint32_t image_idx) {
   auto &queue = queue_g->queue()->lock(lock);
 
   try {
-    (void)queue.presentKHR({
+    vk::Result res = queue.presentKHR({
         *context.get_frame_ctx().m_render_finished,
         *swapchain.swapchain(),
         image_idx,
     });
+    if (res == vk::Result::eSuboptimalKHR) {
+      logger.Debug("Recreating swapchain (suboptimal)");
+      recreate_swapchain();
+    }
   } catch (const vk::OutOfDateKHRError &e) {
     // ignore as if we wanted to use the swapchain once more
     //  we will recreate it on acquire
@@ -282,11 +367,12 @@ int MyGameHandler::Run() {
     last_frame = now;
 
     (void)delta;
-    
+
     if (!has_focus) // Don't waste CPU time when not focused
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-    FrameMark;
+    static const char *ZoneFrameMark = "frame";
+    FrameMarkStart(ZoneFrameMark);
 
     {
       ZoneScopedN("advance frame");
@@ -319,10 +405,8 @@ int MyGameHandler::Run() {
 
     context.executor().run(tf).wait();
     present(image_idx);
+    FrameMarkEnd(ZoneFrameMark);
   }
-
-  context.executor().wait_for_all();
-  context.vkDevice().waitIdle();
 
   return 0;
 }

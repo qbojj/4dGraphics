@@ -6,16 +6,11 @@
 #include <fstream>
 #include <system_error>
 
-std::string GetFileString(std::string_view pth, bool binary) {
-  if (pth.data()[pth.size()] != '\0')
-    throw std::invalid_argument("path must be null-terminated");
+namespace v4dg::detail {
+std::optional<std::string> GetStreamString(std::istream &file, bool binary) {
+  if (!file)
+    return std::nullopt;
   
-  std::ifstream file;
-  using ib = std::ios_base;
-
-  file.exceptions(ib::failbit | ib::badbit);
-  file.open(pth.data(), binary ? ib::in | ib::binary : ib::in);
-
   file.seekg(0, file.end);
   auto length = file.tellg();
   file.seekg(0, file.beg);
@@ -35,7 +30,12 @@ std::string GetFileString(std::string_view pth, bool binary) {
     }
   }
 
-  std::string buffer(length, '\0');
-  file.read(buffer.data(), length);
-  return buffer;
+  std::string s;
+  s.resize_and_overwrite(length, [&](char *buf, std::size_t len) {
+    file.read(buf, len);
+    return file.gcount();
+  });
+
+  return s;
 }
+} // namespace v4dg::detail

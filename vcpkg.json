@@ -21,7 +21,7 @@
     "stb",
     "taskflow",
     "tracy",
-    "vulkan",
+    "vulkan-headers",
     "vulkan-memory-allocator-hpp",
     "unordered-dense",
     "shaderc"

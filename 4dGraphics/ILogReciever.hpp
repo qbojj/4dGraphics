@@ -1,7 +1,5 @@
 #pragma once
 
-#include "v4dgCore.hpp"
-
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
