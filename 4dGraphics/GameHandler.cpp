@@ -72,6 +72,10 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
       .CheckVkResultFn = {},
   };
 
+  ImGui_ImplVulkan_LoadFunctions(
+      [](const char *name, void *user) {
+        return static_cast<Context*>(user)->vkInstance().getProcAddr(name);
+      }, &ctx);
   if (!ImGui_ImplVulkan_Init(&ii, {}))
     throw exception("Could not init imgui vulkan backend");
 }
@@ -79,8 +83,8 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 
 MyGameHandler::MyGameHandler()
-    : GameEngine(), instance(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
-                        SDL_Vulkan_GetVkGetInstanceProcAddr())),
+    : GameEngine(), instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+                        SDL_Vulkan_GetVkGetInstanceProcAddr()))),
       surface(sdl_get_surface(instance.instance(), m_window)),
       device(instance, *surface), context(device),
       swapchain(SwapchainBuilder{
@@ -103,18 +107,26 @@ MyGameHandler::MyGameHandler()
                           .add_push({vk::ShaderStageFlagBits::eCompute, 0u,
                                      sizeof(MandelbrotPushConstants)})
                           .create(&device)),
-      pipeline(nullptr) {
+      pipeline({nullptr, nullptr, nullptr}) {
 
   auto shader =
       load_shader_module("Shaders/Mandelbrot.comp.spv", device.device());
   if (!shader)
     throw exception("Could not load shader module");
 
-  ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, **shader);
-  vk::ComputePipelineCreateInfo pci{{}, shader_data.get(), *pipeline_layout};
+  for (int variant = 0; variant < 3; variant++) {
+    ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, **shader);
+    shader_data.add_specialization(0, variant);
+    vk::ComputePipelineCreateInfo pci{
+        {},
+        shader_data.get(),
+        *pipeline_layout,
+    };
 
-  pipeline = vk::raii::Pipeline{device.device(), context.pipeline_cache(), pci};
-  device.setDebugName(pipeline, "mandelbrot pipeline");
+    pipeline[variant] = {
+      device.device(), context.pipeline_cache(), pci};
+    device.setDebugName(pipeline[variant], "mandelbrot pipeline ({})", variant);
+  }
 }
 
 MyGameHandler::~MyGameHandler() { context.cleanup(); }
@@ -193,12 +205,44 @@ void MyGameHandler::gui() {
   ImGui::ShowMetricsWindow();
 
   ImGui::Begin("Mandelbrot");
-  ImGui::SliderFloat("x", &mandelbrot_push_constants.x, -2.0f, 2.0f);
-  ImGui::SliderFloat("y", &mandelbrot_push_constants.y, -2.0f, 2.0f);
-  ImGui::SliderFloat("scale", &mandelbrot_push_constants.scale, 0.0f, 4.0f);
-  ImGui::SliderInt("max iter", (int *)&mandelbrot_push_constants.max_iter, 0,
-                   1000);
+  ImGui::SliderInt("variant", &current_pipeline, 0, 2);
+  ImGui::Text("center: %f %f", mandelbrot_push_constants.center.x,
+              mandelbrot_push_constants.center.y);
+  ImGui::Text("scale: %f", mandelbrot_push_constants.scale);
   ImGui::End();
+
+  auto &io = ImGui::GetIO();
+  if (!io.WantCaptureMouse) {
+    // move mandelbrot
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+      auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+      mandelbrot_push_constants.center -=
+          glm::dvec2(delta.x, delta.y) * mandelbrot_push_constants.scale;
+      ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+    }
+
+    // zoom mandelbrot
+    if (ImGui::GetIO().MouseWheel != 0) {
+      auto delta = ImGui::GetIO().MouseWheel;
+
+      // zoom into mouse position (position under the mouse stays the same)
+      auto mouse_pos = ImGui::GetMousePos();
+
+      auto mouse_center_rel = glm::dvec2(mouse_pos.x, mouse_pos.y) - 
+          glm::dvec2(swapchain.extent().width, swapchain.extent().height) / 2.0;
+
+      auto world_pos = mandelbrot_push_constants.center + mouse_center_rel * mandelbrot_push_constants.scale;
+      
+      // fractal so exponential zoom
+      double scale = mandelbrot_push_constants.scale;
+      double new_scale = scale * std::pow(1.1, (double)delta);
+
+      auto new_center = world_pos - mouse_center_rel * new_scale;
+
+      mandelbrot_push_constants.center = new_center;
+      mandelbrot_push_constants.scale = new_scale;
+    }
+  }
 
   ImGui::Render();
 }
@@ -214,7 +258,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
   cb->pipelineBarrier(
       vk::PipelineStageFlagBits::eComputeShader,
       vk::PipelineStageFlagBits::eComputeShader, {}, {}, {},
-      vk::ImageMemoryBarrier{vk::AccessFlagBits::eMemoryRead,
+      vk::ImageMemoryBarrier{vk::AccessFlagBits::eNone,
                              vk::AccessFlagBits::eShaderWrite,
                              vk::ImageLayout::eUndefined,
                              vk::ImageLayout::eGeneral,
@@ -226,7 +270,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
   // render mandelbrot
   {
     cb.beginDebugLabel("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
-    cb->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+    cb->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline[current_pipeline]);
 
     vk::DescriptorImageInfo dii{
         {},
@@ -245,8 +289,10 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
     cb->pushConstants<MandelbrotPushConstants>(
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
-    cb->dispatch(detail::AlignUp(swapchain.extent().width, 8) / 8,
-                 detail::AlignUp(swapchain.extent().height, 8) / 8, 1);
+      
+    auto div = 8 * (current_pipeline == 0 ? 2 : 1);
+    cb->dispatch(detail::AlignUp(swapchain.extent().width, div) / div,
+                 detail::AlignUp(swapchain.extent().height, div) / div, 1);
 
     cb.endDebugLabel();
   }
@@ -289,7 +335,7 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
                              vk::QueueFamilyIgnored,
                              image,
                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
-  
+
   cb->end();
 
   return *cb;
@@ -304,14 +350,12 @@ void MyGameHandler::submit(vk::CommandBuffer cb) {
 
   auto sem_value = queue_g->semaphoreValue();
   waitSSI.emplace_back(*context.get_frame_ctx().m_image_ready, 0,
-                       vk::PipelineStageFlagBits2::eAllCommands);
-  waitSSI.emplace_back(*queue_g->semaphore(), sem_value,
-                       vk::PipelineStageFlagBits2::eAllCommands);
+                       vk::PipelineStageFlagBits2::eComputeShader);
 
   signalSSI.emplace_back(*context.get_frame_ctx().m_render_finished, 0,
-                         vk::PipelineStageFlagBits2::eAllCommands);
+                         vk::PipelineStageFlagBits2::eBottomOfPipe);
   signalSSI.emplace_back(*queue_g->semaphore(), sem_value + 1,
-                         vk::PipelineStageFlagBits2::eAllCommands);
+                         vk::PipelineStageFlagBits2::eBottomOfPipe);
 
   queue_g->setSemaphoreValue(sem_value + 1);
 

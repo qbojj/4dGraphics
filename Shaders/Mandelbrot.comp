@@ -2,13 +2,15 @@
 
 layout( push_constant ) uniform constants
 {
-    float x, y, scale;
-    uint max_iter;
+    double x, y, scale;
+    //uint max_iter;
 };
+
+const int max_iter = 512;
 
 layout( set=0, binding=0, rgba8 ) uniform image2D image;
 
-layout( constant_id = 0 ) const int variant = 1;
+layout( constant_id = 0 ) const int variant = 2;
 
 vec3 hsv2rgb(vec3 c)
 {
@@ -25,7 +27,7 @@ vec4 makeColor( uint n )
 
 uvec4 getLastToInfParalel( dvec4 c )
 {
-    const dvec4 minInf = dvec4( 16. );
+    const dvec4 minInf = dvec4( 4. );
 
     dvec4 re = dvec4( 0. );
     dvec4 im = dvec4( 0. );
@@ -46,7 +48,7 @@ uvec4 getLastToInfParalel( dvec4 c )
         resq = re*re;
         imsq = im*im;
 
-        act = lessThan( resq + imsq, minInf );
+        act = lessThanEqual(resq + imsq, minInf );
         n += uvec4( act );
         N++;
     }
@@ -58,7 +60,7 @@ uvec4 getLastToInfParalel( dvec4 c )
 uint getLastToInf( dvec2 c )
 {
     const dvec2 oneNegOne= { 1, -1 };
-    const double minInf = 16.;
+    const double minInf = 4.;
     
     dvec2 z = { 0, 0 };
 
@@ -69,14 +71,14 @@ uint getLastToInf( dvec2 c )
 
         n++;
     }
-    while( dot(z, z) < minInf && n < max_iter );
+    while( dot(z, z) <= minInf && n < max_iter );
 
     return n;
 }
 
 uint getLastToInfV3( dvec2 c )
 {
-    const double minInf = 16.;
+    const double minInf = 4.;
     
     dvec2 z = { 0, 0 };
     dvec2 zsq = z*z;
@@ -90,7 +92,7 @@ uint getLastToInfV3( dvec2 c )
 
         n++;
     }
-    while( zsq.x + zsq.y < minInf && n < max_iter );
+    while( zsq.x + zsq.y <= minInf && n < max_iter );
 
     return n;
 }
