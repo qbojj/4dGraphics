@@ -54,7 +54,7 @@ target_compile_definitions(
           VK_ENABLE_BETA_EXTENSIONS=1
           VK_NO_PROTOTYPES=1
           VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
-          TRACY_ENABLE=1
+          # TRACY_ENABLE=1
           GLM_FORCE_SILENT_WARNINGS
           GLM_FORCE_DEPTH_ZERO_TO_ONE
           GLM_FORCE_SWIZZLE
@@ -74,5 +74,3 @@ add_custom_command(
     # $<TARGET_FILE:4dGraphics> is added to never have an empty set to copy
     $<TARGET_FILE_DIR:4dGraphics>
   COMMAND_EXPAND_LISTS)
-
-install(TARGETS 4dGraphics)

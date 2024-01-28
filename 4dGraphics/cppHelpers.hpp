@@ -101,6 +101,12 @@ static inline T AlignUpOffset(T val, V alignment) {
 }
 
 template <typename T, typename V>
+static inline T DivCeil(T val, V alignment) {
+  return (val + static_cast<T>(alignment) - 1) /
+         static_cast<T>(alignment);
+}
+
+template <typename T, typename V>
 static inline T AlignDown(T val, V alignment) {
   return val & ~(static_cast<T>(alignment) - 1);
 }

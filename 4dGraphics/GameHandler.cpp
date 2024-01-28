@@ -5,6 +5,7 @@
 #include "Device.hpp"
 #include "Swapchain.hpp"
 #include "VulkanCaches.hpp"
+#include "VulkanConstructs.hpp"
 #include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.h>
@@ -74,8 +75,9 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 
   ImGui_ImplVulkan_LoadFunctions(
       [](const char *name, void *user) {
-        return static_cast<Context*>(user)->vkInstance().getProcAddr(name);
-      }, &ctx);
+        return static_cast<Context *>(user)->vkInstance().getProcAddr(name);
+      },
+      &ctx);
   if (!ImGui_ImplVulkan_Init(&ii, {}))
     throw exception("Could not init imgui vulkan backend");
 }
@@ -83,12 +85,14 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 
 MyGameHandler::MyGameHandler()
-    : GameEngine(), instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
-                        SDL_Vulkan_GetVkGetInstanceProcAddr()))),
+    : GameEngine(),
+      instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+          SDL_Vulkan_GetVkGetInstanceProcAddr()))),
       surface(sdl_get_surface(instance.instance(), m_window)),
       device(instance, *surface), context(device),
       swapchain(SwapchainBuilder{
           .surface = *surface,
+          .preferred_format = vk::Format::eR8G8B8A8Unorm,
           .preferred_present_mode = vk::PresentModeKHR::eMailbox,
           .imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
                         vk::ImageUsageFlagBits::eTransferDst |
@@ -97,6 +101,16 @@ MyGameHandler::MyGameHandler()
       }
                     .build(context)),
       imguiVulkanImpl(swapchain, context),
+      texture(device,
+              Image::ImageCreateInfo{
+                  .format = vk::Format::eR16G16B16A16Sfloat,
+                  .extent = {1024, 720, 1},
+                  .usage = vk::ImageUsageFlagBits::eStorage |
+                           vk::ImageUsageFlagBits::eColorAttachment |
+                           vk::ImageUsageFlagBits::eSampled |
+                           vk::ImageUsageFlagBits::eTransferSrc,
+              },
+              {{}, vma::MemoryUsage::eAuto}),
       descriptor_set_layout(DescriptorSetLayoutInfo()
                                 .add_binding(0,
                                              vk::DescriptorType::eStorageImage,
@@ -123,8 +137,7 @@ MyGameHandler::MyGameHandler()
         *pipeline_layout,
     };
 
-    pipeline[variant] = {
-      device.device(), context.pipeline_cache(), pci};
+    pipeline[variant] = {device.device(), context.pipeline_cache(), pci};
     device.setDebugName(pipeline[variant], "mandelbrot pipeline ({})", variant);
   }
 }
@@ -132,6 +145,8 @@ MyGameHandler::MyGameHandler()
 MyGameHandler::~MyGameHandler() { context.cleanup(); }
 
 void MyGameHandler::recreate_swapchain() {
+  auto old_size = swapchain.extent();
+
   auto builder = swapchain.recreate_builder();
   builder.fallback_extent = builder.extent;
   builder.extent = wanted_extent;
@@ -140,6 +155,10 @@ void MyGameHandler::recreate_swapchain() {
 
   context.get_destruction_stack().push(swapchain.move_out());
   swapchain = builder.build(context);
+
+  mandelbrot_push_constants.scale *=
+      glm::dvec2(swapchain.extent().width, swapchain.extent().height) /
+      glm::dvec2(old_size.width, old_size.height);
 }
 
 uint32_t MyGameHandler::wait_for_image() {
@@ -208,7 +227,7 @@ void MyGameHandler::gui() {
   ImGui::SliderInt("variant", &current_pipeline, 0, 2);
   ImGui::Text("center: %f %f", mandelbrot_push_constants.center.x,
               mandelbrot_push_constants.center.y);
-  ImGui::Text("scale: %f", mandelbrot_push_constants.scale);
+  ImGui::Text("scale: %f %f", mandelbrot_push_constants.scale.x, mandelbrot_push_constants.scale.y);
   ImGui::End();
 
   auto &io = ImGui::GetIO();
@@ -228,14 +247,16 @@ void MyGameHandler::gui() {
       // zoom into mouse position (position under the mouse stays the same)
       auto mouse_pos = ImGui::GetMousePos();
 
-      auto mouse_center_rel = glm::dvec2(mouse_pos.x, mouse_pos.y) - 
+      auto mouse_center_rel =
+          glm::dvec2(mouse_pos.x, mouse_pos.y) -
           glm::dvec2(swapchain.extent().width, swapchain.extent().height) / 2.0;
 
-      auto world_pos = mandelbrot_push_constants.center + mouse_center_rel * mandelbrot_push_constants.scale;
-      
+      auto world_pos = mandelbrot_push_constants.center +
+                       mouse_center_rel * mandelbrot_push_constants.scale;
+
       // fractal so exponential zoom
-      double scale = mandelbrot_push_constants.scale;
-      double new_scale = scale * std::pow(1.1, (double)delta);
+      auto scale = mandelbrot_push_constants.scale;
+      auto new_scale = scale * std::pow(1.1, (double)delta);
 
       auto new_center = world_pos - mouse_center_rel * new_scale;
 
@@ -256,25 +277,26 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
   cb->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   cb->pipelineBarrier(
-      vk::PipelineStageFlagBits::eComputeShader,
+      vk::PipelineStageFlagBits::eTransfer,
       vk::PipelineStageFlagBits::eComputeShader, {}, {}, {},
-      vk::ImageMemoryBarrier{vk::AccessFlagBits::eNone,
+      vk::ImageMemoryBarrier{vk::AccessFlagBits::eTransferRead,
                              vk::AccessFlagBits::eShaderWrite,
                              vk::ImageLayout::eUndefined,
                              vk::ImageLayout::eGeneral,
                              vk::QueueFamilyIgnored,
                              vk::QueueFamilyIgnored,
-                             image,
+                             texture.image(),
                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
 
   // render mandelbrot
   {
     cb.beginDebugLabel("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
-    cb->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline[current_pipeline]);
+    cb->bindPipeline(vk::PipelineBindPoint::eCompute,
+                     *pipeline[current_pipeline]);
 
     vk::DescriptorImageInfo dii{
         {},
-        view,
+        texture.imageView(),
         vk::ImageLayout::eGeneral,
     };
 
@@ -289,31 +311,68 @@ vk::CommandBuffer MyGameHandler::record_gui(vk::Image image,
     cb->pushConstants<MandelbrotPushConstants>(
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
-      
+
     auto div = 8 * (current_pipeline == 0 ? 2 : 1);
-    cb->dispatch(detail::AlignUp(swapchain.extent().width, div) / div,
-                 detail::AlignUp(swapchain.extent().height, div) / div, 1);
+    cb->dispatch(detail::DivCeil(texture.extent().width, div),
+                 detail::DivCeil(texture.extent().height, div), 1);
 
     cb.endDebugLabel();
   }
 
-  // render imgui
-  cb->pipelineBarrier(
-      vk::PipelineStageFlagBits::eComputeShader,
-      vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
-      vk::ImageMemoryBarrier{vk::AccessFlagBits::eShaderWrite,
-                             vk::AccessFlagBits::eColorAttachmentRead,
-                             vk::ImageLayout::eGeneral,
-                             vk::ImageLayout::eColorAttachmentOptimal,
-                             vk::QueueFamilyIgnored,
-                             vk::QueueFamilyIgnored,
-                             image,
-                             {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
+  {
+    ZoneScopedN("blit");
 
-  vk::RenderingAttachmentInfo rai(
-      view, vk::ImageLayout::eColorAttachmentOptimal,
-      vk::ResolveModeFlagBits::eNone, {}, {}, vk::AttachmentLoadOp::eLoad,
-      vk::AttachmentStoreOp::eStore, {}, {});
+    std::array image_barriers{
+        vk::ImageMemoryBarrier2{vk::PipelineStageFlagBits2::eComputeShader,
+                                vk::AccessFlagBits2::eShaderWrite,
+                                vk::PipelineStageFlagBits2::eTransfer,
+                                vk::AccessFlagBits2::eTransferRead,
+                                vk::ImageLayout::eGeneral,
+                                vk::ImageLayout::eTransferSrcOptimal,
+                                vk::QueueFamilyIgnored,
+                                vk::QueueFamilyIgnored,
+                                texture.image(),
+                                {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}},
+        vk::ImageMemoryBarrier2{vk::PipelineStageFlagBits2::eTransfer,
+                                vk::AccessFlagBits2::eNone,
+                                vk::PipelineStageFlagBits2::eTransfer,
+                                vk::AccessFlagBits2::eTransferWrite,
+                                vk::ImageLayout::eUndefined,
+                                vk::ImageLayout::eTransferDstOptimal,
+                                vk::QueueFamilyIgnored,
+                                vk::QueueFamilyIgnored,
+                                image,
+                                {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}};
+    cb->pipelineBarrier2({{}, {}, {}, image_barriers});
+    cb->blitImage(
+        texture.image(), vk::ImageLayout::eTransferSrcOptimal, image,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::ImageBlit({vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                      {vk::Offset3D{0, 0, 0},
+                       vk::Offset3D{int32_t(texture.extent().width),
+                                    int32_t(texture.extent().height), 1}},
+                      {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                      {vk::Offset3D{0, 0, 0},
+                       vk::Offset3D{int32_t(swapchain.extent().width),
+                                    int32_t(swapchain.extent().height), 1}}),
+        vk::Filter::eLinear);
+
+    cb->pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, {}, {},
+        vk::ImageMemoryBarrier{vk::AccessFlagBits::eTransferWrite,
+                               vk::AccessFlagBits::eColorAttachmentRead |
+                                   vk::AccessFlagBits::eColorAttachmentWrite,
+                               vk::ImageLayout::eTransferDstOptimal,
+                               vk::ImageLayout::eColorAttachmentOptimal,
+                               vk::QueueFamilyIgnored,
+                               vk::QueueFamilyIgnored,
+                               image,
+                               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
+  }
+
+  vk::RenderingAttachmentInfo rai(view,
+                                  vk::ImageLayout::eColorAttachmentOptimal);
 
   cb->beginRendering({{}, {{}, swapchain.extent()}, 1, 0, rai});
   {
@@ -345,12 +404,13 @@ void MyGameHandler::submit(vk::CommandBuffer cb) {
   ZoneScoped;
   std::unique_lock<std::mutex> lock;
   auto &queue_g = context.get_queue(Context::QueueType::Graphics);
+  auto &queue = queue_g->queue()->lock(lock);
 
   std::vector<vk::SemaphoreSubmitInfo> waitSSI, signalSSI;
 
   auto sem_value = queue_g->semaphoreValue();
   waitSSI.emplace_back(*context.get_frame_ctx().m_image_ready, 0,
-                       vk::PipelineStageFlagBits2::eComputeShader);
+                       vk::PipelineStageFlagBits2::eTransfer);
 
   signalSSI.emplace_back(*context.get_frame_ctx().m_render_finished, 0,
                          vk::PipelineStageFlagBits2::eBottomOfPipe);
@@ -362,7 +422,6 @@ void MyGameHandler::submit(vk::CommandBuffer cb) {
   std::vector<vk::CommandBufferSubmitInfo> cbs;
   cbs.emplace_back(cb);
 
-  auto &queue = queue_g->queue()->lock(lock);
   queue.submit2(vk::SubmitInfo2{{}, waitSSI, cbs, signalSSI});
 }
 

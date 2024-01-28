@@ -49,4 +49,4 @@ endforeach()
 # Add a custom target to compile all shaders
 add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
 
-install(FILES ${SHADER_OUTPUTS} DESTINATION share/shaders)
+install(FILES ${SHADER_OUTPUTS} DESTINATION Shaders)

@@ -455,6 +455,8 @@ Device::chooseFeatures() const {
       .features
 
       .setShaderFloat64(vk::True)
+      .setShaderInt64(vk::True)
+      .setShaderInt16(vk::True)
 
       // VK_KHR_roadmap_2022
       .setFullDrawIndexUint32(vk::True)
@@ -487,6 +489,7 @@ Device::chooseFeatures() const {
 
   feature_chain
       .get<vk::PhysicalDeviceVulkan12Features>()
+
       // 1.2 required
       .setUniformBufferStandardLayout(vk::True)
 
@@ -534,8 +537,13 @@ Device::chooseFeatures() const {
 
   feature_chain
       .get<vk::PhysicalDeviceVulkan13Features>()
+
       // Vulkan 1.3 required
       .setInlineUniformBlock(vk::True)
+
+      .setDescriptorBindingInlineUniformBlockUpdateAfterBind(vk::True)
+      .setPipelineCreationCacheControl(vk::True)
+      .setPrivateData(vk::True)
 
       .setShaderDemoteToHelperInvocation(vk::True)
       .setShaderTerminateInvocation(vk::True)

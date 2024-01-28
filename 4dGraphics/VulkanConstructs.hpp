@@ -11,43 +11,27 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <optional>
 
 namespace v4dg {
 namespace detail {
 
-class GpuAllocation : public std::enable_shared_from_this<GpuAllocation> {
+class GpuAllocation {
 public:
-  GpuAllocation(vma::Allocator allocator, vma::UniqueAllocation allocation);
-
+  GpuAllocation(vma::Allocator allocator, vma::UniqueAllocation allocation)
+      : m_allocator(allocator), m_allocation(std::move(allocation)) {}
+  
   vma::Allocator allocator() const noexcept { return m_allocator; }
   vma::Allocation allocation() const noexcept { return *m_allocation; }
 
-  class MemoryMapDeleter {
-  public:
-    void operator()(void *) const noexcept {
-      m_allocator.unmapMemory(m_allocation);
-    }
+  template <typename T> auto map() const {
+    auto make_unique_obj = [](T *p, auto &&deleter) {
+      return std::unique_ptr<T, decltype(deleter)>(p, std::move(deleter));
+    };
 
-  private:
-    MemoryMapDeleter(vma::Allocator allocator,
-                     vma::Allocation allocation) noexcept
-        : m_allocator(allocator), m_allocation(allocation) {}
-    vma::Allocator m_allocator;
-    vma::Allocation m_allocation;
-
-    friend GpuAllocation;
-  };
-
-  template <typename T> using MemoryMap = std::unique_ptr<T, MemoryMapDeleter>;
-
-  template <typename T> MemoryMap<T> map() const {
-    return MemoryMap<T>(static_cast<typename
-MemoryMap<T>::pointer>(map_unsafe()), MemoryMapDeleter(allocator(),
-allocation()));
+    return make_unique_obj(static_cast<T *>(allocator().mapMemory(allocation())),
+                           [this](void *) { allocator().unmapMemory(allocation()); });
   }
-
-  void *map_unsafe() const { return allocator().mapMemory(allocation()); }
-  void unmap_unsafe() const noexcept { allocator().unmapMemory(allocation()); }
 
   void flush(vk::DeviceSize offset = 0,
              vk::DeviceSize size = vk::WholeSize) const {
@@ -66,17 +50,10 @@ private:
 
 class Buffer : public detail::GpuAllocation {
 public:
-  struct BufferCreateInfo {
-    vk::BufferCreateFlags flags = {};
-    vk::DeviceSize size = {};
-    vk::BufferUsageFlags usage = {};
-    vk::SharingMode sharingMode = vk::SharingMode::eExclusive;
-    std::vector<uint32_t> queueFamilyIndices = {};
-    std::shared_ptr<const void> pNext = nullptr;
-  };
+  Buffer(const Device &dev,
+         std::pair<vma::UniqueAllocation, vma::UniqueBuffer> buffer);
 
-  static Handle<Buffer>
-  create(Handle<Device> device, BufferCreateInfo bufferCreateInfo,
+  Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
          const vma::AllocationCreateInfo &allocationCreateInfo);
 
   vk::Buffer buffer() const { return *m_buffer; }
@@ -88,19 +65,6 @@ public:
 private:
   vma::UniqueBuffer m_buffer;
   vk::DeviceAddress m_deviceAddress;
-
-  Buffer(std::pair<vma::UniqueAllocation, vma::UniqueBuffer> buffer,
-         vma::Allocator allocator, BufferCreateInfo bufferCreateInfo);
-
-protected:
-  struct Private {
-    Handle<Device> device;
-    BufferCreateInfo bufferCreateInfo;
-    const vma::AllocationCreateInfo &allocationCreateInfo;
-  };
-
-public:
-  Buffer(Private &&);
 };
 
 class Image : public detail::GpuAllocation {
@@ -116,74 +80,61 @@ public:
     vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
     vk::ImageUsageFlags usage = {};
     vk::SharingMode sharingMode = vk::SharingMode::eExclusive;
-    std::vector<uint32_t> queueFamilyIndices = {};
+    std::span<const uint32_t> queueFamilyIndices = {};
     vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
 
-    std::vector<vk::Format> viewFormatList = {};
+    // mutable formats
+    std::optional<std::span<const vk::Format>> formats = {};
 
-    std::shared_ptr<const void> pNext = nullptr;
+    std::optional<vk::ImageUsageFlags> stencilUsage = {};
   };
 
-  static Handle<Image>
-  create(Handle<Device> device, ImageCreateInfo imageCreateInfo,
+  Image(const Device &device,
+        std::pair<vma::UniqueAllocation, vma::UniqueImage> image,
+        vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
+        uint32_t mipLevels, uint32_t arrayLayers,
+        vk::SampleCountFlagBits samples);
+  
+  Image(const Device &device, 
+         const ImageCreateInfo &imageCreateInfo,
          const vma::AllocationCreateInfo &allocationCreateInfo);
 
   vk::Image image() const { return *m_image; }
-  operator vk::Image() const { return image(); }
-  vk::Image operator*() const { return image(); }
+
+  vk::ImageType imageType() const { return m_imageType; }
+  vk::Format format() const { return m_format; }
+  vk::Extent3D extent() const { return m_extent; }
+  uint32_t mipLevels() const { return m_mipLevels; }
+  uint32_t arrayLayers() const { return m_arrayLayers; }
+  vk::SampleCountFlagBits samples() const { return m_samples; }
 
 private:
   vma::UniqueImage m_image;
-  ImageCreateInfo m_imageCreateInfo;
 
-  Image(std::pair<vma::UniqueAllocation, vma::UniqueImage> image,
-        Handle<Device> device, ImageCreateInfo imageCreateInfo);
-
-protected:
-  struct Private {
-    Handle<Device> device;
-    ImageCreateInfo imageCreateInfo;
-    const vma::AllocationCreateInfo &allocationCreateInfo;
-  };
-
-public:
-  Image(Private &&);
+  vk::ImageType m_imageType;
+  vk::Format m_format;
+  vk::Extent3D m_extent;
+  uint32_t m_mipLevels;
+  uint32_t m_arrayLayers;
+  vk::SampleCountFlagBits m_samples;
 };
 
+// image with a single view
 class Texture : public Image {
 public:
-  struct ImageViewCreateInfo {
-    vk::ImageViewCreateFlags flags = {};
-    vk::ImageViewType viewType = vk::ImageViewType::e2D;
-    vk::Format format = vk::Format::eUndefined;
-    vk::ComponentMapping components = {};
-    vk::ImageSubresourceRange subresourceRange = {};
-    std::shared_ptr<const void> pNext = nullptr;
-  };
+  Texture(const Device &device, const ImageCreateInfo &imageCreateInfo,
+          const vma::AllocationCreateInfo &allocationCreateInfo,
+          vk::ImageViewCreateFlags flags = {},
+          vk::ImageViewType viewType = vk::ImageViewType::e2D,
+          vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor,
+          vk::ComponentMapping components = {});
 
-  static Handle<Texture>
-  create(Handle<Device> device, ImageCreateInfo imageCreateInfo,
-         const vma::AllocationCreateInfo &allocationCreateInfo,
-         std::vector<ImageViewCreateInfo> imageViewCreateInfo);
+  vk::ImageView imageView() const { return *m_imageView; }
 
 private:
-  std::vector<vk::UniqueImageView> m_imageViews;
-  std::vector<ImageViewCreateInfo> m_imageViewCreateInfos;
-
-  static std::vector<vk::UniqueImageView>
-      makeImageViews(Handle<Device>, vk::Image,
-                     std::span<const ImageViewCreateInfo>);
-
-protected:
-  struct Private {
-    Image::Private imagePrivate;
-    Handle<Device> device;
-    std::vector<ImageViewCreateInfo> imageViewCreateInfos;
-  };
-
-public:
-  Texture(Private &&);
+  vk::raii::ImageView m_imageView;
 };
+
 /*
 VkResult CreateTextureImage(VulkanThreadCtx &vkCtx, const char *filename,
                             VulkanTexture *texture);

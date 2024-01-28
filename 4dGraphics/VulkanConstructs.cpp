@@ -5,6 +5,10 @@
 #include "VulkanHelpers.hpp"
 #include "cppHelpers.hpp"
 
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+#include <vulkan/vulkan.hpp>
+
+#include <array>
 #include <exception>
 #include <filesystem>
 #include <format>
@@ -12,9 +16,6 @@
 #include <ranges>
 #include <span>
 #include <stdexcept>
-#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
-#include <vulkan/vulkan.hpp>
-#include <array>
 namespace v4dg {
 /*
 VkResult CreateTextureImage(VulkanRenderDevice& vkDev, const char* filename,
@@ -596,114 +597,89 @@ vkDev.device, nullptr })
     return ret;
 }
 */
-/*
-namespace detail {
-GpuAllocation::GpuAllocation(vma::Allocator allocator,
-                             vma::UniqueAllocation allocation)
-    : m_allocator(std::move(allocator)), m_allocation(std::move(allocation)) {
-  if (!m_allocation)
-    throw std::invalid_argument("GpuAllocation: allocation is null");
-}
-} // namespace detail
-
-Handle<Buffer>
-Buffer::create(Handle<Device> device, BufferCreateInfo bufferCreateInfo,
-               const vma::AllocationCreateInfo &allocationCreateInfo) {
-
-  return std::make_shared<Buffer>(Private{
-      std::move(device), std::move(bufferCreateInfo), allocationCreateInfo});
-}
-
-Buffer::Buffer(std::pair<vma::UniqueAllocation, vma::UniqueBuffer> p,
-               vma::Allocator allocator, BufferCreateInfo bufferCreateInfo,
-               Device> device)
-    : detail::GpuAllocation(allocator, std::move(p.first)),
+Buffer::Buffer(const Device &dev,
+               std::pair<vma::UniqueAllocation, vma::UniqueBuffer> p)
+    : detail::GpuAllocation(dev.allocator(), std::move(p.first)),
       m_buffer(std::move(p.second)),
-      m_bufferCreateInfo(std::move(bufferCreateInfo)),
-      m_deviceAddress(device-> {}
+      m_deviceAddress(dev.device().getBufferAddress({buffer()})) {}
 
-Buffer::Buffer(Private &&p)
-    : Buffer(
-          [&] {
-  const auto &ci = p.bufferCreateInfo;
-  vk::BufferCreateInfo bci{
-      ci.flags,      ci.size, ci.usage, ci.sharingMode, ci.queueFamilyIndices,
-      ci.pNext.get()};
+Buffer::Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
+               const vma::AllocationCreateInfo &allocationCreateInfo)
+    : Buffer(dev, [&] {
+        vk::BufferCreateInfo bci{bufferCreateInfo};
+        bci.usage |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
+        auto [buffer, allocation] =
+            dev.allocator().createBufferUnique(bci, allocationCreateInfo);
 
-  auto [buffer, allocation] =
-      p.device->allocator().createBufferUnique(bci, p.allocationCreateInfo);
+        return std::pair{std::move(allocation), std::move(buffer)};
+      }()) {}
 
-  return std::pair{std::move(allocation), std::move(buffer)};
-          }(),
-          p.device->allocator(), std::move(p.bufferCreateInfo)) {}
+Image::Image(const Device &device,
+             std::pair<vma::UniqueAllocation, vma::UniqueImage> image,
+             vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
+             uint32_t mipLevels, uint32_t arrayLayers,
+             vk::SampleCountFlagBits samples)
+    : detail::GpuAllocation(device.allocator(), std::move(image.first)),
+      m_image(std::move(image.second)), m_imageType(imageType),
+      m_format(format), m_extent(extent), m_mipLevels(mipLevels),
+      m_arrayLayers(arrayLayers), m_samples(samples) {}
 
-Handle<Image>
-Image::create(Handle<Device> device, ImageCreateInfo imageCreateInfo,
-              const vma::AllocationCreateInfo &allocationCreateInfo) {
-  return std::make_shared<Image>(Private{
-      std::move(device), std::move(imageCreateInfo), allocationCreateInfo});
-}
-
-Image::Image(std::pair<vma::UniqueAllocation, vma::UniqueImage> p,
-             Handle<Device> device, ImageCreateInfo imageCreateInfo)
-    : detail::GpuAllocation(device->allocator(), std::move(p.first)),
-      m_image(std::move(p.second)),
-      m_imageCreateInfo(std::move(imageCreateInfo)) {}
-
-Image::Image(Private &&p)
+Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
+             const vma::AllocationCreateInfo &allocationCreateInfo)
     : Image(
+          device,
           [&] {
-  const auto &ci = p.imageCreateInfo;
-  vk::ImageCreateInfo ici{ci.flags,
-                          ci.imageType,
-                          ci.format,
-                          ci.extent,
-                          ci.mipLevels,
-                          ci.arrayLayers,
-                          ci.samples,
-                          ci.tiling,
-                          ci.usage,
-                          ci.sharingMode,
-                          ci.queueFamilyIndices,
-                          ci.initialLayout,
-                          ci.pNext.get()};
-  vk::ImageFormatListCreateInfo iflci{ci.viewFormatList, ci.pNext.get()};
+            vk::StructureChain<vk::ImageCreateInfo,
+                               vk::ImageFormatListCreateInfo,
+                               vk::ImageStencilUsageCreateInfo>
+                ici{{
+                    imageCreateInfo.flags,
+                    imageCreateInfo.imageType,
+                    imageCreateInfo.format,
+                    imageCreateInfo.extent,
+                    imageCreateInfo.mipLevels,
+                    imageCreateInfo.arrayLayers,
+                    imageCreateInfo.samples,
+                    imageCreateInfo.tiling,
+                    imageCreateInfo.usage,
+                    imageCreateInfo.sharingMode,
+                    imageCreateInfo.queueFamilyIndices,
+                    imageCreateInfo.initialLayout,
+                }, {}, {}};
 
-  if (!ci.viewFormatList.empty())
-    ici.setPNext(&iflci);
+            if (imageCreateInfo.formats)
+              ici.get<vk::ImageFormatListCreateInfo>().setViewFormats(
+                  *imageCreateInfo.formats);
+            else
+              ici.unlink<vk::ImageFormatListCreateInfo>();
 
-  auto [image, allocation] =
-      p.device->allocator().createImageUnique(ici, p.allocationCreateInfo);
+            if (imageCreateInfo.stencilUsage)
+              ici.get<vk::ImageStencilUsageCreateInfo>().setStencilUsage(
+                  *imageCreateInfo.stencilUsage);
+            else
+              ici.unlink<vk::ImageStencilUsageCreateInfo>();
 
-  return std::pair{std::move(allocation), std::move(image)};
+            auto [image, allocation] = device.allocator().createImageUnique(
+                ici.get<>(), allocationCreateInfo);
+
+            return std::pair{std::move(allocation), std::move(image)};
           }(),
-          std::move(p.device), std::move(p.imageCreateInfo)) {}
+          imageCreateInfo.imageType, imageCreateInfo.format,
+          imageCreateInfo.extent, imageCreateInfo.mipLevels,
+          imageCreateInfo.arrayLayers, imageCreateInfo.samples) {}
 
-Handle<Texture>
-Texture::create(Handle<Device> device, ImageCreateInfo imageCreateInfo,
-                const vma::AllocationCreateInfo &allocationCreateInfo,
-                std::vector<ImageViewCreateInfo> imageViewCreateInfo) {
-  return std::make_shared<Texture>(Private{
-      Image::Private{device, std::move(imageCreateInfo), allocationCreateInfo},
-      device, std::move(imageViewCreateInfo)});
-}
-
-std::vector<vk::UniqueImageView>
-Texture::makeImageViews(Handle<Device> device, vk::Image image,
-                        std::span<const ImageViewCreateInfo> viewCIs) {
-  auto imageViews =
-      viewCIs | std::views::transform([&](const ImageViewCreateInfo &ivci) {
-        return device->device().createImageView(vk::ImageViewCreateInfo{
-            ivci.flags, image, ivci.viewType, ivci.format, ivci.components,
-            ivci.subresourceRange, ivci.pNext.get()});
-      });
-
-  return {imageViews.begin(), imageViews.end()};
-}
-
-Texture::Texture(Private &&p)
-    : Image(std::move(p.imagePrivate)),
-      m_imageViews(makeImageViews(p.device, image(), p.imageViewCreateInfos)),
-      m_imageViewCreateInfos(std::move(p.imageViewCreateInfos)) {}
-*/
+Texture::Texture(const Device &device, const ImageCreateInfo &imageCreateInfo,
+                 const vma::AllocationCreateInfo &allocationCreateInfo,
+                 vk::ImageViewCreateFlags viewFlags, vk::ImageViewType viewType,
+                 vk::ImageAspectFlags aspectFlags,
+                 vk::ComponentMapping components)
+    : Image(device, imageCreateInfo, allocationCreateInfo),
+      m_imageView({device.device(),
+              {viewFlags,
+               image(),
+               viewType,
+               format(),
+               components,
+               {aspectFlags, 0, vk::RemainingMipLevels, 0,
+                vk::RemainingArrayLayers}}}) {}
 } // namespace v4dg

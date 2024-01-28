@@ -24,7 +24,6 @@ public:
   ImGuiRAIIContext &operator=(ImGuiRAIIContext o) { std::swap(context, o.context); return *this; }
   operator ::ImGuiContext *() const { return context; }
 
-
 private:
   ::ImGuiContext *context;
 };

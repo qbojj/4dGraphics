@@ -5,6 +5,7 @@
 #include "cppHelpers.hpp"
 #include "Context.hpp"
 #include "PipelineBuilder.hpp"
+#include "VulkanConstructs.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -37,6 +38,8 @@ private:
   Swapchain swapchain;
   ImGui_VulkanImpl imguiVulkanImpl;
 
+  Texture texture;
+
   bool should_close{false};
   bool has_focus{true};
 
@@ -45,12 +48,11 @@ private:
   vk::raii::DescriptorSetLayout descriptor_set_layout;
   vk::raii::PipelineLayout pipeline_layout;
   std::array<vk::raii::Pipeline,3> pipeline;
-  int current_pipeline{0};
+  int current_pipeline{2};
 
   struct MandelbrotPushConstants {
     glm::dvec2 center{};
-    double scale{1. / 128};
-    std::uint32_t max_iter{512};
+    glm::dvec2 scale{1. / 128};
   } mandelbrot_push_constants;
 
   void recreate_swapchain();
