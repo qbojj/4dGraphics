@@ -14,8 +14,8 @@ find_package(unofficial-vulkan-memory-allocator-hpp CONFIG REQUIRED)
 find_package(Tracy CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
 
-file(GLOB SOURCES *.cpp)
-file(GLOB HEADERS *.hpp *.h)
+file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
+file(GLOB HEADERS CONFIGURE_DEPENDS *.hpp *.h)
 
 add_executable(4dGraphics WIN32)
 target_sources(4dGraphics

@@ -41,9 +41,11 @@ load_shader_code(const std::filesystem::path &path) {
 
 std::optional<vk::raii::ShaderModule>
 load_shader_module(const std::filesystem::path &path,
-                   const vk::raii::Device &device) {
+                   const Device &device) {
   return load_shader_code(path).transform([&](auto &&code) -> vk::raii::ShaderModule {
-    return {device, {{}, code}};
+    vk::raii::ShaderModule mod(device.device(), {{}, code});
+    device.setDebugName(mod, "shader module: {}", path.filename().string());
+    return mod;
   });
 }
 

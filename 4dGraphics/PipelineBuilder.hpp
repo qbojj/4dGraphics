@@ -2,6 +2,7 @@
 
 #include "Context.hpp"
 #include "cppHelpers.hpp"
+#include "Device.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -18,7 +19,7 @@ load_shader_code(const std::filesystem::path &path);
 
 std::optional<vk::raii::ShaderModule>
 load_shader_module(const std::filesystem::path &path,
-                   const vk::raii::Device &device);
+                   const Device &device);
 
 class GraphicsPipelineBuilder;
 

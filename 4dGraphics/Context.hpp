@@ -57,7 +57,7 @@ public:
 
   void setSemaphoreValue(uint64_t value) { m_semaphore_value = value; }
 
-  auto &commandBufferManager() { return m_command_buffer_manager; }
+  auto &commandBufferManager(size_t idx) { return m_command_buffer_managers[idx]; }
 
 private:
   Handle<Queue> m_queue;
@@ -66,7 +66,7 @@ private:
   vk::raii::Semaphore m_semaphore;
   uint64_t m_semaphore_value{0};
 
-  command_buffer_manager m_command_buffer_manager;
+  per_frame<command_buffer_manager> m_command_buffer_managers;
 };
 
 struct PerFrame {
@@ -181,6 +181,19 @@ public:
     };
   }
 
+  // only one thread at a time can have a command buffer of a given type
+  //  from this function
+  CommandBuffer getAnyCommandBuffer(QueueType type,
+    vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary,
+    command_buffer_manager::category cat = command_buffer_manager::category::c0_100) {
+    auto &q = get_queue(type);
+    assert(q);
+    return {
+        q->commandBufferManager(frame_ref()).get(level, cat),
+        *this
+    };
+  }
+
 private:
   const Instance &m_instance;
   const Device &m_device;
@@ -200,7 +213,7 @@ private:
 
   vk::raii::PipelineCache m_pipeline_cache;
 
-  BindlessManager m_bindless_manager;
+  //BindlessManager m_bindless_manager;
 
   PerQueueFamilyArray getFamilies() const;
 };

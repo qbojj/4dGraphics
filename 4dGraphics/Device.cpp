@@ -576,12 +576,10 @@ Device::chooseFeatures() const {
 }
 
 vk::raii::Device Device::initDevice() const {
-  std::vector<std::vector<float>> priorities;
-
+  float prio = 0.5f;
   auto rg = m_physicalDevice.getQueueFamilyProperties() |
-            std::views::transform([&, family = 0u](auto qfp) mutable {
-              priorities.push_back(std::vector<float>(qfp.queueCount, 0.5f));
-              return vk::DeviceQueueCreateInfo{{}, family++, priorities.back()};
+            std::views::transform([&, family = 0u](auto) mutable {
+              return vk::DeviceQueueCreateInfo{{}, family++, 1, &prio};
             });
 
   std::vector<vk::DeviceQueueCreateInfo> qcis{rg.begin(), rg.end()};
@@ -660,7 +658,7 @@ std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
               flags |= vk::QueueFlagBits::eTransfer;
 
             auto rg2 =
-                std::views::iota(0u, qfp.queueCount) |
+                std::views::iota(0u, 1u) | // qfp.queueCount) |
                 std::views::transform([&](uint32_t i) {
                   return make_handle<Queue>(
                       vk::raii::Queue{m_device, family, i}, family, i, flags,

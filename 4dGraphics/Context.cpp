@@ -30,7 +30,7 @@ public:
 } // namespace
 PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
     : m_queue(std::move(queue)), m_semaphore(nullptr),
-      m_command_buffer_manager(dev, m_queue->family()) {
+      m_command_buffer_managers(make_per_frame<command_buffer_manager>(dev, m_queue->family())) {
   vk::StructureChain<vk::SemaphoreCreateInfo, vk::SemaphoreTypeCreateInfo> sci{
       {}, {vk::SemaphoreType::eTimeline, 0}};
 
@@ -42,8 +42,10 @@ Context::Context(const Device &dev, DSAllocatorWeights weights)
       m_executor(std::thread::hardware_concurrency(),
                  std::make_shared<WorkerInterface>()),
       m_main_thread_id(std::this_thread::get_id()), m_families(getFamilies()),
-      m_per_frame{make_per_frame<PerFrame>(vkDevice(), m_families.size(), weights)},
-      m_pipeline_cache(nullptr), m_bindless_manager(device()) {
+      m_per_frame{
+          make_per_frame<PerFrame>(vkDevice(), m_families.size(), weights)},
+      m_pipeline_cache(nullptr) //,m_bindless_manager(device())
+      {
   auto &graphics_queue = get_queue(PerQueueFamily::Type::Graphics);
   uint32_t graphics_family = graphics_queue->queue()->family();
 
@@ -52,8 +54,7 @@ Context::Context(const Device &dev, DSAllocatorWeights weights)
     m_per_thread.emplace_back(vkDevice(), graphics_family);
 
   auto pipeline_cache_data =
-      detail::GetFileString("pipeline_cache.bin")
-          .value_or(std::string{});
+      detail::GetFileString("pipeline_cache.bin").value_or(std::string{});
   m_pipeline_cache = vkDevice().createPipelineCache(
       {{}, pipeline_cache_data.size(), pipeline_cache_data.data()});
 }
@@ -102,9 +103,10 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
     auto queue = queue_fam[idx];
 
     // find queue families with least flags
-    for (auto [type, required_flags, banned_flags] : PerQueueFamily::QueueTypes) {
+    for (auto [type, required_flags, banned_flags] :
+         PerQueueFamily::QueueTypes) {
       if (!has_all_flags(queue->flags(), required_flags) ||
-           has_any_flags(queue->flags(), banned_flags))
+          has_any_flags(queue->flags(), banned_flags))
         continue;
 
       auto type_idx = to_idx(type);
@@ -142,10 +144,18 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
 }
 
 void Context::next_frame() {
+  ZoneScoped;
+
+  logger.Log("end of frame {}", m_frame_idx);
+
+  logger.Debug("frame {} summary:", m_frame_idx);
   auto &cur_frame = get_frame_ctx();
 
   for (auto [i, q] : std::views::enumerate(m_families)) {
     cur_frame.m_semaphore_ready_values[i] = q ? q->semaphoreValue() : 0;
+    if (q)
+      logger.Debug("  queue {}: sem value {}", i,
+                   cur_frame.m_semaphore_ready_values[i]);
   }
 
   // we want to wait for every resource from previous 'next' frame to be not
@@ -153,12 +163,16 @@ void Context::next_frame() {
   m_frame_idx++;
   auto &next_frame = get_frame_ctx();
 
+  logger.Debug("  waiting for frame {}:",
+               static_cast<int64_t>(m_frame_idx - max_frames_in_flight));
+
   std::vector<vk::Semaphore> semaphores;
   std::vector<uint64_t> values;
   for (auto [i, q] : std::views::enumerate(m_families)) {
     if (q) {
       semaphores.push_back(*q->semaphore());
       values.push_back(next_frame.m_semaphore_ready_values[i]);
+      logger.Debug("    queue {}: sem value {}", i, values.back());
     }
   }
 
@@ -170,18 +184,24 @@ void Context::next_frame() {
       throw exception("waitSemaphores failed: {}", result);
   }
 
-  ZoneScopedN("clear destruction stacks");
-  next_frame.flush();
+  logger.Debug("  waiting ended");
 
-  for (auto &per_thread : m_per_thread) {
-    auto &per_f = per_thread.m_per_frame[frame_ref()];
-    per_f.m_destruction_stack.flush();
-    per_f.m_command_buffer_manager.reset();
-  }
+  logger.Log("moving to frame {}", m_frame_idx);
 
-  for (auto &q : m_families)
-    if (q) {
-      q->commandBufferManager().reset();
+  {
+    ZoneScopedN("clear stacks");
+    next_frame.flush();
+
+    for (auto &per_thread : m_per_thread) {
+      auto &per_f = per_thread.m_per_frame[frame_ref()];
+      per_f.m_destruction_stack.flush();
+      per_f.m_command_buffer_manager.reset();
     }
+
+    for (auto &q : m_families)
+      if (q) {
+        q->commandBufferManager(frame_ref()).reset();
+      }
+  }
 }
 } // namespace v4dg

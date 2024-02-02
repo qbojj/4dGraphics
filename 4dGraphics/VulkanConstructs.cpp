@@ -605,13 +605,13 @@ Buffer::Buffer(const Device &dev,
 
 Buffer::Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
                const vma::AllocationCreateInfo &allocationCreateInfo)
-    : Buffer(dev, [&] {
+    : Buffer(dev, [&] -> std::pair<vma::UniqueAllocation, vma::UniqueBuffer> {
         vk::BufferCreateInfo bci{bufferCreateInfo};
         bci.usage |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
         auto [buffer, allocation] =
             dev.allocator().createBufferUnique(bci, allocationCreateInfo);
 
-        return std::pair{std::move(allocation), std::move(buffer)};
+        return {std::move(allocation), std::move(buffer)};
       }()) {}
 
 Image::Image(const Device &device,
@@ -628,24 +628,26 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
              const vma::AllocationCreateInfo &allocationCreateInfo)
     : Image(
           device,
-          [&] {
+          [&] -> std::pair<vma::UniqueAllocation, vma::UniqueImage> {
             vk::StructureChain<vk::ImageCreateInfo,
                                vk::ImageFormatListCreateInfo,
                                vk::ImageStencilUsageCreateInfo>
                 ici{{
-                    imageCreateInfo.flags,
-                    imageCreateInfo.imageType,
-                    imageCreateInfo.format,
-                    imageCreateInfo.extent,
-                    imageCreateInfo.mipLevels,
-                    imageCreateInfo.arrayLayers,
-                    imageCreateInfo.samples,
-                    imageCreateInfo.tiling,
-                    imageCreateInfo.usage,
-                    imageCreateInfo.sharingMode,
-                    imageCreateInfo.queueFamilyIndices,
-                    imageCreateInfo.initialLayout,
-                }, {}, {}};
+                        imageCreateInfo.flags,
+                        imageCreateInfo.imageType,
+                        imageCreateInfo.format,
+                        imageCreateInfo.extent,
+                        imageCreateInfo.mipLevels,
+                        imageCreateInfo.arrayLayers,
+                        imageCreateInfo.samples,
+                        imageCreateInfo.tiling,
+                        imageCreateInfo.usage,
+                        imageCreateInfo.sharingMode,
+                        imageCreateInfo.queueFamilyIndices,
+                        imageCreateInfo.initialLayout,
+                    },
+                    {},
+                    {}};
 
             if (imageCreateInfo.formats)
               ici.get<vk::ImageFormatListCreateInfo>().setViewFormats(
@@ -662,7 +664,7 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
             auto [image, allocation] = device.allocator().createImageUnique(
                 ici.get<>(), allocationCreateInfo);
 
-            return std::pair{std::move(allocation), std::move(image)};
+            return {std::move(allocation), std::move(image)};
           }(),
           imageCreateInfo.imageType, imageCreateInfo.format,
           imageCreateInfo.extent, imageCreateInfo.mipLevels,
@@ -675,11 +677,11 @@ Texture::Texture(const Device &device, const ImageCreateInfo &imageCreateInfo,
                  vk::ComponentMapping components)
     : Image(device, imageCreateInfo, allocationCreateInfo),
       m_imageView({device.device(),
-              {viewFlags,
-               image(),
-               viewType,
-               format(),
-               components,
-               {aspectFlags, 0, vk::RemainingMipLevels, 0,
-                vk::RemainingArrayLayers}}}) {}
+                   {viewFlags,
+                    image(),
+                    viewType,
+                    format(),
+                    components,
+                    {aspectFlags, 0, vk::RemainingMipLevels, 0,
+                     vk::RemainingArrayLayers}}}) {}
 } // namespace v4dg

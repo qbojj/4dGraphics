@@ -15,7 +15,10 @@
 
 namespace v4dg {
 DSAllocator::DSAllocator(DSAllocatorPool &owner) : m_owner(&owner), m_pool(nullptr) {}
-DSAllocator::~DSAllocator() { m_owner->ret_allocator(std::move(m_pool)); }
+DSAllocator::~DSAllocator() { 
+  if(*m_pool)
+    m_owner->ret_allocator(std::move(m_pool));
+}
 
 void 
 DSAllocator::allocate_internal(std::span<const vk::DescriptorSetLayout> setLayouts,
@@ -100,7 +103,7 @@ DSAllocatorPool::DSAllocatorPool(
 
 void DSAllocatorPool::advance_frame(vk::Bool32 trim,
                                     vk::DescriptorPoolResetFlags ResetFlags) {
-  std::unique_lock lock(m_mut);
+  std::scoped_lock lock(m_mut);
 
   m_frameIdx = (m_frameIdx + 1) % max_frames_in_flight;
 
@@ -129,12 +132,12 @@ void DSAllocatorPool::advance_frame(vk::Bool32 trim,
 }
 
 void DSAllocatorPool::ret_allocator(vk::raii::DescriptorPool pool) {
-  std::unique_lock lock(m_mut);
+  std::scoped_lock lock(m_mut);
   m_perFramePools[m_frameIdx].usable.emplace_back(std::move(pool));
 }
 
 void DSAllocatorPool::replace_full_allocator(vk::raii::DescriptorPool &pool) {
-  std::unique_lock lock(m_mut);
+  std::scoped_lock lock(m_mut);
 
   frame_storage &storage = m_perFramePools[m_frameIdx];
   storage.full.emplace_back(std::move(pool));
@@ -142,7 +145,7 @@ void DSAllocatorPool::replace_full_allocator(vk::raii::DescriptorPool &pool) {
 }
 
 vk::raii::DescriptorPool DSAllocatorPool::get_new_pool() {
-  std::unique_lock lock(m_mut);
+  std::scoped_lock lock(m_mut);
   return get_new_pool_internal();
 }
 

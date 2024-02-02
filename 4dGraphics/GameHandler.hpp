@@ -60,8 +60,8 @@ private:
   bool handle_events();
 
   void gui();
-  vk::CommandBuffer record_gui(vk::Image,vk::ImageView);
-  void submit(vk::CommandBuffer cmd);
+  void record_gui(CommandBuffer &cb, vk::Image,vk::ImageView);
+  void submit(vk::CommandBuffer cmd, std::uint32_t image_idx);
   void present(std::uint32_t image_idx);
 };
 } // namespace v4dg

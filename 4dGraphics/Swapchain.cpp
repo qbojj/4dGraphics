@@ -131,10 +131,16 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
           m_format,
           {},
           {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+  
+  m_readyToPresent.reserve(m_images.size());
+  for (size_t i = 0; i < m_images.size(); ++i) {
+    m_readyToPresent.push_back(ctx.vkDevice().createSemaphore({}));
+  }
 }
 
 DestructionItem Swapchain::move_out() {
-  return [views = std::move(m_imageViews), swp = std::move(m_swapchain)] {};
+  return [views = std::move(m_imageViews), swp = std::move(m_swapchain),
+          readyToPresent = std::move(m_readyToPresent)] {};
 }
 
 SwapchainBuilder Swapchain::recreate_builder() const {

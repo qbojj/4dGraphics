@@ -28,6 +28,14 @@ public:
   Context &context() const { return m_context; }
   DSAllocator &ds_allocator() { return m_ds_allocator; }
 
+  void barrier(vk::DependencyFlags flags,
+               vk::ArrayProxy<const vk::MemoryBarrier2> memoryBarriers,
+               vk::ArrayProxy<const vk::BufferMemoryBarrier2> bufferBarriers,
+               vk::ArrayProxy<const vk::ImageMemoryBarrier2> imageBarriers) {
+    (*this)->pipelineBarrier2(
+        {flags, memoryBarriers, bufferBarriers, imageBarriers});
+  }
+
 private:
   Context &m_context;
   const Device &m_device;

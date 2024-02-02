@@ -35,7 +35,7 @@ void operator delete(void *ptr, std::size_t) noexcept {
 
 v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways, v4dg::cerrLogReciever);
 
-void parse_args(int argc, char *argv[]) {
+void parse_args(int argc, const char *argv[]) {
   argparse::ArgumentParser parser;
 
   parser.add_argument("-d", "--debug-level")
@@ -128,16 +128,23 @@ void parse_args(int argc, char *argv[]) {
 extern "C"
 #endif
 int
-main(int argc, char *argv[]) {
+main([[maybe_unused]] int argc, [[maybe_unused]] const char *argv[]) {
+  try {
+    std::srand((unsigned int)std::time(NULL));
+    parse_args(argc, argv);
 
-  std::srand((unsigned int)std::time(NULL));
-  parse_args(argc, argv);
+    v4dg::logger.Log("starting");
+    v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
+    v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
 
-  v4dg::logger.Log("starting");
-  v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
-  v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
+    v4dg::SDL_GlobalContext gc;
 
-  v4dg::SDL_GlobalContext gc;
-
-  return v4dg::MyGameHandler{}.Run();
+    return v4dg::MyGameHandler{}.Run();
+  } catch (const std::exception &e) {
+    v4dg::logger.FatalError("Exception: {}", e.what());
+    return EXIT_FAILURE;
+  } catch (...) {
+    v4dg::logger.FatalError("Unknown exception");
+    return EXIT_FAILURE;
+  }
 }

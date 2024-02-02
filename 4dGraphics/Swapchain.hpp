@@ -46,8 +46,14 @@ public:
   const vk::raii::SwapchainKHR &swapchain() const { return m_swapchain; }
 
   const auto &images() const { return m_images; }
-  const auto &imageViews() const { return m_imageViews; }
+  const vk::Image &image(size_t idx) const { return m_images[idx]; }
 
+  const auto &imageViews() const { return m_imageViews; }
+  const vk::ImageView &imageView(size_t idx) const { return *m_imageViews[idx]; }
+
+  const auto &readyToPresents() const { return m_readyToPresent; }
+  const vk::Semaphore &readyToPresent(size_t idx) const { return *m_readyToPresent[idx]; }
+  
   vk::Format format() const { return m_format; }
   vk::ColorSpaceKHR colorSpace() const { return m_colorSpace; }
   vk::PresentModeKHR presentMode() const { return m_presentMode; }
@@ -80,5 +86,6 @@ private:
   vk::raii::SwapchainKHR m_swapchain;
   std::vector<vk::Image> m_images;
   std::vector<vk::raii::ImageView> m_imageViews;
+  std::vector<vk::raii::Semaphore> m_readyToPresent;
 };
 } // namespace v4dg
