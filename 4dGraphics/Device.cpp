@@ -140,6 +140,28 @@ std::vector<const char *> to_c_vector(auto &strings) {
 
 auto transform_to_ext_storage = std::views::transform(
     [](const auto &ext) { return make_ext_storage(ext); });
+
+constexpr std::array required_instance_exts{
+    vk::KHRSurfaceExtensionName,
+};
+
+constexpr std::array wanted_instance_exts{
+    vk::EXTDebugUtilsExtensionName,
+    vk::KHRPortabilityEnumerationExtensionName,
+};
+
+constexpr std::array required_device_exts{
+    vk::KHRSwapchainExtensionName,
+    vk::KHRShaderSubgroupUniformControlFlowExtensionName,
+};
+
+constexpr std::array wanted_device_exts{
+    vk::EXTMemoryBudgetExtensionName,
+    vk::EXTMemoryPriorityExtensionName,
+    vk::EXTSwapchainColorSpaceExtensionName,
+    vk::EXTDeviceFaultExtensionName,
+};
+
 } // namespace
 
 Instance::Instance(vk::raii::Context context,
@@ -153,7 +175,13 @@ Instance::Instance(vk::raii::Context context,
       m_debugMessenger(m_debugUtilsEnabled
                            ? instance().createDebugUtilsMessengerEXT(
                                  debugMessengerCreateInfo())
-                           : vk::raii::DebugUtilsMessengerEXT{nullptr}) {}
+                           : vk::raii::DebugUtilsMessengerEXT{nullptr}) {
+
+  logger.Log("vulkan header version: {}.{}.{}",
+             vk::apiVersionMajor(vk::HeaderVersionComplete),
+             vk::apiVersionMinor(vk::HeaderVersionComplete),
+             vk::apiVersionPatch(vk::HeaderVersionComplete));
+}
 
 std::vector<extension_storage> Instance::chooseLayers() const {
   std::vector<extension_storage> layers;
@@ -175,16 +203,13 @@ std::vector<extension_storage> Instance::chooseLayers() const {
 std::vector<extension_storage> Instance::chooseExtensions() const {
   std::vector<extension_storage> extensions;
 
-  std::vector<std::string_view> requiredInstanceExts = {
-      VK_KHR_SURFACE_EXTENSION_NAME,
-      VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
-      VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
-  };
+  std::vector<std::string_view> requiredInstanceExts, wantedInstanceExts;
 
-  std::vector<std::string_view> wantedInstanceExts{
-      VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-      VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-  };
+  for (const auto &ext : required_instance_exts)
+    unique_add(requiredInstanceExts, ext);
+
+  for (const auto &ext : wanted_instance_exts)
+    unique_add(wantedInstanceExts, ext);
 
   uint32_t window_ext_count;
   SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, nullptr);
@@ -280,18 +305,20 @@ Device::Device(const Instance &instance, vk::SurfaceKHR surface)
       m_device(initDevice()), m_allocator(initAllocator()),
       m_queues(initQueues()) {
 
+  m_rayTracing = true;
+
   auto *pdasf = getVkStructureFromChain<
       vk::PhysicalDeviceAccelerationStructureFeaturesKHR>(m_features.get());
-  m_accelerationStructure = pdasf && pdasf->accelerationStructure;
+  m_rayTracing &= pdasf && pdasf->accelerationStructure;
 
   auto *rtpf =
       getVkStructureFromChain<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>(
           m_features.get());
-  m_rayTracingPipeline = rtpf && rtpf->rayTracingPipeline;
+  m_rayTracing &= rtpf && rtpf->rayTracingPipeline;
 
   auto *rtaf = getVkStructureFromChain<vk::PhysicalDeviceRayQueryFeaturesKHR>(
       m_features.get());
-  m_rayQuery = rtaf && rtaf->rayQuery;
+  m_rayTracing &= rtaf && rtaf->rayQuery;
 
   auto *msf = getVkStructureFromChain<vk::PhysicalDeviceMeshShaderFeaturesEXT>(
       m_features.get());
@@ -336,12 +363,6 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd,
     return false;
   }
 
-  std::array requiredExtensions{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-      VK_KHR_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_EXTENSION_NAME,
-  };
-
   auto exts = enumerateExtensions(pd);
 
   auto ext_present = [&](auto &ext) {
@@ -356,7 +377,7 @@ bool Device::physicalDeviceSuitable(const vk::raii::PhysicalDevice &pd,
 
   auto families = pd.getQueueFamilyProperties();
 
-  return std::ranges::all_of(requiredExtensions, ext_present) &&
+  return std::ranges::all_of(required_device_exts, ext_present) &&
          std::ranges::any_of(families,
                              [](auto &qfp) {
                                return static_cast<bool>(
@@ -415,24 +436,12 @@ Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
 std::vector<extension_storage> Device::chooseExtensions() const {
   std::vector<extension_storage> extensions;
 
-  std::array requiredExtensions{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-      VK_KHR_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_EXTENSION_NAME,
-  };
-
-  std::array wantedExtensions{
-      VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
-      VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
-      VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
-  };
-
   auto avaiable_exts = enumerateExtensions(m_physicalDevice);
 
-  for (const auto &ext : wantedExtensions | transform_to_ext_storage)
+  for (const auto &ext : wanted_device_exts | transform_to_ext_storage)
     unique_add_if_present(extensions, avaiable_exts, ext);
 
-  for (const auto &ext : requiredExtensions | transform_to_ext_storage) {
+  for (const auto &ext : required_device_exts | transform_to_ext_storage) {
     if (!contains(avaiable_exts, ext))
       throw exception("Required device extension {} not supported", ext);
     unique_add(extensions, ext);
@@ -447,7 +456,15 @@ Device::chooseFeatures() const {
       vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>>();
+      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
+      vk::PhysicalDeviceFaultFeaturesEXT>>();
+
+  auto avaiable_features = m_physicalDevice.getFeatures2<
+      vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
+      vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+      vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
+      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
+      vk::PhysicalDeviceFaultFeaturesEXT>();
 
   auto &feature_chain = *all_features;
 
@@ -563,14 +580,23 @@ Device::chooseFeatures() const {
   feature_chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()
       .setMemoryPriority(vk::True);
 
-  if (!contains(m_extensions, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME))
+  if (!contains(m_extensions, vk::EXTMemoryPriorityExtensionName))
     feature_chain.unlink<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 
   feature_chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>()
       .setSwapchainMaintenance1(vk::True);
 
-  if (!contains(m_extensions, VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME))
+  if (!contains(m_extensions, vk::EXTSwapchainColorSpaceExtensionName))
     feature_chain.unlink<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>();
+
+  feature_chain.get<vk::PhysicalDeviceFaultFeaturesEXT>()
+      .setDeviceFault(vk::True)
+      .setDeviceFaultVendorBinary(
+          avaiable_features.get<vk::PhysicalDeviceFaultFeaturesEXT>()
+              .deviceFaultVendorBinary);
+
+  if (!contains(m_extensions, vk::EXTDeviceFaultExtensionName))
+    feature_chain.unlink<vk::PhysicalDeviceFaultFeaturesEXT>();
 
   return {std::move(all_features), &all_features->get<>()};
 }
@@ -592,10 +618,10 @@ vma::UniqueAllocator Device::initAllocator() const {
   const vk::PhysicalDeviceFeatures2 *device_features = features();
 
   vma::AllocatorCreateFlags flags{};
-  if (contains(m_extensions, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME))
+  if (contains(m_extensions, vk::EXTMemoryBudgetExtensionName))
     flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
 
-  if (contains(m_extensions, VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)) {
+  {
     auto *phdcmf =
         getVkStructureFromChain<vk::PhysicalDeviceCoherentMemoryFeaturesAMD>(
             device_features);
@@ -617,7 +643,7 @@ vma::UniqueAllocator Device::initAllocator() const {
       flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
   }
 
-  if (contains(m_extensions, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME)) {
+  {
     const auto *pdmpf =
         getVkStructureFromChain<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>(
             device_features);

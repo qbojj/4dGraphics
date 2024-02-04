@@ -45,7 +45,7 @@ public:
       qt_desc{Type::AsyncCompute, vk::QueueFlagBits::eCompute,
               vk::QueueFlagBits::eGraphics},
       qt_desc{Type::AsyncTransfer, vk::QueueFlagBits::eTransfer,
-              vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute},
+              ~(vk::QueueFlagBits::eTransfer | vk::QueueFlagBits::eSparseBinding)},
   };
 
   PerQueueFamily() = delete;
@@ -113,26 +113,16 @@ struct PerThread {
   per_frame<PerFrame> m_per_frame;
 };
 
-static const DSAllocatorWeights default_ds_allocator_weights{
-    .m_weights = {{vk::DescriptorType::eSampler, 0.5f},
-                  {vk::DescriptorType::eCombinedImageSampler, 4.f},
-                  {vk::DescriptorType::eSampledImage, 4.f},
-                  {vk::DescriptorType::eStorageImage, 1.f},
-                  {vk::DescriptorType::eUniformTexelBuffer, 1.f},
-                  {vk::DescriptorType::eStorageTexelBuffer, 1.f},
-                  {vk::DescriptorType::eUniformBuffer, 2.f},
-                  {vk::DescriptorType::eStorageBuffer, 2.f},
-                  {vk::DescriptorType::eUniformBufferDynamic, 1.f},
-                  {vk::DescriptorType::eStorageBufferDynamic, 1.f},
-                  {vk::DescriptorType::eInputAttachment, 0.5f}},
-};
-
 class Context {
 public:
   using QueueType = PerQueueFamily::Type;
 
-  Context(const Device &device, DSAllocatorWeights weights = default_ds_allocator_weights);
+  Context(const Device &device, std::optional<DSAllocatorWeights> weights = {});
   ~Context();
+
+  // we will be refering this class as a reference type -> no copying/moving
+  Context(const Context &) = delete;
+  Context &operator=(const Context &) = delete;
 
   auto &instance() const { return m_instance; }
   auto &device() const { return m_device; }
@@ -214,6 +204,8 @@ private:
   vk::raii::PipelineCache m_pipeline_cache;
 
   //BindlessManager m_bindless_manager;
+
+  static DSAllocatorWeights default_weights(const Device &device);
 
   PerQueueFamilyArray getFamilies() const;
 };

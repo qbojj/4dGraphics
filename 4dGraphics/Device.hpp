@@ -61,6 +61,10 @@ public:
   Instance(vk::raii::Context context,
     vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
 
+  // we will be refering to this class as a reference type -> no copying/moving
+  Instance(const Instance &) = delete;
+  Instance& operator=(const Instance &) = delete;
+
   const vk::raii::Context &context() const { return m_context; }
   const vk::raii::Instance &instance() const { return m_instance; }
 
@@ -96,6 +100,10 @@ private:
 class Device {
 public:
   Device(const Instance &instance, vk::SurfaceKHR surface = {});
+
+  // we will be refering to this class as a reference type -> no copying/moving
+  Device(const Device &) = delete;
+  Device& operator=(const Device &) = delete;
 
   const auto &instance() const { return m_instance; }
   const vk::raii::PhysicalDevice &physicalDevice() const {
@@ -156,11 +164,14 @@ public:
   const auto &queues() const { return m_queues; }
 
 public:
-  bool m_accelerationStructure;
-  bool m_rayTracingPipeline;
-  bool m_rayQuery;
-
   bool m_meshShader;
+
+  // all 3 extensions are required for ray tracing:
+  // VK_KHR_acceleration_structure, VK_KHR_ray_tracing_pipeline, VK_KHR_ray_query
+  bool m_rayTracing;
+
+  // VK_EXT_device_fault
+  bool m_deviceFault;
 
 private:
   const Instance &m_instance;

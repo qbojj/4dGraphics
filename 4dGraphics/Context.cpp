@@ -37,13 +37,14 @@ PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
   m_semaphore = {dev, sci.get<>()};
 }
 
-Context::Context(const Device &dev, DSAllocatorWeights weights)
+Context::Context(const Device &dev, std::optional<DSAllocatorWeights> weights)
     : m_instance(dev.instance()), m_device(dev),
       m_executor(std::thread::hardware_concurrency(),
                  std::make_shared<WorkerInterface>()),
       m_main_thread_id(std::this_thread::get_id()), m_families(getFamilies()),
       m_per_frame{
-          make_per_frame<PerFrame>(vkDevice(), m_families.size(), weights)},
+          make_per_frame<PerFrame>(vkDevice(), m_families.size(),
+            weights.value_or(default_weights(dev)))},
       m_pipeline_cache(nullptr) //,m_bindless_manager(device())
       {
   auto &graphics_queue = get_queue(PerQueueFamily::Type::Graphics);
@@ -190,18 +191,44 @@ void Context::next_frame() {
 
   {
     ZoneScopedN("clear stacks");
-    next_frame.flush();
+    tf::Taskflow tf;
 
-    for (auto &per_thread : m_per_thread) {
-      auto &per_f = per_thread.m_per_frame[frame_ref()];
-      per_f.m_destruction_stack.flush();
-      per_f.m_command_buffer_manager.reset();
-    }
+    tf.emplace([&] {
+      next_frame.flush();
+    }).name("flush destruction stack");
 
-    for (auto &q : m_families)
-      if (q) {
-        q->commandBufferManager(frame_ref()).reset();
-      }
+    tf.for_each(m_per_thread.begin(), m_per_thread.end(), [&](auto &per_thread) {
+      per_thread.m_per_frame[frame_ref()].flush();
+    }).name("flush per thread destruction stacks");
+
+    tf.for_each(m_families.begin(), m_families.end(), [&](auto &q) {
+      if (q)
+          q->commandBufferManager(frame_ref()).reset();
+    }).name("reset command buffer managers");
+
+    m_executor.run(tf).wait();
   }
 }
+
+DSAllocatorWeights Context::default_weights(const Device &dev) {
+  DSAllocatorWeights weights{
+      .m_weights = {{vk::DescriptorType::eSampler, 0.5f},
+                    {vk::DescriptorType::eCombinedImageSampler, 4.f},
+                    {vk::DescriptorType::eSampledImage, 4.f},
+                    {vk::DescriptorType::eStorageImage, 1.f},
+                    {vk::DescriptorType::eUniformTexelBuffer, 1.f},
+                    {vk::DescriptorType::eStorageTexelBuffer, 1.f},
+                    {vk::DescriptorType::eUniformBuffer, 2.f},
+                    {vk::DescriptorType::eStorageBuffer, 2.f},
+                    {vk::DescriptorType::eUniformBufferDynamic, 1.f},
+                    {vk::DescriptorType::eStorageBufferDynamic, 1.f},
+                    {vk::DescriptorType::eInputAttachment, 0.5f},},
+  };
+
+  // add acceleration structure if applicable
+  if (dev.m_rayTracing)
+    weights.m_weights.push_back({vk::DescriptorType::eAccelerationStructureKHR, 1.f});
+  
+  return weights;
+};
 } // namespace v4dg

@@ -597,29 +597,38 @@ vkDev.device, nullptr })
     return ret;
 }
 */
+
+detail::GpuAllocation::~GpuAllocation() {
+  if (m_allocation) {
+    m_allocator.freeMemory(m_allocation);
+  }
+}
+
 Buffer::Buffer(const Device &dev,
-               std::pair<vma::UniqueAllocation, vma::UniqueBuffer> p)
-    : detail::GpuAllocation(dev.allocator(), std::move(p.first)),
+               std::pair<vma::Allocation, vk::raii::Buffer> p)
+    : detail::GpuAllocation(dev.allocator(), p.first),
       m_buffer(std::move(p.second)),
       m_deviceAddress(dev.device().getBufferAddress({buffer()})) {}
 
 Buffer::Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
                const vma::AllocationCreateInfo &allocationCreateInfo)
-    : Buffer(dev, [&] -> std::pair<vma::UniqueAllocation, vma::UniqueBuffer> {
+    : Buffer(dev, [&] {
         vk::BufferCreateInfo bci{bufferCreateInfo};
         bci.usage |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
-        auto [buffer, allocation] =
-            dev.allocator().createBufferUnique(bci, allocationCreateInfo);
 
-        return {std::move(allocation), std::move(buffer)};
+        auto [buffer, allocation] =
+            dev.allocator().createBuffer(bci, allocationCreateInfo);
+
+        return std::pair<vma::Allocation, vk::raii::Buffer>(
+            allocation, vk::raii::Buffer(dev.device(), buffer));
       }()) {}
 
 Image::Image(const Device &device,
-             std::pair<vma::UniqueAllocation, vma::UniqueImage> image,
+             std::pair<vma::Allocation, vk::raii::Image> image,
              vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
              uint32_t mipLevels, uint32_t arrayLayers,
              vk::SampleCountFlagBits samples)
-    : detail::GpuAllocation(device.allocator(), std::move(image.first)),
+    : detail::GpuAllocation(device.allocator(), image.first),
       m_image(std::move(image.second)), m_imageType(imageType),
       m_format(format), m_extent(extent), m_mipLevels(mipLevels),
       m_arrayLayers(arrayLayers), m_samples(samples) {}
@@ -628,7 +637,7 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
              const vma::AllocationCreateInfo &allocationCreateInfo)
     : Image(
           device,
-          [&] -> std::pair<vma::UniqueAllocation, vma::UniqueImage> {
+          [&] {
             vk::StructureChain<vk::ImageCreateInfo,
                                vk::ImageFormatListCreateInfo,
                                vk::ImageStencilUsageCreateInfo>
@@ -661,10 +670,11 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
             else
               ici.unlink<vk::ImageStencilUsageCreateInfo>();
 
-            auto [image, allocation] = device.allocator().createImageUnique(
-                ici.get<>(), allocationCreateInfo);
+            auto [image, allocation] = device.allocator().createImage(
+                ici.get<vk::ImageCreateInfo>(), allocationCreateInfo);
 
-            return {std::move(allocation), std::move(image)};
+            return std::pair<vma::Allocation, vk::raii::Image>(
+                allocation, vk::raii::Image(device.device(), image));
           }(),
           imageCreateInfo.imageType, imageCreateInfo.format,
           imageCreateInfo.extent, imageCreateInfo.mipLevels,

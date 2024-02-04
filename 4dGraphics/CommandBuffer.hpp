@@ -28,12 +28,16 @@ public:
   Context &context() const { return m_context; }
   DSAllocator &ds_allocator() { return m_ds_allocator; }
 
+  template<typename... Chain>
   void barrier(vk::DependencyFlags flags,
                vk::ArrayProxy<const vk::MemoryBarrier2> memoryBarriers,
                vk::ArrayProxy<const vk::BufferMemoryBarrier2> bufferBarriers,
-               vk::ArrayProxy<const vk::ImageMemoryBarrier2> imageBarriers) {
-    (*this)->pipelineBarrier2(
-        {flags, memoryBarriers, bufferBarriers, imageBarriers});
+               vk::ArrayProxy<const vk::ImageMemoryBarrier2> imageBarriers,
+               const Chain&... chain_rest) {
+    vk::StructureChain<vk::DependencyInfo, Chain...> chain{
+        vk::DependencyInfo{flags, memoryBarriers, bufferBarriers, imageBarriers},
+        chain_rest...};
+    (*this)->pipelineBarrier2(chain.get());
   }
 
 private:

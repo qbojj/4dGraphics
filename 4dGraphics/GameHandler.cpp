@@ -20,6 +20,8 @@
 #include <tracy/Tracy.hpp>
 
 #include <exception>
+#include <filesystem>
+#include <format>
 #include <fstream>
 #include <memory>
 
@@ -360,24 +362,21 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
                                        int32_t(swapchain.extent().height), 1},
                       },
                   },
-                  vk::Filter::eNearest);
+                  vk::Filter::eLinear);
   }
 
-  cb.barrier({}, {}, {}, 
-    {
-      {
-        vk::PipelineStageFlagBits2::eBlit,
-        vk::AccessFlagBits2::eTransferWrite,
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ImageLayout::eAttachmentOptimal,
-        vk::QueueFamilyIgnored,
-        vk::QueueFamilyIgnored,
-        image,
-        {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
-      }
-    });
+  cb.barrier({}, {}, {},
+             {{vk::PipelineStageFlagBits2::eBlit,
+               vk::AccessFlagBits2::eTransferWrite,
+               vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+               vk::AccessFlagBits2::eColorAttachmentRead |
+                   vk::AccessFlagBits2::eColorAttachmentWrite,
+               vk::ImageLayout::eTransferDstOptimal,
+               vk::ImageLayout::eAttachmentOptimal,
+               vk::QueueFamilyIgnored,
+               vk::QueueFamilyIgnored,
+               image,
+               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
 
   {
     ZoneScopedN("imgui");
@@ -402,19 +401,18 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
   // to the present engine
   cb.barrier({}, {}, {},
-      {{
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::PipelineStageFlagBits2::eBottomOfPipe,
-        vk::AccessFlagBits2::eNone,
-        vk::ImageLayout::eAttachmentOptimal,
-        vk::ImageLayout::ePresentSrcKHR,
-        vk::QueueFamilyIgnored,
-        vk::QueueFamilyIgnored,
-        image,
-        {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
-      }});
-        
+             {{vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+               vk::AccessFlagBits2::eColorAttachmentRead |
+                   vk::AccessFlagBits2::eColorAttachmentWrite,
+               vk::PipelineStageFlagBits2::eBottomOfPipe,
+               vk::AccessFlagBits2::eNone,
+               vk::ImageLayout::eAttachmentOptimal,
+               vk::ImageLayout::ePresentSrcKHR,
+               vk::QueueFamilyIgnored,
+               vk::QueueFamilyIgnored,
+               image,
+               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+
   cb->end();
 }
 
@@ -466,7 +464,7 @@ void MyGameHandler::present(uint32_t image_idx) {
   }
 }
 
-int MyGameHandler::Run() {
+int MyGameHandler::Run() try {
   SDL_ShowWindow(m_window);
 
   auto last_frame = std::chrono::high_resolution_clock::now();
@@ -523,5 +521,81 @@ int MyGameHandler::Run() {
   }
 
   return 0;
+} catch (const vk::DeviceLostError &e) {
+  logger.FatalError("Device lost: {}", e.what());
+
+  if (device.m_deviceFault) {
+    context.executor().wait_for_all();
+
+    vk::DeviceFaultCountsEXT counts;
+    vk::DeviceFaultInfoEXT info;
+    auto &disp = *device.device().getDispatcher();
+    vk::Result res{};
+
+    std::vector<vk::DeviceFaultAddressInfoEXT> addressInfos;
+    std::vector<vk::DeviceFaultVendorInfoEXT> vendorInfos;
+    std::vector<std::byte> vendorData;
+
+    do {
+      res = (*device.device()).getFaultInfoEXT(&counts, nullptr, disp);
+      addressInfos.resize(counts.addressInfoCount);
+      vendorInfos.resize(counts.vendorInfoCount);
+      vendorData.resize(counts.vendorBinarySize);
+
+      info.setPAddressInfos(addressInfos.data())
+          .setPVendorInfos(vendorInfos.data())
+          .setPVendorBinaryData(vendorData.data());
+
+      res = (*device.device()).getFaultInfoEXT(&counts, &info, disp);
+    } while (res == vk::Result::eIncomplete);
+
+    std::string message;
+    auto append = [&]<typename... Args>(std::format_string<Args...> fmt,
+                                        Args &&...args) {
+      std::format_to(std::back_inserter(message), fmt,
+                     std::forward<decltype(args)>(args)...);
+    };
+
+    append("Device fault: {}\n", info.description);
+    append("  addressInfos:\n");
+    for (auto &ai : addressInfos) {
+      append("    address type: {}\n", ai.addressType);
+      append("    reported address: 0x{:016x}\n", ai.reportedAddress);
+      append("    address mask: 0x{:016x}\n", ~(ai.addressPrecision - 1));
+      append("\n");
+    }
+
+    append("  vendorInfos:\n");
+    for (auto &vi : vendorInfos) {
+      append("    description: {}\n", vi.description);
+      append("    vendor fault code: 0x{:016x}\n", vi.vendorFaultCode);
+      append("    vendor fault data: 0x{:016x}\n", vi.vendorFaultData);
+      append("\n");
+    }
+
+    auto date = std::chrono::system_clock::now();
+
+    if (vendorData.size() > 0) {
+      // generate path for dump (device_dump_YYYY-MM-DD_HH-MM-SS.bin)
+      auto dump_path =
+          std::filesystem::current_path() /
+          std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}.bin", date);
+
+      append("  binary dump saved to {}\n", dump_path.string());
+      std::ofstream(dump_path, std::ios::binary)
+          .write(reinterpret_cast<const char *>(vendorData.data()),
+                 vendorData.size());
+    }
+
+    logger.FatalError("{}", message);
+
+    std::ofstream crash_dump(
+        std::filesystem::current_path() /
+            std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
+
+    crash_dump << message << '\n';
+  }
+
+  return 1;
 }
 } // namespace v4dg

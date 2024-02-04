@@ -85,7 +85,7 @@ BindlessManager::BindlessManager(const Device &device)
     auto type = static_cast<BindlessType>(i);
 
     if (type == BindlessType::eAccelerationStructureKHR &&
-        !device.m_accelerationStructure) {
+        !device.m_rayTracing) {
       m_layouts[i] = {m_device->device(), {{}, {}}};
       continue;
     }
@@ -116,7 +116,7 @@ BindlessManager::BindlessManager(const Device &device)
   for (uint32_t i = 0; i < 4; i++) {
     auto type = static_cast<BindlessType>(i);
     if (type == BindlessType::eAccelerationStructureKHR &&
-        !device.m_accelerationStructure)
+        !device.m_rayTracing)
       continue;
     
     pool_sizes.push_back({BindlessResource::type_to_vk(type), sizes[i]});
@@ -174,7 +174,7 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
     case BindlessType::eAccelerationStructureKHR:
       max_count = std::min({accel.maxDescriptorSetAccelerationStructures,
                             accel.maxPerStageDescriptorAccelerationStructures});
-      if (!device.m_accelerationStructure)
+      if (!device.m_rayTracing)
         max_count = 0;
       break;
     default:

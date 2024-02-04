@@ -10,27 +10,46 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <span>
 #include <optional>
+#include <span>
+#include <utility>
 
 namespace v4dg {
 namespace detail {
 
 class GpuAllocation {
+private:
+  struct map_deleter_type {
+    void operator()(void *) const {
+      obj->allocator().unmapMemory(obj->allocation());
+    }
+    GpuAllocation *obj;
+  };
+
 public:
-  GpuAllocation(vma::Allocator allocator, vma::UniqueAllocation allocation)
-      : m_allocator(allocator), m_allocation(std::move(allocation)) {}
+  GpuAllocation(vma::Allocator allocator, vma::Allocation allocation)
+      : m_allocator(allocator), m_allocation(allocation) {}
   
+  ~GpuAllocation();
+
+  GpuAllocation(const GpuAllocation &) = delete;
+  GpuAllocation &operator=(const GpuAllocation &) = delete;
+
+  GpuAllocation(GpuAllocation &&o) noexcept : m_allocator(o.m_allocator), m_allocation(std::exchange(o.m_allocation, {})) {}
+  GpuAllocation &operator=(GpuAllocation o) noexcept {
+    std::swap(m_allocator, o.m_allocator);
+    std::swap(m_allocation, o.m_allocation);
+    return *this;
+  }
+
   vma::Allocator allocator() const noexcept { return m_allocator; }
-  vma::Allocation allocation() const noexcept { return *m_allocation; }
+  vma::Allocation allocation() const noexcept { return m_allocation; }
 
-  template <typename T> auto map() const {
-    auto make_unique_obj = [](T *p, auto &&deleter) {
-      return std::unique_ptr<T, decltype(deleter)>(p, std::move(deleter));
-    };
+  template <typename T> using map_type = std::unique_ptr<T, map_deleter_type>;
 
-    return make_unique_obj(static_cast<T *>(allocator().mapMemory(allocation())),
-                           [this](void *) { allocator().unmapMemory(allocation()); });
+  template <typename T> map_type<T> map() const {
+    return make_unique_obj(
+        static_cast<T *>(allocator().mapMemory(allocation())), {this});
   }
 
   void flush(vk::DeviceSize offset = 0,
@@ -44,14 +63,14 @@ public:
 
 private:
   vma::Allocator m_allocator;
-  vma::UniqueAllocation m_allocation;
+  vma::Allocation m_allocation;
 };
 } // namespace detail
 
 class Buffer : public detail::GpuAllocation {
 public:
   Buffer(const Device &dev,
-         std::pair<vma::UniqueAllocation, vma::UniqueBuffer> buffer);
+          std::pair<vma::Allocation, vk::raii::Buffer> buffer);
 
   Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
          const vma::AllocationCreateInfo &allocationCreateInfo);
@@ -63,7 +82,7 @@ public:
   vk::DeviceAddress deviceAddress() const { return m_deviceAddress; }
 
 private:
-  vma::UniqueBuffer m_buffer;
+  vk::raii::Buffer m_buffer;
   vk::DeviceAddress m_deviceAddress;
 };
 
@@ -90,14 +109,13 @@ public:
   };
 
   Image(const Device &device,
-        std::pair<vma::UniqueAllocation, vma::UniqueImage> image,
+        std::pair<vma::Allocation, vk::raii::Image> image,
         vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
         uint32_t mipLevels, uint32_t arrayLayers,
         vk::SampleCountFlagBits samples);
-  
-  Image(const Device &device, 
-         const ImageCreateInfo &imageCreateInfo,
-         const vma::AllocationCreateInfo &allocationCreateInfo);
+
+  Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
+        const vma::AllocationCreateInfo &allocationCreateInfo);
 
   vk::Image image() const { return *m_image; }
 
@@ -109,7 +127,7 @@ public:
   vk::SampleCountFlagBits samples() const { return m_samples; }
 
 private:
-  vma::UniqueImage m_image;
+  vk::raii::Image m_image;
 
   vk::ImageType m_imageType;
   vk::Format m_format;
