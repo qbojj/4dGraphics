@@ -24,17 +24,27 @@ file(
   ${SHADER_DIR}/*.task
   ${SHADER_DIR}/*.mesh)
 
-find_program(GLSLC glslc)
+find_program(GLSLC glslc REQUIRE)
 set(SHADER_OUTPUTS)
+
+set(SHADER_OUTPUTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Shaders)
+set(SHADER_DEPENDS_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Depends)
+
+# Add a custom target to compile all shaders
 
 # Compile shaders using glslc and generate make dependencies
 foreach(SHADER_FILE ${SHADER_FILES})
   file(RELATIVE_PATH SHADER_NAME ${SHADER_DIR} ${SHADER_FILE})
-  set(SHADER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${SHADER_NAME}.spv)
-  set(SHADER_DEPENDENCY ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${SHADER_NAME}.d)
+  set(SHADER_OUTPUT ${SHADER_OUTPUTS_DIR}/${SHADER_NAME}.spv)
+  set(SHADER_DEPENDENCY ${SHADER_DEPENDS_DIR}/${SHADER_NAME}.d)
+
+  # get dir name of output and dependecy file
+  get_filename_component(SHADER_OUTPUT_DIR ${SHADER_OUTPUT} DIRECTORY)
+  get_filename_component(SHADER_DEPENDENCY_DIR ${SHADER_DEPENDENCY} DIRECTORY)
 
   add_custom_command(
     OUTPUT ${SHADER_OUTPUT}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_OUTPUT_DIR} ${SHADER_DEPENDENCY_DIR}
     COMMAND
       ${GLSLC} -o ${SHADER_OUTPUT} -MD -MF ${SHADER_DEPENDENCY}
       --target-env=vulkan1.3 $<$<CONFIG:Debug,RelWithDebInfo>:-g>
@@ -47,7 +57,15 @@ foreach(SHADER_FILE ${SHADER_FILES})
   list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT})
 endforeach()
 
-# Add a custom target to compile all shaders
 add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
 
-install(FILES ${SHADER_OUTPUTS} DESTINATION Shaders)
+add_custom_command(
+  TARGET Shaders
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_OUTPUTS_DIR}
+    $<TARGET_FILE_DIR:4dGraphics>/Shaders
+  COMMENT "Copying shaders to binary directory")
+
+# make shaders avaiable to other 
+
+install(DIRECTORY ${SHADER_OUTPUTS_DIR} DESTINATION .)

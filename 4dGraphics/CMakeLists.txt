@@ -50,17 +50,19 @@ target_include_directories(
 
 target_compile_definitions(
   4dGraphics
-  PRIVATE WIN32_LEAN_AND_MEAN
-          VK_ENABLE_BETA_EXTENSIONS=1
+  PUBLIC VK_ENABLE_BETA_EXTENSIONS=1
           VK_NO_PROTOTYPES=1
           VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
-          # TRACY_ENABLE=1
+          
           GLM_FORCE_SILENT_WARNINGS
           GLM_FORCE_DEPTH_ZERO_TO_ONE
           GLM_FORCE_SWIZZLE
           GLM_FORCE_RADIANS
           GLM_FORCE_CTOR_INIT
           GLM_ENABLE_EXPERIMENTAL
+
+  PRIVATE WIN32_LEAN_AND_MEAN
+          TRACY_ENABLE=1
           TRACY_VK_USE_SYMBOL_TABLE=1)
 
 setup_common(4dGraphics "4dGraphics")
@@ -74,3 +76,5 @@ add_custom_command(
     # $<TARGET_FILE:4dGraphics> is added to never have an empty set to copy
     $<TARGET_FILE_DIR:4dGraphics>
   COMMAND_EXPAND_LISTS)
+
+install(TARGETS 4dGraphics)

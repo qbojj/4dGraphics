@@ -1,14 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
 
-set(CMAKE_MACOSX_RPATH True)
-
-if(APPLE)
-  list(APPEND CMAKE_INSTALL_RPATH "@executable_path/../lib")
-else()
-  list(APPEND CMAKE_INSTALL_RPATH "${ORIGIN}/../lib")
-endif()
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(4DG)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
