@@ -26,17 +26,9 @@ vk::DescriptorType BindlessResource::type_to_vk(BindlessType t) noexcept {
   };
 }
 
-void BindlessResource::move_out_now(BindlessManager &manager) {
-  if (!valid())
-    return;
-
-  manager.free(std::move(*this));
-}
-
-DestructionItem BindlessResource::move_out(BindlessManager &manager) {
-  return [item = std::move(*this), &manager] mutable {
-    item.move_out_now(manager);
-  };
+UniqueBindlessResource::~UniqueBindlessResource() {
+  if (m_manager)
+    m_manager->free(m_res);
 }
 
 void BindlessManager::BindlessHeap::setup(BindlessType type, uint32_t max_count) {
@@ -77,7 +69,7 @@ void BindlessManager::BindlessHeap::free(BindlessResource res) {
 
 BindlessManager::BindlessManager(const Device &device)
     : m_device(&device), m_layouts({nullptr, nullptr, nullptr, nullptr}),
-      m_pipelineLayout(nullptr), m_pool(nullptr) {
+      m_pool(nullptr) {
 
   auto sizes = calculate_sizes(device);
 
@@ -107,13 +99,12 @@ BindlessManager::BindlessManager(const Device &device)
     m_layouts[i] = {m_device->device(), ci.get<>()};
   }
 
-  std::array<vk::DescriptorSetLayout, 4> layouts;
+  std::array<vk::DescriptorSetLayout, layout_count> layouts;
   for (uint32_t i{0}; auto &l : m_layouts)
     layouts[i++] = *l;
-  m_pipelineLayout = {m_device->device(), {{}, layouts}};
 
   std::vector<vk::DescriptorPoolSize> pool_sizes;
-  for (uint32_t i = 0; i < 4; i++) {
+  for (uint32_t i = 0; i < layout_count; i++) {
     auto type = static_cast<BindlessType>(i);
     if (type == BindlessType::eAccelerationStructureKHR &&
         !device.m_rayTracing)
@@ -122,7 +113,7 @@ BindlessManager::BindlessManager(const Device &device)
     pool_sizes.push_back({BindlessResource::type_to_vk(type), sizes[i]});
   }
 
-  m_pool = {m_device->device(), {{}, 4, pool_sizes}};
+  m_pool = {m_device->device(), {{}, layout_count, pool_sizes}};
 
   auto sets = (*m_device->device())
                   .allocateDescriptorSets({*m_pool, layouts},
@@ -131,7 +122,7 @@ BindlessManager::BindlessManager(const Device &device)
   std::move(sets.begin(), sets.end(), m_sets.begin());
 
   for (uint32_t i = 0; i < (uint32_t)m_sets.size(); i++)
-    device.setDebugName(m_sets[i], "bindless set {}", 
+    m_device->setDebugName(m_sets[i], "bindless set {}", 
       BindlessResource::type_to_vk(static_cast<BindlessType>(i)));
 
   for (uint32_t i = 0; i < 4; i++)
@@ -184,11 +175,51 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
     out[i] = std::min(max_count, BindlessResource::max_count);
   }
 
+  size_t total = 0;
+  for (auto i : out)
+    total += i;
+  
+  size_t max_resources = std::min({
+    props.limits.maxPerStageResources,
+    props.limits.maxFragmentCombinedOutputResources
+  });
+
+  // use only 4/5 of the total available resources
+  if (total > max_resources) {
+    for (auto &i : out)
+      i = (i * max_resources) / total;
+  }
+
+  for (auto [res, i] : std::views::enumerate(out)) {
+    logger.Log("BindlessManager ({}): max {} resources",
+      BindlessResource::type_to_vk(static_cast<BindlessType>(res)), i);
+  }
+
   return out;
+}
+
+UniqueBindlessResource BindlessManager::allocate(BindlessType type) {
+  assert(static_cast<uint32_t>(type) < 4 && "invalid BindlessType");
+  auto &heap = m_heaps[static_cast<uint32_t>(type)];
+  return UniqueBindlessResource{heap.allocate(), *this};
 }
 
 void BindlessManager::free(BindlessResource res) {
   auto &heap = m_heaps[static_cast<uint32_t>(res.type())];
   heap.free(std::move(res));
+}
+
+vk::WriteDescriptorSet BindlessManager::write_for(BindlessResource res) const {
+  assert(res);
+  return {
+      m_sets[static_cast<uint32_t>(res.type())],
+      0, // binding
+      res.index(), // arrayElement
+      1,
+      BindlessResource::type_to_vk(res.type()),
+      nullptr,
+      nullptr,
+      nullptr,
+  };
 }
 } // namespace v4dg

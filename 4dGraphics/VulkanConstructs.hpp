@@ -47,18 +47,22 @@ public:
 
   template <typename T> using map_type = std::unique_ptr<T, map_deleter_type>;
 
-  template <typename T> map_type<T> map() const {
+  template <typename T> map_type<T> map() {
     return make_unique_obj(
         static_cast<T *>(allocator().mapMemory(allocation())), {this});
   }
 
   void flush(vk::DeviceSize offset = 0,
-             vk::DeviceSize size = vk::WholeSize) const {
+             vk::DeviceSize size = vk::WholeSize) {
     allocator().flushAllocation(allocation(), offset, size);
   }
   void invalidate(vk::DeviceSize offset = 0,
-                  vk::DeviceSize size = vk::WholeSize) const {
+                  vk::DeviceSize size = vk::WholeSize) {
     allocator().invalidateAllocation(allocation(), offset, size);
+  }
+
+  void setName(const char *name) {
+    allocator().setAllocationName(allocation(), name);
   }
 
 private:
@@ -80,6 +84,17 @@ public:
   vk::Buffer operator*() const { return buffer(); }
 
   vk::DeviceAddress deviceAddress() const { return m_deviceAddress; }
+
+  void setName(const Device& dev, const char *name) {
+    dev.setDebugNameString(buffer(), name);
+    detail::GpuAllocation::setName(name);
+  }
+
+  template<typename... Args>
+  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
+    if (dev.debugNamesAvaiable())
+      setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
+  }
 
 private:
   vk::raii::Buffer m_buffer;
@@ -126,6 +141,17 @@ public:
   uint32_t arrayLayers() const { return m_arrayLayers; }
   vk::SampleCountFlagBits samples() const { return m_samples; }
 
+  void setName(const Device& dev, const char *name) {
+    dev.setDebugNameString(image(), name);
+    detail::GpuAllocation::setName(name);
+  }
+
+  template<typename... Args>
+  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
+    if (dev.debugNamesAvaiable())
+      setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
+  }
+
 private:
   vk::raii::Image m_image;
 
@@ -149,9 +175,20 @@ public:
 
   vk::ImageView imageView() const { return *m_imageView; }
 
+  template<typename... Args>
+  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
+    if (dev.debugNamesAvaiable()) {
+      std::string name = std::format(fmt, std::forward<Args>(args)...);
+      Image::setName(dev, name.c_str());
+      name.append(" view");
+      dev.setDebugNameString(imageView(), name.c_str());
+    }
+  }
+
 private:
   vk::raii::ImageView m_imageView;
 };
+
 
 /*
 VkResult CreateTextureImage(VulkanThreadCtx &vkCtx, const char *filename,

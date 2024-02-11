@@ -98,8 +98,7 @@ MyGameHandler::MyGameHandler()
           .preferred_format = vk::Format::eR8G8B8A8Unorm,
           .preferred_present_mode = vk::PresentModeKHR::eMailbox,
           .imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
-                        vk::ImageUsageFlagBits::eTransferDst |
-                        vk::ImageUsageFlagBits::eStorage,
+                        vk::ImageUsageFlagBits::eTransferDst,
           .image_count = 3,
       }
                     .build(context)),
@@ -109,29 +108,39 @@ MyGameHandler::MyGameHandler()
                   .format = vk::Format::eR16G16B16A16Sfloat,
                   .extent = {1024, 720, 1},
                   .usage = vk::ImageUsageFlagBits::eStorage |
-                           vk::ImageUsageFlagBits::eColorAttachment |
-                           vk::ImageUsageFlagBits::eSampled |
                            vk::ImageUsageFlagBits::eTransferSrc,
               },
               {{}, vma::MemoryUsage::eAuto}),
-      descriptor_set_layout(DescriptorSetLayoutInfo()
-                                .add_binding(0,
-                                             vk::DescriptorType::eStorageImage,
-                                             vk::ShaderStageFlagBits::eCompute)
-                                .create(&device)),
+      texture_resource(context.bindlessManager().allocate(BindlessType::eStorageImage)),
+      descriptor_set_layout(nullptr),
       pipeline_layout(PipelineLayoutInfo()
-                          .add_set(*descriptor_set_layout)
+                          .add_sets(context.bindlessManager().get_layouts())
                           .add_push({vk::ShaderStageFlagBits::eCompute, 0u,
                                      sizeof(MandelbrotPushConstants)})
                           .create(&device)),
       pipeline({nullptr, nullptr, nullptr}) {
-
-  auto shader = load_shader_module("Shaders/Mandelbrot.comp.spv", device);
+  
+  texture.setName(device, "mandelbrot texture");
+  vk::DescriptorImageInfo dii{
+      {},
+      texture.imageView(),
+      vk::ImageLayout::eGeneral,
+  };
+  device.device().updateDescriptorSets(
+    context.bindlessManager().write_for(*texture_resource, dii),
+    {}
+  );
+  
+  auto shader = load_shader_code("Shaders/Mandelbrot.comp.spv");
   if (!shader)
     throw exception("Could not load shader module");
 
   for (int variant = 0; variant < 3; variant++) {
-    ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, **shader);
+    ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, *shader);
+
+    if (instance.debugUtilsEnabled())
+      shader_data.set_debug_name("Shaders/Mandelbrot.comp.spv");
+
     shader_data.add_specialization(0, variant);
     vk::ComputePipelineCreateInfo pci{
         {},
@@ -279,7 +288,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
   cb.barrier({}, {}, {},
              {{vk::PipelineStageFlagBits2::eBlit,
-               vk::AccessFlagBits2::eTransferRead,
+               vk::AccessFlagBits2::eNone,
                vk::PipelineStageFlagBits2::eComputeShader,
                vk::AccessFlagBits2::eShaderStorageWrite,
                vk::ImageLayout::eUndefined,
@@ -302,24 +311,25 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
   // render mandelbrot
   {
     ZoneScopedN("mandelbrot");
-    cb.beginDebugLabel("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
+    auto labal = cb.debugLabelScope("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
     cb->bindPipeline(vk::PipelineBindPoint::eCompute,
                      *pipeline[current_pipeline]);
+    
+    context.bindlessManager().bind(cb, *pipeline_layout, vk::PipelineBindPoint::eCompute);
 
+    /*
     vk::DescriptorImageInfo dii{
         {},
         texture.imageView(),
         vk::ImageLayout::eGeneral,
     };
 
-    auto ds = cb.ds_allocator().allocate(*descriptor_set_layout);
-    context.vkDevice().updateDescriptorSets(
-        vk::WriteDescriptorSet{
-            ds, 0, 0, vk::DescriptorType::eStorageImage, dii, {}, {}},
-        {});
-
-    cb->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipeline_layout, 0,
-                           ds, {});
+    cb->pushDescriptorSetKHR(
+        vk::PipelineBindPoint::eCompute, *pipeline_layout, 0,
+        {{{}, 0, 0, vk::DescriptorType::eStorageImage, dii, {}, {}}});
+    */
+    mandelbrot_push_constants.image_idx = *texture_resource;
+    
     cb->pushConstants<MandelbrotPushConstants>(
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
@@ -327,8 +337,6 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
     auto div = 8 * (current_pipeline == 0 ? 2 : 1);
     cb->dispatch(detail::DivCeil(texture.extent().width, div),
                  detail::DivCeil(texture.extent().height, div), 1);
-
-    cb.endDebugLabel();
   }
 
   cb.barrier({}, {}, {},
@@ -369,8 +377,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
              {{vk::PipelineStageFlagBits2::eBlit,
                vk::AccessFlagBits2::eTransferWrite,
                vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-               vk::AccessFlagBits2::eColorAttachmentRead |
-                   vk::AccessFlagBits2::eColorAttachmentWrite,
+               vk::AccessFlagBits2::eColorAttachmentRead,
                vk::ImageLayout::eTransferDstOptimal,
                vk::ImageLayout::eAttachmentOptimal,
                vk::QueueFamilyIgnored,
@@ -380,7 +387,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
   {
     ZoneScopedN("imgui");
-    cb.beginDebugLabel("imgui", {0.0f, 1.0f, 1.0f, 1.0f});
+    auto label = cb.debugLabelScope("imgui", {0.0f, 1.0f, 1.0f, 1.0f});
 
     vk::RenderingAttachmentInfo rai{};
     rai.setImageView(view)
@@ -396,14 +403,12 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
       ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
     }
     cb->endRendering();
-    cb.endDebugLabel();
   }
 
   // to the present engine
   cb.barrier({}, {}, {},
              {{vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-               vk::AccessFlagBits2::eColorAttachmentRead |
-                   vk::AccessFlagBits2::eColorAttachmentWrite,
+               vk::AccessFlagBits2::eColorAttachmentWrite,
                vk::PipelineStageFlagBits2::eBottomOfPipe,
                vk::AccessFlagBits2::eNone,
                vk::ImageLayout::eAttachmentOptimal,
@@ -459,6 +464,7 @@ void MyGameHandler::present(uint32_t image_idx) {
       recreate_swapchain();
     }
   } catch (const vk::OutOfDateKHRError &e) {
+    logger.Warning("Frame lost - swapchain out of date");
     // ignore as if we wanted to use the swapchain once more
     //  we will recreate it on acquire
   }
@@ -525,8 +531,6 @@ int MyGameHandler::Run() try {
   logger.FatalError("Device lost: {}", e.what());
 
   if (device.m_deviceFault) {
-    context.executor().wait_for_all();
-
     vk::DeviceFaultCountsEXT counts;
     vk::DeviceFaultInfoEXT info;
     auto &disp = *device.device().getDispatcher();
@@ -549,51 +553,92 @@ int MyGameHandler::Run() try {
       res = (*device.device()).getFaultInfoEXT(&counts, &info, disp);
     } while (res == vk::Result::eIncomplete);
 
-    std::string message;
-    auto append = [&]<typename... Args>(std::format_string<Args...> fmt,
-                                        Args &&...args) {
-      std::format_to(std::back_inserter(message), fmt,
-                     std::forward<decltype(args)>(args)...);
+    auto make_append_to = [](auto &&it) {
+      return [it]<typename... Args>(std::format_string<Args...> fmt,
+                                    Args &&...args) {
+        std::format_to(it, fmt, std::forward<Args>(args)...);
+      };
     };
 
-    append("Device fault: {}\n", info.description);
-    append("  addressInfos:\n");
-    for (auto &ai : addressInfos) {
-      append("    address type: {}\n", ai.addressType);
-      append("    reported address: 0x{:016x}\n", ai.reportedAddress);
-      append("    address mask: 0x{:016x}\n", ~(ai.addressPrecision - 1));
-      append("\n");
-    }
-
-    append("  vendorInfos:\n");
-    for (auto &vi : vendorInfos) {
-      append("    description: {}\n", vi.description);
-      append("    vendor fault code: 0x{:016x}\n", vi.vendorFaultCode);
-      append("    vendor fault data: 0x{:016x}\n", vi.vendorFaultData);
-      append("\n");
-    }
-
+    auto cwd = std::filesystem::current_path();
     auto date = std::chrono::system_clock::now();
 
-    if (vendorData.size() > 0) {
-      // generate path for dump (device_dump_YYYY-MM-DD_HH-MM-SS.bin)
-      auto dump_path =
-          std::filesystem::current_path() /
-          std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}.bin", date);
+    auto [props2, id_props, driver_props] =
+        device.physicalDevice()
+            .getProperties2<vk::PhysicalDeviceProperties2,
+                            vk::PhysicalDeviceIDProperties,
+                            vk::PhysicalDeviceDriverProperties>();
 
-      append("  binary dump saved to {}\n", dump_path.string());
-      std::ofstream(dump_path, std::ios::binary)
-          .write(reinterpret_cast<const char *>(vendorData.data()),
-                 vendorData.size());
+    auto &props = props2.properties;
+
+    std::string message;
+
+    {
+      auto append = make_append_to(std::back_inserter(message));
+
+      append("Device fault: {}\n", info.description);
+      append("  addressInfos:\n");
+      for (auto &ai : addressInfos) {
+        append("    address type: {}\n", ai.addressType);
+        append("    reported address: 0x{:016x}\n", ai.reportedAddress);
+        append("    address mask: 0x{:016x}\n", ~(ai.addressPrecision - 1));
+        append("\n");
+      }
+
+      append("  vendorInfos:\n");
+      for (auto &vi : vendorInfos) {
+        append("    description: {}\n", vi.description);
+        append("    vendor fault code: 0x{:016x}\n", vi.vendorFaultCode);
+        append("    vendor fault data: 0x{:016x}\n", vi.vendorFaultData);
+        append("\n");
+      }
+
+      if (vendorData.size() > 0) {
+        auto dump_path =
+            cwd / std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin",
+                              date, props.deviceName.data(), props.deviceID);
+
+        append("  binary dump saved to {}\n", dump_path.string());
+        std::ofstream(dump_path, std::ios::binary)
+            .write(reinterpret_cast<const char *>(vendorData.data()),
+                   vendorData.size());
+      }
+
+      logger.FatalError("{}", message);
     }
 
-    logger.FatalError("{}", message);
+    {
+      std::ofstream crash_dump(
+          cwd / std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
 
-    std::ofstream crash_dump(
-        std::filesystem::current_path() /
-            std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
+      auto append =
+          make_append_to(std::ostreambuf_iterator<char>(crash_dump.rdbuf()));
 
-    crash_dump << message << '\n';
+      auto format_uuid = [&](const auto &uuid) {
+        // format uuid like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+        for (int i = 0; i < 16; i++) {
+          append("{:02x}", uuid[i]);
+          if (i == 3 || i == 5 || i == 7 || i == 9)
+            append("-");
+        }
+        append("\n");
+      };
+
+      append("Device name: {}\n", props.deviceName.data());
+      append("Device type: {}\n", props.deviceType);
+      append("Vendor ID: 0x{:08x}\n", props.vendorID);
+      append("Device ID: 0x{:08x}\n", props.deviceID);
+      append("Driver ID: {}\n", driver_props.driverID);
+      append("Driver name: {}\n", driver_props.driverName.data());
+      append("Driver version: {}\n", props.driverVersion);
+      append("Driver info: {}\n", driver_props.driverInfo.data());
+      append("Device UUID: ");
+      format_uuid(id_props.deviceUUID);
+      append("Driver UUID: ");
+      format_uuid(id_props.driverUUID);
+
+      append("{}\n", message);
+    }
   }
 
   return 1;

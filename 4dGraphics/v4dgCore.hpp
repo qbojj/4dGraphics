@@ -23,7 +23,7 @@ constexpr bool is_debug = true;
 
 constexpr bool is_production = false;
 
-constexpr size_t max_frames_in_flight = 3;
+constexpr size_t max_frames_in_flight = 2;
 template <typename T> using per_frame = std::array<T, max_frames_in_flight>;
 
 namespace detail {
@@ -68,5 +68,4 @@ public:
     logger.Warning(fmt, std::forward<Args>(args)...);
   }
 };
-
 } // namespace v4dg

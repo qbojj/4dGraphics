@@ -1,0 +1,31 @@
+{
+    "$schema": "https://schema.khronos.org/vulkan/profiles-0.8.2-276.json",
+    "capabilities": {
+        "extensionsRequired": {
+            "extensions": {
+                "VK_KHR_shader_subgroup_uniform_control_flow": 1,
+                "VK_KHR_maintenance5": 1,
+                "VK_KHR_push_descriptor": 2
+            },
+            "features": {
+                "VkPhysicalDeviceMaintenance5FeaturesKHR": {
+                    "maintenance5": true
+                }
+            }
+        }
+    },
+    "profiles": {
+        "VP_V4DG_BASELINE": {
+            "version": 1,
+            "api-version": "1.3.277",
+            "label": "minimum spec for 4dGraphics",
+            "description": "This profile is the minimum spec for 4dGraphics",
+            "profiles": [
+                "VP_KHR_roadmap_2022"
+            ],
+            "capabilities": [
+                "extensionsRequired"
+            ]
+        }
+    }
+}

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Context.hpp"
-#include "cppHelpers.hpp"
 #include "Device.hpp"
+#include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -17,16 +17,13 @@ namespace v4dg {
 std::optional<std::vector<std::uint32_t>>
 load_shader_code(const std::filesystem::path &path);
 
-std::optional<vk::raii::ShaderModule>
-load_shader_module(const std::filesystem::path &path,
-                   const Device &device);
-
 class GraphicsPipelineBuilder;
 
 class ShaderStageData {
 public:
   ShaderStageData() = delete;
-  ShaderStageData(vk::ShaderStageFlagBits stage, vk::ShaderModule shader_module,
+  ShaderStageData(vk::ShaderStageFlagBits stage,
+                  vk::ArrayProxyNoTemporaries<const uint32_t> shader_data,
                   std::string entry = "main");
   ShaderStageData(const ShaderStageData &);
   ShaderStageData(ShaderStageData &&);
@@ -47,8 +44,17 @@ public:
     auto *ptr = reinterpret_cast<const std::byte *>(&data);
     specialization_data.insert(specialization_data.end(), ptr, ptr + sizeof(T));
 
-    fixup();
+    specialization_info.setMapEntries(specialization_entries)
+        .setData<std::byte>(specialization_data);
 
+    return *this;
+  }
+
+  ShaderStageData &set_debug_name(std::string name) {
+    debug_name = std::move(name);
+    info_chain.assign(vk::DebugUtilsObjectNameInfoEXT{
+        vk::ObjectType::eShaderModule, {}, debug_name.c_str()});
+    info_chain.relink<vk::DebugUtilsObjectNameInfoEXT>();
     return *this;
   }
 
@@ -58,14 +64,13 @@ public:
   }
   ShaderStageData &
   set_robustness_info(const vk::PipelineRobustnessCreateInfoEXT &info) {
-    info_chain.get<vk::PipelineRobustnessCreateInfoEXT>() = info;
+    info_chain.assign(info);
     info_chain.relink<vk::PipelineRobustnessCreateInfoEXT>();
     return *this;
   }
   ShaderStageData &set_subgroup_size_info(
       const vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT &info) {
-    info_chain.get<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT>() =
-        info;
+    info_chain.assign(info);
     info_chain
         .relink<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT>();
     return *this;
@@ -81,10 +86,14 @@ private:
   std::vector<vk::SpecializationMapEntry> specialization_entries{};
   std::vector<std::byte> specialization_data{};
 
+  std::string debug_name{};
+
   vk::StructureChain<vk::PipelineShaderStageCreateInfo,
                      vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT,
-                     vk::PipelineRobustnessCreateInfoEXT>
-      info_chain{{}, {}, {}};
+                     vk::PipelineRobustnessCreateInfoEXT,
+                     vk::ShaderModuleCreateInfo,
+                     vk::DebugUtilsObjectNameInfoEXT>
+      info_chain{};
   vk::SpecializationInfo specialization_info{};
 
   void fixup();

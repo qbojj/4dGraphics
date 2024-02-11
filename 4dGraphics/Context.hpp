@@ -184,6 +184,8 @@ public:
     };
   }
 
+  BindlessManager &bindlessManager() { return m_bindless_manager; }
+
 private:
   const Instance &m_instance;
   const Device &m_device;
@@ -203,7 +205,7 @@ private:
 
   vk::raii::PipelineCache m_pipeline_cache;
 
-  //BindlessManager m_bindless_manager;
+  BindlessManager m_bindless_manager;
 
   static DSAllocatorWeights default_weights(const Device &device);
 

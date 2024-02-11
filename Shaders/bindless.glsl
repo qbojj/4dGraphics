@@ -124,7 +124,7 @@ uint imageIdx(uint handle) {
     layout(set = image_set, binding = image_binding, format) attributes uniform type name[];
 
 #define STORAGE_IMAGE_NOFORMAT(type, name, attributes) \
-    layout(set = image_set, binding = image_binding) attributes uniform type images_ ## name[];
+    layout(set = image_set, binding = image_binding) attributes uniform type name[];
 
 ///////// ACCELERATION STRUCTURES ///////////
 

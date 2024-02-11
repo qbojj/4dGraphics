@@ -107,11 +107,11 @@ debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       pUserData));
 }
 
-bool contains(const auto &container, const auto &ext) {
-  return std::find(container.begin(), container.end(), ext) != container.end();
+constexpr bool contains(const auto &container, const auto &ext) {
+  return std::ranges::contains(container, ext);
 }
 
-auto make_ext_storage(const auto &ext_) {
+constexpr auto make_ext_storage(const auto &ext_) {
   std::string_view ext = ext_;
   extension_storage storage;
   assert(ext.size() < storage.size());
@@ -121,13 +121,13 @@ auto make_ext_storage(const auto &ext_) {
   return storage;
 }
 
-void unique_add(auto &dst, const auto &ext) {
+constexpr void unique_add(auto &dst, const auto &ext) {
   if (!contains(dst, ext)) {
     dst.push_back(ext);
   }
 }
 
-void unique_add_if_present(auto &dst, auto &src, const auto &ext) {
+constexpr void unique_add_if_present(auto &dst, auto &src, const auto &ext) {
   if (contains(src, ext))
     unique_add(dst, ext);
 }
@@ -138,7 +138,7 @@ std::vector<const char *> to_c_vector(auto &strings) {
   return {rg.begin(), rg.end()};
 }
 
-auto transform_to_ext_storage = std::views::transform(
+constexpr auto transform_to_ext_storage = std::views::transform(
     [](const auto &ext) { return make_ext_storage(ext); });
 
 constexpr std::array required_instance_exts{
@@ -152,7 +152,25 @@ constexpr std::array wanted_instance_exts{
 
 constexpr std::array required_device_exts{
     vk::KHRSwapchainExtensionName,
-    vk::KHRShaderSubgroupUniformControlFlowExtensionName,
+
+    // VP_KHR_roadmap_2022
+    // vk::KHRGlobalPriorityExtensionName,
+
+    // VP_KHR_roadmap_2024
+    // vk::KHRDynamicRenderingLocalReadExtensionName,
+    // vk::KHRLoadStoreOpNoneExtensionName,
+    // vk::KHRShaderQuadControlExtensionName,
+    // vk::KHRShaderMaximalReconvergenceExtensionName,
+    // vk::KHRShaderSubgroupUniformControlFlowExtensionName,
+    // vk::KHRShaderSubgroupRotateExtensionName,
+    // vk::KHRShaderFloatControls2ExtensionName,
+    // vk::KHRShaderExpectAssumeExtensionName,
+    // vk::KHRLineRasterizationExtensionName,
+    // vk::KHRVertexAttributeDivisorExtensionName,
+    // vk::KHRIndexTypeUint8ExtensionName,
+    // vk::KHRMapMemory2ExtensionName,
+    // vk::KHRMaintenance5ExtensionName,
+    vk::KHRPushDescriptorExtensionName,
 };
 
 constexpr std::array wanted_device_exts{
@@ -170,7 +188,7 @@ Instance::Instance(vk::raii::Context context,
       m_apiVer(std::min(m_maxApiVer, m_context.enumerateInstanceVersion())),
       m_layers(chooseLayers()), m_extensions(chooseExtensions()),
       m_debugUtilsEnabled(contains(
-          m_extensions, make_ext_storage(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))),
+          m_extensions, make_ext_storage(vk::EXTDebugUtilsExtensionName))),
       m_instance(initInstance(allocator)),
       m_debugMessenger(m_debugUtilsEnabled
                            ? instance().createDebugUtilsMessengerEXT(
@@ -195,7 +213,8 @@ std::vector<extension_storage> Instance::chooseLayers() const {
     requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
 
   for (const auto &layer_p : m_context.enumerateInstanceLayerProperties())
-    unique_add_if_present(layers, requestedLayers, layer_p.layerName);
+    if (contains(requestedLayers, std::string_view{layer_p.layerName}))
+      unique_add(layers, layer_p.layerName);
 
   return layers;
 }
@@ -260,7 +279,7 @@ Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
                          vk::makeApiVersion(0, 0, 0, 1), vk::ApiVersion13};
 
   vk::InstanceCreateFlags flags{};
-  if (contains(m_extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
+  if (contains(m_extensions, make_ext_storage(vk::KHRPortabilityEnumerationExtensionName)))
     flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 
   auto layers_c = to_c_vector(m_layers);
@@ -322,7 +341,9 @@ Device::Device(const Instance &instance, vk::SurfaceKHR surface)
 
   auto *msf = getVkStructureFromChain<vk::PhysicalDeviceMeshShaderFeaturesEXT>(
       m_features.get());
-  m_meshShader = msf && msf->meshShader;
+  m_meshShader = msf && msf->meshShader && msf->taskShader;
+
+  m_deviceFault = contains(extensions(), make_ext_storage(vk::EXTDeviceFaultExtensionName));
 }
 
 std::vector<extension_storage>
@@ -455,15 +476,16 @@ Device::chooseFeatures() const {
   auto all_features = std::make_shared<vk::StructureChain<
       vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+      vk::PhysicalDevicePortabilitySubsetFeaturesKHR,
+      vk::PhysicalDeviceMaintenance5FeaturesKHR,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
       vk::PhysicalDeviceFaultFeaturesEXT>>();
 
   auto avaiable_features = m_physicalDevice.getFeatures2<
       vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+      vk::PhysicalDevicePortabilitySubsetFeaturesKHR,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
       vk::PhysicalDeviceFaultFeaturesEXT>();
 
   auto &feature_chain = *all_features;
@@ -499,6 +521,10 @@ Device::chooseFeatures() const {
 
   feature_chain
       .get<vk::PhysicalDeviceVulkan11Features>()
+
+      // 1.1 required
+      .setMultiview(vk::True)
+
       // VK_KHR_roadmap_2022
       // VK_KHR_roadmap_2024
       .setShaderDrawParameters(vk::True)
@@ -577,17 +603,21 @@ Device::chooseFeatures() const {
       .setShaderIntegerDotProduct(vk::True)
       .setMaintenance4(vk::True);
 
+  feature_chain.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>()
+      .setMaintenance5(vk::True);
+  
+  // portability subset
+  feature_chain.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
+
+  if (!contains(m_extensions, make_ext_storage(vk::KHRPortabilitySubsetExtensionName)))
+    feature_chain.unlink<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
+
+  // optional extensions
   feature_chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()
       .setMemoryPriority(vk::True);
 
-  if (!contains(m_extensions, vk::EXTMemoryPriorityExtensionName))
+  if (!contains(m_extensions, make_ext_storage(vk::EXTMemoryPriorityExtensionName)))
     feature_chain.unlink<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
-
-  feature_chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>()
-      .setSwapchainMaintenance1(vk::True);
-
-  if (!contains(m_extensions, vk::EXTSwapchainColorSpaceExtensionName))
-    feature_chain.unlink<vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT>();
 
   feature_chain.get<vk::PhysicalDeviceFaultFeaturesEXT>()
       .setDeviceFault(vk::True)
@@ -595,7 +625,7 @@ Device::chooseFeatures() const {
           avaiable_features.get<vk::PhysicalDeviceFaultFeaturesEXT>()
               .deviceFaultVendorBinary);
 
-  if (!contains(m_extensions, vk::EXTDeviceFaultExtensionName))
+  if (!contains(m_extensions, make_ext_storage(vk::EXTDeviceFaultExtensionName)))
     feature_chain.unlink<vk::PhysicalDeviceFaultFeaturesEXT>();
 
   return {std::move(all_features), &all_features->get<>()};
@@ -607,8 +637,12 @@ vk::raii::Device Device::initDevice() const {
             std::views::transform([&, family = 0u](auto) mutable {
               return vk::DeviceQueueCreateInfo{{}, family++, 1, &prio};
             });
-
+  
   std::vector<vk::DeviceQueueCreateInfo> qcis{rg.begin(), rg.end()};
+
+  logger.Log("Creating Vulkan device with {} extensions", m_extensions.size());
+  for (const auto &ext : m_extensions)
+    logger.Log("\t{}", std::string_view{ext});
 
   auto extensions_c = to_c_vector(m_extensions);
   return {m_physicalDevice, {{}, qcis, {}, extensions_c, nullptr, features()}};
@@ -618,7 +652,7 @@ vma::UniqueAllocator Device::initAllocator() const {
   const vk::PhysicalDeviceFeatures2 *device_features = features();
 
   vma::AllocatorCreateFlags flags{};
-  if (contains(m_extensions, vk::EXTMemoryBudgetExtensionName))
+  if (contains(m_extensions, make_ext_storage(vk::EXTMemoryBudgetExtensionName)))
     flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
 
   {
@@ -679,19 +713,19 @@ std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
             uint32_t family = family_;
 
             auto flags = qfp.queueFlags;
+
+            // graphics and compute queues can also do transfer operations
+            //  but are not required to have a transfer flag
             if (flags &
                 (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
               flags |= vk::QueueFlagBits::eTransfer;
-
-            auto rg2 =
-                std::views::iota(0u, 1u) | // qfp.queueCount) |
-                std::views::transform([&](uint32_t i) {
-                  return make_handle<Queue>(
-                      vk::raii::Queue{m_device, family, i}, family, i, flags,
-                      qfp.timestampValidBits, qfp.minImageTransferGranularity);
-                });
-
-            return {rg2.begin(), rg2.end()};
+            
+            return {
+              make_handle<Queue>(
+                vk::raii::Queue{device(), family, 0u}, family, 0u, flags, qfp.timestampValidBits,
+                qfp.minImageTransferGranularity
+              )
+            };
           });
 
   return {rg.begin(), rg.end()};

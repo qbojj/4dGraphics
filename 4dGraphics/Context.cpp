@@ -30,7 +30,8 @@ public:
 } // namespace
 PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
     : m_queue(std::move(queue)), m_semaphore(nullptr),
-      m_command_buffer_managers(make_per_frame<command_buffer_manager>(dev, m_queue->family())) {
+      m_command_buffer_managers(
+          make_per_frame<command_buffer_manager>(dev, m_queue->family())) {
   vk::StructureChain<vk::SemaphoreCreateInfo, vk::SemaphoreTypeCreateInfo> sci{
       {}, {vk::SemaphoreType::eTimeline, 0}};
 
@@ -44,9 +45,8 @@ Context::Context(const Device &dev, std::optional<DSAllocatorWeights> weights)
       m_main_thread_id(std::this_thread::get_id()), m_families(getFamilies()),
       m_per_frame{
           make_per_frame<PerFrame>(vkDevice(), m_families.size(),
-            weights.value_or(default_weights(dev)))},
-      m_pipeline_cache(nullptr) //,m_bindless_manager(device())
-      {
+                                   weights.value_or(default_weights(dev)))},
+      m_pipeline_cache(nullptr), m_bindless_manager(device()) {
   auto &graphics_queue = get_queue(PerQueueFamily::Type::Graphics);
   uint32_t graphics_family = graphics_queue->queue()->family();
 
@@ -193,18 +193,18 @@ void Context::next_frame() {
     ZoneScopedN("clear stacks");
     tf::Taskflow tf;
 
-    tf.emplace([&] {
-      next_frame.flush();
-    }).name("flush destruction stack");
+    tf.emplace([&] { next_frame.flush(); }).name("flush destruction stack");
 
-    tf.for_each(m_per_thread.begin(), m_per_thread.end(), [&](auto &per_thread) {
-      per_thread.m_per_frame[frame_ref()].flush();
-    }).name("flush per thread destruction stacks");
+    tf.for_each(m_per_thread.begin(), m_per_thread.end(),
+                [&](auto &per_thread) {
+                  per_thread.m_per_frame[frame_ref()].flush();
+                })
+        .name("flush per thread destruction stacks");
 
     tf.for_each(m_families.begin(), m_families.end(), [&](auto &q) {
-      if (q)
+        if (q)
           q->commandBufferManager(frame_ref()).reset();
-    }).name("reset command buffer managers");
+      }).name("reset command buffer managers");
 
     m_executor.run(tf).wait();
   }
@@ -212,23 +212,27 @@ void Context::next_frame() {
 
 DSAllocatorWeights Context::default_weights(const Device &dev) {
   DSAllocatorWeights weights{
-      .m_weights = {{vk::DescriptorType::eSampler, 0.5f},
-                    {vk::DescriptorType::eCombinedImageSampler, 4.f},
-                    {vk::DescriptorType::eSampledImage, 4.f},
-                    {vk::DescriptorType::eStorageImage, 1.f},
-                    {vk::DescriptorType::eUniformTexelBuffer, 1.f},
-                    {vk::DescriptorType::eStorageTexelBuffer, 1.f},
-                    {vk::DescriptorType::eUniformBuffer, 2.f},
-                    {vk::DescriptorType::eStorageBuffer, 2.f},
-                    {vk::DescriptorType::eUniformBufferDynamic, 1.f},
-                    {vk::DescriptorType::eStorageBufferDynamic, 1.f},
-                    {vk::DescriptorType::eInputAttachment, 0.5f},},
+      .m_weights =
+          {
+              {vk::DescriptorType::eSampler, 0.5f},
+              {vk::DescriptorType::eCombinedImageSampler, 4.f},
+              {vk::DescriptorType::eSampledImage, 4.f},
+              {vk::DescriptorType::eStorageImage, 1.f},
+              {vk::DescriptorType::eUniformTexelBuffer, 1.f},
+              {vk::DescriptorType::eStorageTexelBuffer, 1.f},
+              {vk::DescriptorType::eUniformBuffer, 2.f},
+              {vk::DescriptorType::eStorageBuffer, 2.f},
+              {vk::DescriptorType::eUniformBufferDynamic, 1.f},
+              {vk::DescriptorType::eStorageBufferDynamic, 1.f},
+              {vk::DescriptorType::eInputAttachment, 0.5f},
+          },
   };
 
   // add acceleration structure if applicable
   if (dev.m_rayTracing)
-    weights.m_weights.push_back({vk::DescriptorType::eAccelerationStructureKHR, 1.f});
-  
+    weights.m_weights.push_back(
+        {vk::DescriptorType::eAccelerationStructureKHR, 1.f});
+
   return weights;
 };
 } // namespace v4dg

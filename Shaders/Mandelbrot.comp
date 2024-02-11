@@ -1,15 +1,18 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : require
+#include "bindless.glsl"
 
 layout( push_constant ) uniform constants
 {
     dvec2 center;
     dvec2 scale;
-    //uint max_iter;
+    uint image_idx;
 };
 
 const int max_iter = 512;
 
-layout( set=0, binding=0 ) uniform writeonly image2D image;
+STORAGE_IMAGE_NOFORMAT(image2D, images2D, writeonly)
+//layout( set=0, binding=0 ) uniform writeonly image2D image;
 
 layout( constant_id = 0 ) const int variant = 2;
 
@@ -103,7 +106,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 void main()
 {
     ivec2 screenPos = ivec2(gl_GlobalInvocationID.xy) * (variant == 0 ? 2 : 1);
-    ivec2 texSize = imageSize(image);
+    ivec2 texSize = imageSize(images2D[imageIdx(image_idx)]);//imageSize(image);
 
     if( any( greaterThanEqual( screenPos, texSize ) ) ) return;
 
@@ -127,9 +130,9 @@ void main()
         {
             ivec2 pos = screenPos + offsets[i];
             if( all( lessThan( pos, texSize ) ) )
-                imageStore(image, pos, makeColor( n[i] ) );
+                imageStore(images2D[imageIdx(image_idx)], pos, makeColor( n[i] ) );
         }
     }
-    else imageStore(image, screenPos, 
+    else imageStore(images2D[imageIdx(image_idx)], screenPos, 
         makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
 }

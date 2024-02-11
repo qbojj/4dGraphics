@@ -6,6 +6,7 @@
 #include "Context.hpp"
 #include "PipelineBuilder.hpp"
 #include "VulkanConstructs.hpp"
+#include "BindlessManager.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -39,6 +40,7 @@ private:
   ImGui_VulkanImpl imguiVulkanImpl;
 
   Texture texture;
+  UniqueBindlessResource texture_resource;
 
   bool should_close{false};
   bool has_focus{true};
@@ -53,6 +55,7 @@ private:
   struct MandelbrotPushConstants {
     glm::dvec2 center{};
     glm::dvec2 scale{1. / 128};
+    BindlessResource image_idx;
   } mandelbrot_push_constants;
 
   void recreate_swapchain();

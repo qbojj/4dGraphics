@@ -7,8 +7,8 @@
 
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_hash.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <concepts>
 #include <cstdint>
@@ -21,7 +21,8 @@
 namespace v4dg {
 namespace detail {
 inline void hash_combine(::std::size_t &seed, ::std::size_t hash) noexcept {
-  seed = ::ankerl::unordered_dense::detail::wyhash::mix(seed + hash, UINT64_C(0x5ed1dbb3b4bc2e98));
+  seed = ::ankerl::unordered_dense::detail::wyhash::mix(
+      seed + hash, UINT64_C(0x5ed1dbb3b4bc2e98));
 }
 
 template <typename T = void> struct omni_hash {
@@ -44,7 +45,7 @@ private:
 public:
   using is_avalanching = void;
 
-  auto operator()(const R &r) const noexcept {    
+  auto operator()(const R &r) const noexcept {
     if constexpr (::std::ranges::contiguous_range<R> &&
                   ::std::has_unique_object_representations_v<T>) {
       return ::ankerl::unordered_dense::detail::wyhash::hash(
@@ -197,6 +198,16 @@ public:
     return *this;
   }
 
+  PipelineLayoutInfo &add_sets(std::span<const vk::DescriptorSetLayout> sets) {
+    setLayouts.insert(setLayouts.end(), sets.begin(), sets.end());
+    return *this;
+  }
+  PipelineLayoutInfo &add_sets(std::span<const vk::raii::DescriptorSetLayout> sets) {
+    for (const auto &set : sets)
+      setLayouts.push_back(*set);
+    return *this;
+  }
+
   PipelineLayoutInfo &add_push(vk::PushConstantRange range) {
     pushRanges.push_back(range);
     return *this;
@@ -217,6 +228,7 @@ private:
   std::vector<vk::PushConstantRange> pushRanges;
 };
 
+/*
 // TODO
 class RenderPassInfo {
 public:
@@ -232,7 +244,6 @@ private:
   vk::RenderPassCreateFlags flags;
 };
 
-/*
 // TODO
 class GraphicsPipelineInfo {
 public:
@@ -265,9 +276,10 @@ public:
 // sampler_ycbcr_conversion_cache;
 typedef permament_handle_cache<SamplerInfo> sampler_cache;
 
-// typedef permament_handle_cache<DescriptorSetLayoutInfo> descriptor_set_layout_cache;
-// typedef permament_handle_cache<PipelineLayoutInfo> pipeline_layout_cache;
-// typedef permament_handle_cache<RenderPassInfo> render_pass_cache;
+// typedef permament_handle_cache<DescriptorSetLayoutInfo>
+// descriptor_set_layout_cache; typedef
+// permament_handle_cache<PipelineLayoutInfo> pipeline_layout_cache; typedef
+// permament_handle_cache<RenderPassInfo> render_pass_cache;
 
 // typedef handle_cache<GraphicsPipelineInfo> GraphicsPipelineCache;
 // typedef handle_cache<ComputePipelineInfo> ComputePipelineCache;

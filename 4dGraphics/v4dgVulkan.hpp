@@ -67,7 +67,7 @@ public:
     return *this;
   }
 
-  explicit operator const T&() const { return t; }
+  operator const T&() const { return t; }
 
   const typename T::CppType operator*() const { return *t; }
   const T *operator->() const { return &t; }
