@@ -27,7 +27,118 @@ target_sources(4dGraphics
     FILES ${HEADERS}
   )
 
-target_precompile_headers(4dGraphics PRIVATE stdafx.hpp)
+target_precompile_headers(4dGraphics PRIVATE
+  <glm/ext.hpp>
+  <glm/glm.hpp>
+  
+  <taskflow/algorithm/critical.hpp>
+  <taskflow/algorithm/for_each.hpp>
+  <taskflow/taskflow.hpp>
+  
+  <vulkan/vulkan.hpp>
+  <vulkan/vulkan_extension_inspection.hpp>
+  <vulkan/vulkan_format_traits.hpp>
+  <vulkan/vulkan_hash.hpp>
+  <vulkan/vulkan_raii.hpp>
+  <vulkan/vulkan_to_string.hpp>
+  
+  <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+  
+  <SDL2/SDL.h>
+  
+  <tracy/Tracy.hpp>
+  
+  <imgui.h>
+  <imgui_impl_sdl2.h>
+  <imgui_impl_vulkan.h>
+
+  # all of c++23 headers
+  <algorithm>
+  <any>
+  <array>
+  <atomic>
+  <barrier>
+  <bit>
+  <bitset>
+  <charconv>
+  <chrono>
+  <codecvt>
+  <compare>
+  <complex>
+  <concepts>
+  <condition_variable>
+  <coroutine>
+  <deque>
+  <exception>
+  <execution>
+  <expected>
+  <filesystem>
+  # <flat_map>
+  # <flat_set>
+  <format>
+  <forward_list>
+  <fstream>
+  <functional>
+  <future>
+  # <generator>
+  <initializer_list>
+  <iomanip>
+  <ios>
+  <iosfwd>
+  <iostream>
+  <istream>
+  <iterator>
+  <latch>
+  <limits>
+  <list>
+  <locale>
+  <map>
+  # <mdspan>
+  <memory>
+  <memory_resource>
+  <mutex>
+  <new>
+  <numbers>
+  <numeric>
+  <optional>
+  <ostream>
+  # <print>
+  <queue>
+  <random>
+  <ranges>
+  <ratio>
+  <regex>
+  <scoped_allocator>
+  <semaphore>
+  <set>
+  <shared_mutex>
+  <source_location>
+  <span>
+  <spanstream>
+  <sstream>
+  <stack>
+  <stacktrace>
+  <stdexcept>
+  <stdfloat>
+  <stop_token>
+  <streambuf>
+  <string>
+  <string_view>
+  <syncstream>
+  <system_error>
+  <thread>
+  <tuple>
+  <type_traits>
+  <typeindex>
+  <typeinfo>
+  <unordered_map>
+  <unordered_set>
+  <utility>
+  <valarray>
+  <variant>
+  <vector>
+  <version>
+  )
 
 target_link_libraries(
   4dGraphics
@@ -62,7 +173,6 @@ target_compile_definitions(
           GLM_ENABLE_EXPERIMENTAL
 
   PRIVATE WIN32_LEAN_AND_MEAN
-          TRACY_ENABLE=1
           TRACY_VK_USE_SYMBOL_TABLE=1)
 
 setup_common(4dGraphics "4dGraphics")

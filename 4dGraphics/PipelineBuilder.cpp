@@ -6,6 +6,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include <bit>
+#include <expected>
 #include <optional>
 #include <ranges>
 
@@ -14,10 +15,14 @@ namespace {
 bool fix_spirv_endianess(std::span<uint32_t> code) {
   if (code.empty())
     return false;
-  if (code[0] == 0x07230203) // file is already in correct endianess
+
+  static constexpr uint32_t magic = 0x07230203;
+  static constexpr uint32_t rev_magic = std::byteswap(magic);
+
+  if (code[0] == magic) // file is already in correct endianess
     return true;
 
-  if (code[0] == 0x03022307) // file is in wrong endianess
+  if (code[0] == rev_magic) // file is in wrong endianess
   {
     for (auto &word : code)
       word = std::byteswap(word);
@@ -29,24 +34,19 @@ bool fix_spirv_endianess(std::span<uint32_t> code) {
 }
 } // namespace
 
-std::optional<std::vector<std::uint32_t>>
+std::expected<std::vector<std::uint32_t>,
+              std::variant<detail::get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path) {
-  return detail::GetFileBinary<uint32_t>(path).and_then(
-      [&](auto &&code) -> std::optional<std::vector<std::uint32_t>> {
+  using res_t =
+      std::expected<std::vector<std::uint32_t>,
+                    std::variant<detail::get_file_error, load_shader_error>>;
+
+  return static_cast<res_t>(detail::GetFileBinary<uint32_t>(path))
+      .and_then([](auto &&code) -> res_t {
         if (!fix_spirv_endianess(code))
-          return std::nullopt;
+          return std::unexpected(load_shader_error::bad_magic_number);
         return code;
       });
-}
-
-std::optional<vk::raii::ShaderModule>
-load_shader_module(const std::filesystem::path &path,
-                   const Device &device) {
-  return load_shader_code(path).transform([&](auto &&code) -> vk::raii::ShaderModule {
-    vk::raii::ShaderModule mod(device.device(), {{}, code});
-    device.setDebugName(mod, "shader module: {}", path.filename().string());
-    return mod;
-  });
 }
 
 void ShaderStageData::fixup() {
@@ -56,22 +56,21 @@ void ShaderStageData::fixup() {
 
   specialization_info.setMapEntries(specialization_entries)
       .setData<std::byte>(specialization_data);
-  
+
   info_chain.get<vk::DebugUtilsObjectNameInfoEXT>()
-    .setObjectType(vk::ObjectType::eShaderModule)
-    .setPObjectName(debug_name.data());
+      .setObjectType(vk::ObjectType::eShaderModule)
+      .setPObjectName(debug_name.data());
 }
 
-ShaderStageData::ShaderStageData(vk::ShaderStageFlagBits stage,
-                                 vk::ArrayProxyNoTemporaries<const uint32_t> shader_module,
-                                 std::string entry)
+ShaderStageData::ShaderStageData(
+    vk::ShaderStageFlagBits stage,
+    vk::ArrayProxyNoTemporaries<const uint32_t> shader_module,
+    std::string entry)
     : entry(std::move(entry)) {
-  info_chain.get<vk::PipelineShaderStageCreateInfo>()
-      .setStage(stage);
-  
-  info_chain.get<vk::ShaderModuleCreateInfo>()
-      .setCode(shader_module);
-  
+  info_chain.get<vk::PipelineShaderStageCreateInfo>().setStage(stage);
+
+  info_chain.get<vk::ShaderModuleCreateInfo>().setCode(shader_module);
+
   info_chain.unlink<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT>();
   info_chain.unlink<vk::PipelineRobustnessCreateInfoEXT>();
   info_chain.unlink<vk::DebugUtilsObjectNameInfoEXT>();

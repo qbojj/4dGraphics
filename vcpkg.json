@@ -1,5 +1,6 @@
 {
- "dependencies": [
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "dependencies": [
     "argparse",
     "fastgltf",
     "glm",
@@ -13,14 +14,19 @@
     {
       "name": "sdl2",
       "features": [
-          "vulkan",
-          "wayland",
-          "x11"
+        "vulkan",
+        "wayland",
+        "x11"
       ]
     },
     "stb",
     "taskflow",
-    "tracy",
+    {
+      "name": "tracy",
+      "features": [
+        "on-demand"
+      ]
+    },
     "vulkan-headers",
     "vulkan-memory-allocator-hpp",
     "unordered-dense",

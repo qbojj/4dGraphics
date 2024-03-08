@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Debug.hpp"
+#include "cppHelpers.hpp"
 
 #include <array>
 #include <concepts>
@@ -26,41 +27,26 @@ constexpr bool is_production = false;
 constexpr size_t max_frames_in_flight = 2;
 template <typename T> using per_frame = std::array<T, max_frames_in_flight>;
 
-namespace detail {
-template <typename T, std::size_t N, std::size_t... Is>
-[[nodiscard]] constexpr std::array<T, N>
-make_array_it_impl(std::index_sequence<Is...>, auto &&fn) {
-  return {std::forward<decltype(fn)>(fn)(Is)...};
-}
-} // namespace detail
-
 template <typename T, std::size_t N>
-[[nodiscard]] constexpr std::array<T, N> make_array_it(auto &&fn) {
-  return detail::make_array_it_impl<T, N>(std::make_index_sequence<N>{},
-                                          std::forward<decltype(fn)>(fn));
+[[nodiscard]] constexpr std::array<T, N> make_array_it(std::invocable<std::size_t> auto &&fn) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::array<T, N> {
+    return {std::forward<decltype(fn)>(fn)(Is)...};
+  }(std::make_index_sequence<N>{});
 }
 
 template <typename T>
-[[nodiscard]] constexpr per_frame<T> make_per_frame_it(auto &&fn) {
+[[nodiscard]] constexpr per_frame<T> make_per_frame_it(std::invocable<std::size_t> auto &&fn) {
   return make_array_it<T, max_frames_in_flight>(std::forward<decltype(fn)>(fn));
 }
 
 template <typename T>
 [[nodiscard]] constexpr per_frame<T> make_per_frame(const auto &...args) {
   return make_per_frame_it<T>(
-      [&](std::size_t) { return T{std::forward<decltype(args)>(args)...}; });
-}
-
-template <typename T> using Handle = std::shared_ptr<T>;
-
-template <typename T, typename... Args> auto make_handle(Args &&...args) {
-  return std::make_shared<T>(std::forward<Args>(args)...);
+      [&](std::size_t) { return T{args...}; });
 }
 
 class exception : public std::runtime_error {
 public:
-  exception() noexcept = default;
-
   template <typename... Args>
   explicit exception(Logger::format_string_with_location<Args...> fmt,
                      Args &&...args)
@@ -69,3 +55,14 @@ public:
   }
 };
 } // namespace v4dg
+
+namespace std {
+template <typename T>
+  requires requires(const T &t) { v4dg::to_string(t); }
+struct formatter<T> : formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const T &t, FormatContext &ctx) const {
+    return formatter<std::string_view>::format(v4dg::to_string(t), ctx);
+  }
+};
+} // namespace std

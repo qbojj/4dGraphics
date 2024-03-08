@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace v4dg {
-class alignas(64) Queue {
+class Queue {
 public:
   Queue(vk::raii::Queue queue, uint32_t family, uint32_t index,
         vk::QueueFlags flags, uint32_t timestampValidBits,
@@ -29,11 +29,6 @@ public:
         m_minImageTransferGranularity(minImageTransferGranularity) {}
 
   const vk::raii::Queue &queue() const { return m_queue; }
-
-  const vk::raii::Queue &lock(std::unique_lock<std::mutex> &lock) {
-    lock = std::unique_lock(m_mutex);
-    return queue();
-  }
 
   uint32_t family() const { return m_family; }
   uint32_t index() const { return m_index; }
@@ -45,7 +40,6 @@ public:
 
 private:
   vk::raii::Queue m_queue;
-  std::mutex m_mutex;
 
   uint32_t m_family, m_index;
 
@@ -58,7 +52,7 @@ using extension_storage = vk::ArrayWrapper1D<char, vk::MaxExtensionNameSize>;
 
 class Instance {
 public:
-  Instance(vk::raii::Context context,
+  explicit Instance(vk::raii::Context context,
            vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
 
   // we will be refering to this class as a reference type -> no copying/moving
@@ -99,7 +93,7 @@ private:
 
 class Device {
 public:
-  Device(const Instance &instance, vk::SurfaceKHR surface = {});
+  explicit Device(const Instance &instance, vk::SurfaceKHR surface = {});
 
   // we will be refering to this class as a reference type -> no copying/moving
   Device(const Device &) = delete;
@@ -209,7 +203,7 @@ private:
   vk::raii::Device m_device;
   vma::UniqueAllocator m_allocator;
 
-  std::vector<std::vector<Handle<Queue>>> m_queues;
+  std::vector<std::vector<Queue>> m_queues;
 
   bool physicalDeviceSuitable(const vk::raii::PhysicalDevice &,
                               vk::SurfaceKHR) const;
@@ -221,6 +215,6 @@ private:
   std::shared_ptr<const vk::PhysicalDeviceFeatures2> chooseFeatures() const;
   vk::raii::Device initDevice() const;
   vma::UniqueAllocator initAllocator() const;
-  std::vector<std::vector<Handle<Queue>>> initQueues() const;
+  std::vector<std::vector<Queue>> initQueues() const;
 };
 } // namespace v4dg

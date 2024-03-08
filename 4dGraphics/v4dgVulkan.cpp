@@ -7,7 +7,7 @@
 #include <memory_resource>
 #include <typeinfo>
 
-namespace v4dg {
+using namespace v4dg;
 void *vulkan_memory_resource::do_allocate(std::size_t bytes,
                                           std::size_t alignment) {
   return m_allocator.pfnAllocation(m_allocator.pUserData, bytes, alignment,
@@ -29,4 +29,11 @@ bool vulkan_memory_resource::do_is_equal(
          m_allocator.pfnAllocation == o_alloc.pfnAllocation &&
          m_allocator.pfnFree == o_alloc.pfnFree;
 }
-} // namespace v4dg
+
+vk::BufferUsageFlags2KHR v4dg::getBufferUsage(const vk::BufferCreateInfo &bci)
+{
+  if (auto *usage = getVkStructureFromChain<vk::BufferUsageFlags2CreateInfoKHR>(&bci)) {
+    return usage->usage;
+  }
+  return static_cast<vk::BufferUsageFlags2KHR>(uint32_t{bci.usage});
+}

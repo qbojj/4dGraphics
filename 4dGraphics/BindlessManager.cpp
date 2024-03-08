@@ -1,5 +1,7 @@
 #include "BindlessManager.hpp"
 #include "Device.hpp"
+#include "VulkanCaches.hpp"
+#include "cppHelpers.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
@@ -9,7 +11,8 @@
 #include <algorithm>
 #include <mutex>
 
-namespace v4dg {
+using namespace v4dg;
+
 vk::DescriptorType BindlessResource::type_to_vk(BindlessType t) noexcept {
   switch (t) {
   case BindlessType::eSampler:
@@ -31,11 +34,12 @@ UniqueBindlessResource::~UniqueBindlessResource() {
     m_manager->free(m_res);
 }
 
-void BindlessManager::BindlessHeap::setup(BindlessType type, uint32_t max_count) {
+void BindlessManager::BindlessHeap::setup(BindlessType type,
+                                          uint32_t max_count) {
   m_type = type;
   m_max_count = max_count;
 
-  m_count = 0;
+  m_count = 1; // null resource
   m_free.clear();
 }
 
@@ -43,9 +47,9 @@ BindlessResource BindlessManager::BindlessHeap::allocate() {
   std::lock_guard lock(m_mutex);
   if (m_free.empty()) {
     if (m_count >= m_max_count)
-      throw exception("out of bindless resources of type {} (max {})", 
-        BindlessResource::type_to_vk(m_type), m_max_count);
-    
+      throw exception("out of bindless resources of type {} (max {})",
+                      BindlessResource::type_to_vk(m_type), m_max_count);
+
     return BindlessResource{m_count++, m_type};
   }
 
@@ -62,71 +66,127 @@ void BindlessManager::BindlessHeap::free(BindlessResource res) {
 
   std::lock_guard lock(m_mutex);
   assert(res.type() == m_type);
-  assert(res.index() < m_count);
-  
+  assert(res.index() != 0); // do not free the null resource
+  assert(res.index() <= m_count);
+
   m_free.push_back(std::move(res));
 }
 
 BindlessManager::BindlessManager(const Device &device)
-    : m_device(&device), m_layouts({nullptr, nullptr, nullptr, nullptr}),
-      m_pool(nullptr) {
+    : m_device(&device), m_layout(nullptr), m_pool(nullptr) {
 
   auto sizes = calculate_sizes(device);
 
-  for (uint32_t i = 0; i < 4; i++) {
+  DescriptorSetLayoutInfo layout_ci;
+
+  for (uint32_t i = 0; i < resource_count; i++) {
     auto type = static_cast<BindlessType>(i);
 
-    if (type == BindlessType::eAccelerationStructureKHR &&
-        !device.m_rayTracing) {
-      m_layouts[i] = {m_device->device(), {{}, {}}};
+    if (type == BindlessType::eAccelerationStructureKHR && !device.m_rayTracing)
       continue;
-    }
 
-    vk::DescriptorSetLayoutBinding b{0, BindlessResource::type_to_vk(type),
-                                     sizes[i], vk::ShaderStageFlagBits::eAll,
-                                     nullptr};
-
-    constexpr vk::DescriptorSetLayoutCreateFlags flags = {};
-
-    constexpr vk::DescriptorBindingFlags bindFlags =
+    layout_ci.add_binding(
+        i, BindlessResource::type_to_vk(type), vk::ShaderStageFlagBits::eAll,
+        sizes[i], {},
         vk::DescriptorBindingFlagBits::eUpdateUnusedWhilePending |
-        vk::DescriptorBindingFlagBits::ePartiallyBound;
-
-    vk::StructureChain<vk::DescriptorSetLayoutCreateInfo,
-                       vk::DescriptorSetLayoutBindingFlagsCreateInfo>
-        ci{{flags, b}, {bindFlags}};
-
-    m_layouts[i] = {m_device->device(), ci.get<>()};
+            vk::DescriptorBindingFlagBits::ePartiallyBound);
   }
 
-  std::array<vk::DescriptorSetLayout, layout_count> layouts;
-  for (uint32_t i{0}; auto &l : m_layouts)
-    layouts[i++] = *l;
+  if (is_debug)
+    layout_ci.add_binding(resource_count, vk::DescriptorType::eUniformBuffer,
+                          vk::ShaderStageFlagBits::eAll);
+
+  m_layout = layout_ci.create(device);
 
   std::vector<vk::DescriptorPoolSize> pool_sizes;
-  for (uint32_t i = 0; i < layout_count; i++) {
+  for (uint32_t i = 0; i < resource_count; i++) {
     auto type = static_cast<BindlessType>(i);
-    if (type == BindlessType::eAccelerationStructureKHR &&
-        !device.m_rayTracing)
+    if (type == BindlessType::eAccelerationStructureKHR && !device.m_rayTracing)
       continue;
-    
+
     pool_sizes.push_back({BindlessResource::type_to_vk(type), sizes[i]});
   }
+
+  if (is_debug)
+    pool_sizes.push_back({vk::DescriptorType::eUniformBuffer, 1});
 
   m_pool = {m_device->device(), {{}, layout_count, pool_sizes}};
 
   auto sets = (*m_device->device())
-                  .allocateDescriptorSets({*m_pool, layouts},
+                  .allocateDescriptorSets({*m_pool, *m_layout},
                                           *m_device->device().getDispatcher());
 
-  std::move(sets.begin(), sets.end(), m_sets.begin());
+  m_set = sets[0];
 
-  for (uint32_t i = 0; i < (uint32_t)m_sets.size(); i++)
-    m_device->setDebugName(m_sets[i], "bindless set {}", 
-      BindlessResource::type_to_vk(static_cast<BindlessType>(i)));
+  m_device->setDebugName(m_set, "bindless set");
 
-  for (uint32_t i = 0; i < 4; i++)
+  for (uint32_t i = 0; i < resource_count; i++)
     m_heaps[i].setup(static_cast<BindlessType>(i), sizes[i]);
+
+  if (is_debug) {
+    size_t whole_size = sizeof(VersionBufferInfo);
+    for (uint32_t i = 0; i < resource_count; i++) {
+      whole_size = detail::AlignUp(whole_size, 16);
+      whole_size += sizes[i] * sizeof(uint8_t);
+    }
+
+    std::vector<uint32_t> queue_fam;
+    for (auto &q_fam : device.queues())
+      if (!q_fam.empty() &&
+          !std::ranges::contains(queue_fam, q_fam.front().family()))
+        queue_fam.push_back(q_fam.front().family());
+
+    Buffer version_buf{*m_device,
+                       whole_size,
+                       vk::BufferUsageFlagBits2KHR::eUniformBuffer |
+                           vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress,
+                       {vma::AllocationCreateFlagBits::eHostAccessRandom |
+                            vma::AllocationCreateFlagBits::eMapped,
+                        vma::MemoryUsage::eAuto,
+                        vk::MemoryPropertyFlagBits::eHostCoherent},
+                       "bindless version buffer",
+                       {},
+                       queue_fam};
+
+    VersionBufferInfo info{};
+    
+    auto ai = version_buf.allocator().getAllocationInfo(version_buf.allocation());
+    std::byte *data = static_cast<std::byte*>(ai.pMappedData);
+
+    size_t offset = 0;
+    info.buffers_header =
+        reinterpret_cast<VersionBufferHeader *>(data + offset);
+    offset += sizeof(VersionBufferHeader);
+    for (uint32_t i = 0; i < resource_count; i++) {
+      offset = detail::AlignUp(offset, 16);
+      info.buffers_header->maxHandles[i] = sizes[i];
+
+      if (sizes[i] == 0) // leave the pointers null
+        continue;
+
+      info.buffers_header->versionBuffers[i] =
+          version_buf.deviceAddress() + offset;
+      info.versionBuffers[i] = reinterpret_cast<uint8_t *>(data + offset);
+
+      std::fill_n(info.versionBuffers[i], sizes[i], 0xffu);
+
+      offset += sizes[i] * sizeof(uint8_t);
+    }
+
+    m_versionBuffer = std::pair{std::move(version_buf), info};
+
+    vk::DescriptorBufferInfo buf_info{m_versionBuffer->first, 0,
+                                      sizeof(VersionBufferHeader)};
+    m_device->device().updateDescriptorSets(
+        {vk::WriteDescriptorSet{m_set,
+                                resource_count,
+                                0,
+                                vk::DescriptorType::eUniformBuffer,
+                                {},
+                                buf_info,
+                                {}}},
+        {});
+  }
 }
 
 std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
@@ -178,11 +238,10 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
   size_t total = 0;
   for (auto i : out)
     total += i;
-  
-  size_t max_resources = std::min({
-    props.limits.maxPerStageResources,
-    props.limits.maxFragmentCombinedOutputResources
-  });
+
+  size_t max_resources =
+      std::min({props.limits.maxPerStageResources,
+                props.limits.maxFragmentCombinedOutputResources});
 
   // use only 4/5 of the total available resources
   if (total > max_resources) {
@@ -192,29 +251,50 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
 
   for (auto [res, i] : std::views::enumerate(out)) {
     logger.Log("BindlessManager ({}): max {} resources",
-      BindlessResource::type_to_vk(static_cast<BindlessType>(res)), i);
+               BindlessResource::type_to_vk(static_cast<BindlessType>(res)), i);
   }
 
   return out;
 }
 
 UniqueBindlessResource BindlessManager::allocate(BindlessType type) {
-  assert(static_cast<uint32_t>(type) < 4 && "invalid BindlessType");
-  auto &heap = m_heaps[static_cast<uint32_t>(type)];
-  return UniqueBindlessResource{heap.allocate(), *this};
+  uint32_t type_idx = static_cast<uint32_t>(type);
+
+  assert(type_idx < resource_count && "invalid BindlessType");
+
+  auto &heap = m_heaps[type_idx];
+  UniqueBindlessResource resource{heap.allocate(), *this};
+
+  if (m_versionBuffer) {
+    uint8_t *values = m_versionBuffer->second.versionBuffers[type_idx];
+    values[resource.get().index()] = resource.get().version();
+    assert(m_versionBuffer->second.buffers_header->maxHandles[type_idx] >=
+           resource.get().index());
+  }
+
+  return resource;
 }
 
 void BindlessManager::free(BindlessResource res) {
-  auto &heap = m_heaps[static_cast<uint32_t>(res.type())];
-  heap.free(std::move(res));
+  if (!res)
+    return;
+
+  uint32_t type_idx = static_cast<uint32_t>(res.type());
+
+  if (m_versionBuffer) {
+    uint8_t *values = m_versionBuffer->second.versionBuffers[type_idx];
+    values[res.index()] = 0xffu;
+  }
+
+  m_heaps[type_idx].free(std::move(res));
 }
 
 vk::WriteDescriptorSet BindlessManager::write_for(BindlessResource res) const {
   assert(res);
   return {
-      m_sets[static_cast<uint32_t>(res.type())],
-      0, // binding
-      res.index(), // arrayElement
+      m_set,
+      static_cast<uint32_t>(res.type()), // binding
+      res.index(),                       // arrayElement
       1,
       BindlessResource::type_to_vk(res.type()),
       nullptr,
@@ -222,4 +302,3 @@ vk::WriteDescriptorSet BindlessManager::write_for(BindlessResource res) const {
       nullptr,
   };
 }
-} // namespace v4dg

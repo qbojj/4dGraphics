@@ -22,6 +22,11 @@ public:
   DSAllocator(DSAllocatorPool &owner);
   ~DSAllocator();
 
+  DSAllocator(const DSAllocator &) = delete;
+  DSAllocator &operator=(const DSAllocator &o) = delete;
+  DSAllocator(DSAllocator &&o) = default;
+  DSAllocator &operator=(DSAllocator &&o) = default;
+
   template<typename A = std::allocator<vk::DescriptorSet>>
   std::vector<vk::DescriptorSet, A>
   allocate(std::span<const vk::DescriptorSetLayout> setLayouts,

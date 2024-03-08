@@ -13,6 +13,13 @@
 #include <memory>
 #include <new>
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#include <stb_image.h>
+
 #ifdef DEBUG_ALLOCATIONS
 void *operator new(std::size_t count) {
   void *ptr = malloc(count);
@@ -32,6 +39,17 @@ void operator delete(void *ptr, std::size_t) noexcept {
   TracyFree(ptr);
 }
 #endif
+
+class TracyLogReciever : public v4dg::ILogReciever {
+public:
+  void do_log(std::string_view fmt, std::format_args args,
+                      std::source_location lc, LogLevel lv) override {
+    std::string msg = std::format("[{}] {}:{}:{}: ", lv, lc.file_name(), lc.line(), lc.function_name());
+    std::vformat_to(std::back_inserter(msg), fmt, args);
+
+    TracyMessage(msg.c_str(), msg.size());
+  }
+};
 
 v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways, v4dg::cerrLogReciever);
 
@@ -100,6 +118,8 @@ void parse_args(int argc, const char *argv[]) {
   using sp_lr = std::shared_ptr<v4dg::ILogReciever>;
   std::vector<sp_lr> recievers;
 
+  recievers.push_back(std::make_shared<TracyLogReciever>());
+
   if (!parser.get<bool>("-q"))
     recievers.push_back(v4dg::cerrLogReciever);
 
@@ -128,8 +148,7 @@ void parse_args(int argc, const char *argv[]) {
 extern "C"
 #endif
 int
-main([[maybe_unused]] int argc, [[maybe_unused]] const char *argv[]) {
-  try {
+main([[maybe_unused]] int argc, [[maybe_unused]] const char *argv[]) try {
     std::srand((unsigned int)std::time(NULL));
     parse_args(argc, argv);
 
@@ -140,11 +159,10 @@ main([[maybe_unused]] int argc, [[maybe_unused]] const char *argv[]) {
     v4dg::SDL_GlobalContext gc;
 
     return v4dg::MyGameHandler{}.Run();
-  } catch (const std::exception &e) {
-    v4dg::logger.FatalError("Exception: {}", e.what());
-    return EXIT_FAILURE;
-  } catch (...) {
-    v4dg::logger.FatalError("Unknown exception");
-    return EXIT_FAILURE;
-  }
+} catch (const std::exception &e) {
+  v4dg::logger.FatalError("Exception: {}", e.what());
+  return EXIT_FAILURE;
+} catch (...) {
+  v4dg::logger.FatalError("Unknown exception");
+  return EXIT_FAILURE;
 }

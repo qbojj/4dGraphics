@@ -7,47 +7,62 @@
 
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_texture_shadow_lod : require
-#extension GL_EXT_ray_tracing : require
 #extension GL_EXT_debug_printf : require
 #extension GL_EXT_buffer_reference : require
+#extension GL_EXT_ray_tracing : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_shader_8bit_storage : require
 
 const uint sampler_type = 0, sampler_set = 0, sampler_binding = 0;
-const uint texture_type = 1, texture_set = 1, texture_binding = 0;
-const uint image_type = 2, image_set = 2, image_binding = 0;
-const uint AS_type = 3, AS_set = 3, AS_binding = 0;
+const uint texture_type = 1, texture_set = 0, texture_binding = 1;
+const uint image_type = 2, image_set = 0, image_binding = 2;
+const uint AS_type = 3, AS_set = 0, AS_binding = 3;
 
 // first number not used by bindless framework
-const uint user_set = 4;
+const uint user_set = 1;
 
-#ifdef BINDLESS_CHECK_VERSION
-layout(buffer_reference, std430) buffer VersionBuffer {
-    uint handles[];
-} versionBuffer;
+#ifdef BINDLESS_CHECK_BUFFER
+layout(buffer_reference, scalar) buffer VersionBuffer {
+    uint8_t handles[];
+};
+
+layout(set = 0, binding = 4, scalar) uniform AllVersionBuffers {
+    uint maxHandles[4];
+    VersionBuffer versions[4];
+} bindlessVersionBuffers;
 #endif
 
 uint indexFromHandleFrom(uint handle, uint type_expected) {
     uint idx = handle & ((1 << 23) - 1);
 
 #ifdef BINDLESS_CHECKS
+    uint valid = (handle >> 31);
+    if (valid == 0) {
+        debugPrintfEXT("Invalid handle %d\n", handle);
+        return 0;
+    }
+
     uint type = (handle >> 23) & 0x3;
     if (type != type_expected) {
         debugPrintfEXT("Invalid handle type %d, expected %d\n", type, type_expected);
-        return -1;
+        return 0;
     }
 
-    uint valid = (handle >> 31);
-    if (valid != 0) {
-        debugPrintfEXT("Invalid handle %d\n", handle);
-        return -1;
+#ifdef BINDLESS_CHECK_BUFFER
+    uint maxIdx = bindlessVersionBuffers.maxHandles[type_expected];
+    VersionBuffer vb = bindlessVersionBuffers.versions[type_expected];
+
+    if (idx >= maxIdx) {
+        debugPrintfEXT("Invalid handle index %d, max %d\n", idx, maxIdx);
+        return 0;
     }
 
-#ifdef BINDLESS_CHECK_VERSION
     uint version = (handle >> 25) & ((1 << 6) - 1);
-    uint wanted_version = (versionBuffer.handles[idx / 4] >> ((idx % 4) * 8)) & 0xFF;
+    uint version_expected = uint(vb.handles[idx]);
 
-    if (version != wanted_version) {
-        debugPrintfEXT("Invalid handle version %d, expected %d\n", version, wanted_version);
-        return -1;
+    if (version != version_expected) {
+        debugPrintfEXT("Invalid handle version %d, expected %d\n", version, version_expected);
+        return 0;
     }
 #endif
 #endif
@@ -126,6 +141,7 @@ uint imageIdx(uint handle) {
 #define STORAGE_IMAGE_NOFORMAT(type, name, attributes) \
     layout(set = image_set, binding = image_binding) attributes uniform type name[];
 
+
 ///////// ACCELERATION STRUCTURES ///////////
 
 #ifdef RAYTRACING
@@ -138,6 +154,6 @@ layout(set = AS_set, binding = AS_binding) uniform accelerationStructureEXT AccS
 accelerationStructureEXT toAccStruct(uint handle) {
     return AccStructs[AccStructIdx(handle)];
 }
-#endif 
+#endif
 
 #endif // BINDLESS_

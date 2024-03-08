@@ -11,6 +11,7 @@
 #include <bit>
 #include <exception>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 namespace v4dg {
@@ -28,8 +29,8 @@ public:
   }
 };
 } // namespace
-PerQueueFamily::PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev)
-    : m_queue(std::move(queue)), m_semaphore(nullptr),
+PerQueueFamily::PerQueueFamily(const Queue &queue, const vk::raii::Device &dev)
+    : m_queue(&queue), m_semaphore(nullptr),
       m_command_buffer_managers(
           make_per_frame<command_buffer_manager>(dev, m_queue->family())) {
   vk::StructureChain<vk::SemaphoreCreateInfo, vk::SemaphoreTypeCreateInfo> sci{
@@ -48,7 +49,7 @@ Context::Context(const Device &dev, std::optional<DSAllocatorWeights> weights)
                                    weights.value_or(default_weights(dev)))},
       m_pipeline_cache(nullptr), m_bindless_manager(device()) {
   auto &graphics_queue = get_queue(PerQueueFamily::Type::Graphics);
-  uint32_t graphics_family = graphics_queue->queue()->family();
+  uint32_t graphics_family = graphics_queue->queue().family();
 
   m_per_thread.reserve(m_executor.num_workers());
   for (size_t i{}; i < m_executor.num_workers(); ++i)
@@ -80,8 +81,13 @@ void Context::cleanup() {
 }
 
 auto Context::getFamilies() const -> PerQueueFamilyArray {
-  static constexpr auto N = std::size(PerQueueFamilyArray{});
-  std::array<Handle<Queue>, N> families_queues;
+  static constexpr auto N = PerQueueFamily::QueueTypes.size();
+  std::array<std::pair<int, int>, N> families_queues =
+      make_array_it<std::pair<int, int>, N>([](auto) {
+        return std::pair{-1, -1};
+      });
+
+  const auto &all_queues = device().queues();
 
   auto to_idx = [](QueueType type) { return static_cast<uint32_t>(type); };
 
@@ -96,52 +102,59 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
     return std::popcount(static_cast<uint32_t>(flags));
   };
 
-  for (auto &queue_fam : device().queues()) {
+  auto get_at = [&](std::pair<int, int> &pair) -> const Queue & {
+    return all_queues[pair.first][pair.second];
+  };
+
+  auto get_queue_idx = [&](QueueType type) -> std::pair<int, int> & {
+    return families_queues[to_idx(type)];
+  };
+
+  auto has_queue = [&](QueueType type) -> bool {
+    return get_queue_idx(type) != std::pair{-1, -1};
+  };
+
+  auto get_queue = [&](QueueType type) -> const Queue & {
+    return get_at(get_queue_idx(type));
+  };
+
+  for (const auto &queue_fam : all_queues) {
     if (queue_fam.empty())
       continue;
 
     size_t idx = 0;
-    auto queue = queue_fam[idx];
 
     // find queue families with least flags
     for (auto [type, required_flags, banned_flags] :
          PerQueueFamily::QueueTypes) {
-      if (!has_all_flags(queue->flags(), required_flags) ||
-          has_any_flags(queue->flags(), banned_flags))
+      const Queue &queue = queue_fam[idx];
+
+      if (!has_all_flags(queue.flags(), required_flags) ||
+          has_any_flags(queue.flags(), banned_flags))
         continue;
 
-      auto type_idx = to_idx(type);
-      if (families_queues[type_idx] &&
-          flag_count(families_queues[type_idx]->flags()) <=
-              flag_count(queue->flags()))
+      if (has_queue(type) &&
+          flag_count(get_queue(type).flags()) <= flag_count(queue.flags()))
         continue;
 
-      families_queues[type_idx] = std::move(queue);
+      get_queue_idx(type) = {queue.family(), queue.index()};
 
-      idx++;
-      if (idx == queue_fam.size())
+      if (++idx == queue_fam.size())
         break;
-
-      queue = queue_fam[idx];
     }
   }
 
-  auto &async_queue = families_queues[to_idx(QueueType::AsyncCompute)];
+  if (!has_queue(PerQueueFamily::Type::Graphics))
+    throw exception("no graphics queue found");
 
-  // asnyc compute should not have graphics capabilities
-  if (async_queue &&
-      has_all_flags(async_queue->flags(), vk::QueueFlagBits::eGraphics))
-    async_queue = nullptr;
+  return make_array_it<std::optional<PerQueueFamily>, N>(
+      [&](auto i) -> std::optional<PerQueueFamily> {
+        auto type = PerQueueFamily::QueueTypes[i].type;
+        if (!has_queue(type))
+          return std::nullopt;
 
-  if (!families_queues[to_idx(QueueType::Graphics)])
-    throw exception("cannot find omni queue");
-
-  PerQueueFamilyArray array;
-  for (auto [i, q] : std::views::enumerate(families_queues))
-    if (q)
-      array[i] = PerQueueFamily(std::move(q), vkDevice());
-
-  return array;
+        return PerQueueFamily{get_queue(type), vkDevice()};
+      });
 }
 
 void Context::next_frame() {
@@ -191,22 +204,13 @@ void Context::next_frame() {
 
   {
     ZoneScopedN("clear stacks");
-    tf::Taskflow tf;
 
-    tf.emplace([&] { next_frame.flush(); }).name("flush destruction stack");
-
-    tf.for_each(m_per_thread.begin(), m_per_thread.end(),
-                [&](auto &per_thread) {
-                  per_thread.m_per_frame[frame_ref()].flush();
-                })
-        .name("flush per thread destruction stacks");
-
-    tf.for_each(m_families.begin(), m_families.end(), [&](auto &q) {
-        if (q)
-          q->commandBufferManager(frame_ref()).reset();
-      }).name("reset command buffer managers");
-
-    m_executor.run(tf).wait();
+    next_frame.flush();
+    for (auto &per_thread : m_per_thread)
+      per_thread.m_per_frame[frame_ref()].flush();
+    for (auto &q : m_families)
+      if (q)
+        q->commandBufferManager(frame_ref()).reset();
   }
 }
 

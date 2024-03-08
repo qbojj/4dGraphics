@@ -33,7 +33,7 @@ public:
   using handle_type = typename handle_desc::handle_type;
   using handle_data = typename handle_desc::handle_data;
 
-  permament_handle_cache(handle_data data) : m_data(data) {}
+  explicit permament_handle_cache(handle_data data) : m_data(data) {}
 
 private:
   using hash = typename handle_desc::hash;
@@ -112,7 +112,7 @@ public:
   using handle_type = typename handle_desc::handle_type;
   using handle_data = typename handle_desc::handle_data;
 
-  handle_cache(handle_data data) : m_data(data) {}
+  explicit handle_cache(handle_data data) : m_data(data) {}
 
 private:
   using hash = typename handle_desc::hash;

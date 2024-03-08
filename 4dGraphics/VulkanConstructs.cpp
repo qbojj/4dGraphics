@@ -2,7 +2,6 @@
 
 #include "Debug.hpp"
 #include "Device.hpp"
-#include "VulkanHelpers.hpp"
 #include "cppHelpers.hpp"
 
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
@@ -16,7 +15,9 @@
 #include <ranges>
 #include <span>
 #include <stdexcept>
-namespace v4dg {
+
+using namespace v4dg;
+
 /*
 VkResult CreateTextureImage(VulkanRenderDevice& vkDev, const char* filename,
 VulkanTexture* texture)
@@ -228,413 +229,74 @@ VK_NULL_HANDLE;
 
     return res;
 }
-
-VkResult CreateEngineDescriptorSetLayout(VkDevice device, VkDescriptorSetLayout*
-layout)
-{
-    constexpr auto DescriptorSetBinding = [](uint32_t binding, VkDescriptorType
-type, VkPipelineStageFlags stages) -> VkDescriptorSetLayoutBinding { return {
-.binding = binding, .descriptorType = type, .descriptorCount = 1, .stageFlags =
-stages, .pImmutableSamplers = nullptr }; };
-
-    const VkDescriptorSetLayoutBinding bindings[] = {
-        DescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-VK_SHADER_STAGE_VERTEX_BIT), DescriptorSetBinding(1,
-VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
-        DescriptorSetBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-VK_SHADER_STAGE_VERTEX_BIT), DescriptorSetBinding(3,
-VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
-    };
-
-    const VkDescriptorBindingFlags bindingFlags[] = {
-        0,
-        0,
-        0,
-        0,
-    };
-
-    const VkDescriptorSetLayoutBindingFlagsCreateInfo lbfci { .sType =
-VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, .pNext =
-nullptr, .bindingCount = (uint32_t)size(bindingFlags), .pBindingFlags =
-data(bindingFlags) };
-
-    const VkDescriptorSetLayoutCreateInfo ci = { .sType =
-VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = &lbfci, .flags =
-0, .bindingCount = (uint32_t)size(bindings), .pBindings = bindings };
-
-    return vkCreateDescriptorSetLayout(device, &ci, nullptr, layout);
-}
-
-VkResult CreateEngineDescriptorSets(VulkanRenderDevice& vkDev, VulkanState&
-vkState)
-{
-    VkResult res = VK_SUCCESS;
-
-    // std::vector<VkDescriptorSetLayout> layouts(
-    //	vkDev.swapchainImages.size(),
-    //	vkState.descriptorSetLayout
-    //);
-
-    const VkDescriptorSetAllocateInfo ai = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .descriptorPool = vkState.descriptorPool,
-        .descriptorSetCount = 1, //(uint32_t)layouts.size(),
-        .pSetLayouts = &vkState.descriptorSetLayout // layouts.data()
-    };
-
-    // vkState.descriptorSets.resize( layouts.size() );
-
-    res = vkAllocateDescriptorSets(vkDev.device.device, &ai,
-        &vkState.descriptorSet); // descriptorSets.data() );
-
-    if (res >= 0) {
-        std::vector<VkWriteDescriptorSet> writes;
-
-        // for( size_t i = 0; i < layouts.size(); i++ )
-        {
-            const VkDescriptorBufferInfo uniformBufferInfo = {
-                .buffer = vkState.uniformBufferMemory.buffer,
-                .offset = 0, // vkState.uniformBuffers[ i ].offset,
-                .range = vkState.uniformBuffers[0].size // [ i ].size
-            };
-
-            const VkDescriptorBufferInfo vertexBufferInfo = { .buffer =
-vkState.modelBuffer.buffer, .offset = vkState.vertexBuffer.offset, .range =
-vkState.vertexBuffer.size };
-
-            const VkDescriptorBufferInfo indexBufferInfo = { .buffer =
-vkState.modelBuffer.buffer, .offset = vkState.indexBuffer.offset, .range =
-vkState.indexBuffer.size };
-
-            const VkDescriptorImageInfo textureInfo = { .sampler =
-vkState.textureSampler, .imageView = vkState.texture.imageView, .imageLayout =
-VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-
-            auto WriteDescriptorSet =
-                [&](uint32_t binding, VkDescriptorType type, const
-VkDescriptorImageInfo* ii, const VkDescriptorBufferInfo* bi, const VkBufferView*
-bv) { writes.push_back(VkWriteDescriptorSet { .sType =
-VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = nullptr, .dstSet =
-vkState.descriptorSet, // vkState.descriptorSets[ i ], .dstBinding = binding,
-                        .dstArrayElement = 0,
-                        .descriptorCount = 1,
-                        .descriptorType = type,
-                        .pImageInfo = ii,
-                        .pBufferInfo = bi,
-                        .pTexelBufferView = bv });
-                };
-
-            WriteDescriptorSet(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-nullptr, &uniformBufferInfo, nullptr); WriteDescriptorSet(1,
-VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr, &vertexBufferInfo, nullptr);
-            WriteDescriptorSet(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr,
-&indexBufferInfo, nullptr); WriteDescriptorSet(3,
-VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &textureInfo, nullptr, nullptr);
-        }
-
-        vkUpdateDescriptorSets(vkDev.device.device, (uint32_t)writes.size(),
-writes.data(), 0, nullptr);
-    }
-
-    return res;
-}
-*/
-/*
-void DestroyVulkanState(VulkanDevice& vkDev, VulkanState& vkState)
-{
-    vkDestroyDescriptorPool(vkDev.device, vkState.descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(vkDev.device, vkState.descriptorSetLayout,
-nullptr);
-
-    vmaDestroyBuffer(vkDev.allocator, vkState.uniformBufferMemory.buffer,
-vkState.uniformBufferMemory.bufferAllocation);
-
-    vmaDestroyBuffer(vkDev.allocator, vkState.modelBuffer.buffer,
-vkState.modelBuffer.bufferAllocation);
-
-    vkDestroySampler(vkDev.device, vkState.textureSampler, nullptr);
-    DestroyVulkanTexture(vkDev, vkState.texture);
-
-    vkDestroyPipelineLayout(vkDev.device, vkState.layout, nullptr);
-    vkDestroyPipeline(vkDev.device, vkState.graphicsPipeline, nullptr);
-
-    DestroyVulkanTexture(vkDev, vkState.depthResource);
-
-    vkState = VulkanState {};
-}
-
-void DestroyVulkanContext(VulkanContext& vkCtx)
-{
-    VkDevice dev = vkCtx->vkDev.device;
-
-    if (dev) {
-        DestroyVulkanSwapchain(dev, vkCtx.swapchain);
-
-        DestroyVulkanDescriptorAllocatorPool(dev, vkCtx.transientDescPool,
-nullptr); vkCtx.dslc.cleanup(); vkDestroySampler(dev, vkCtx.defaultSampler,
-nullptr);
-
-        for (auto& f : vkCtx.perFrame) {
-            vkDestroySemaphore(dev, f.imageReady, nullptr);
-            vkDestroySemaphore(dev, f.readyForPresent, nullptr);
-
-            for (auto& t : f.threadData) {
-                evalDescQueue(t.destructionQueue);
-                for (auto& cbm : t.cmdBuffManagers)
-                    cbm.clear(dev);
-            }
-        }
-    }
-
-    vkCtx = VulkanContext {};
-}
-
-void DestroyVulkanInstance(VulkanInstance& vk)
-{
-    if (vk.instance) {
-        vkDestroySurfaceKHR(vk.instance, vk.surface, nullptr);
-        if (vk.messenger)
-            vkDestroyDebugUtilsMessengerEXT(vk.instance, vk.messenger, nullptr);
-        vkDestroyInstance(vk.instance, nullptr);
-    }
-
-    vk = VulkanInstance {};
-}
-
-void DestroyVulkanSwapchain(VkDevice device, VulkanSwapchain& swapchain)
-{
-    for (VkImageView iv : swapchain.imageViews)
-        vkDestroyImageView(device, iv, nullptr);
-
-    vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
-
-    swapchain = VulkanSwapchain {};
-}
-
-static constexpr std::vector<VkDescriptorPoolSize> getDescriptorPoolSizes()
-{
-    static constexpr uint32_t maxSets = 2000;
-    static constexpr std::pair<VkDescriptorType, float>
-descriptorAllocatorPoolMults[] { { VK_DESCRIPTOR_TYPE_SAMPLER, 0.5f }, {
-VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4.f }, {
-VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4.f }, { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1.f
-}, { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1.f }, {
-VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1.f }, {
-VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2.f }, {
-VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2.f }, {
-VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1.f }, {
-VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1.f }, {
-VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0.5f } };
-
-    std::vector<VkDescriptorPoolSize> res;
-
-    for (const std::pair<VkDescriptorType, float>& mult :
-descriptorAllocatorPoolMults) res.emplace_back((uint32_t)(mult.second *
-maxSets), mult.first);
-
-    return res;
-}
-
-std::vector<VulkanPerFrame> VulkanContext::create_per_frame(uint32_t
-frames_in_flight, uint32_t thread_count) const
-{
-    std::vector<VulkanPerFrame> res;
-}
-
-VulkanContext::VulkanContext(VulkanInstance& vk, VulkanDevice& vkDev, uint32_t
-framesInFlight, uint32_t threadCount, std::string name) : vk(vk) , vkDev(vkDev)
-    , name(std::move(name))
-    , poolSizes(getDescriptorPoolSizes())
-    , dpci(VkDescriptorPoolCreateInfo { .sType =
-VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .pNext = nullptr, .maxSets =
-maxSets, .poolSizeCount = poolSizes.size().pPoolSizes = poolSizes.data() }) ,
-currentFrameId(0) , descPool(vkDev, &dpci, framesInFlight, name + ": descriptor
-pool allocator") , currentFrameId(0) , frameIdx(0) , perFrame(...) , dsl_cache({
-vkDev.device, nullptr })
-{
-    uint32_t imageCount;
-    VkCommandPoolCreateInfo cpCI;
-    VkCommandBufferAllocateInfo cbAI;
-
-    const VkFenceCreateInfo fci{
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT};
-
-    VkSurfaceCapabilitiesKHR capabilities;
-    VkCompositeAlphaFlagBitsKHR compositeAlpha;
-    VulkanSwapchain &swapchain = vkCtx.swapchain;
-    VkPresentModeKHR presentMode;
-    auto &priv_ = vkCtx.priv_;
-
-    uint32_t framesInFlight;
-    uint32_t imageCount;
-
-    uint32_t queueFamilyCount;
-    vkGetPhysicalDeviceQueueFamilyProperties(vkDev.physicalDevice,
-    &queueFamilyCount, nullptr); uint32_t uniqueFamilyCount = 0;
-
-    VK_CHECK_GOTO_INIT;
-
-    vkCtx = {};
-    vkCtx.vk = &vk;
-    vkCtx.vkDev = &vkDev;
-    vkCtx.currentFrameId = 0;
-    vkCtx.familyToIdx.resize(queueFamilyCount, UINT32_MAX);
-
-    VK_CHECK_GOTO(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkDev.physicalDevice,
-    vk.surface, &capabilities));
-
-    swapchain.format = ChooseSwapchainFormat(vkDev.physicalDevice, vk.surface,
-    features); swapchain.extent = ChooseSwapchainExtent(wantedExtent,
-    capabilities); swapchain.usages = usage; presentMode =
-    ChooseSwapPresentMode(vkDev.physicalDevice, vk.surface, true, false);
-
-    // get any supported alpha composition mode
-    compositeAlpha = (VkCompositeAlphaFlagBitsKHR)(1 <<
-    glm::findLSB((int)capabilities.supportedCompositeAlpha));
-
-    if ((capabilities.supportedUsageFlags & usage) != usage ||
-        presentMode == VK_PRESENT_MODE_MAX_ENUM_KHR)
-        VK_CHECK_GOTO(VK_ERROR_INITIALIZATION_FAILED);
-
-    imageCount = ChooseSwapImageCount(wantedFramesInFlight, capabilities);
-    framesInFlight = min(wantedFramesInFlight, imageCount);
-
-    VK_CHECK_GOTO(CreateSwapchain(
-        vkDev.device, vk.surface,
-        swapchain.extent, 1, imageCount,
-        swapchain.format, swapchain.usages,
-        capabilities.currentTransform, compositeAlpha,
-        presentMode, VK_TRUE,
-        VK_NULL_HANDLE, &swapchain.swapchain));
-
-    VK_CHECK_GOTO(CreateSwapchainImages(
-        vkDev.device, swapchain.swapchain,
-        &imageCount, swapchain.format.format,
-        swapchain.images, swapchain.imageViews));
-
-    for (auto &q : vkDev.queues)
-        if (vkCtx.familyToIdx[q.family] == UINT32_MAX)
-            vkCtx.familyToIdx[q.family] = uniqueFamilyCount++;
-
-    priv_.poolSizes.reserve(std::size(descriptorAllocatorPoolMults));
-    for (auto &m : descriptorAllocatorPoolMults)
-        priv_.poolSizes.emplace_back(m.first, (uint32_t)(m.second * maxSets));
-
-    priv_.dpci = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0, // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-        .maxSets = maxSets,
-        .poolSizeCount = (uint32_t)priv_.poolSizes.size(),
-        .pPoolSizes = priv_.poolSizes.data()};
-
-    dapci = {
-        .pDPci = &priv_.dpci,
-        .frameCount = framesInFlight,
-        .name = "vkCtx transient ds allocator pool"};
-
-    VK_CHECK_GOTO(CreateVulkanDescriptorAllocatorPool(vkDev.device, &dapci,
-    nullptr, &vkCtx.transientDescPool));
-    AdvanceVulkanDescriptorAllocatorPool(vkCtx.transientDescPool, 0, VK_FALSE,
-    0);
-
-    vkCtx.perFrame.resize(framesInFlight, VulkanPerFrame{
-                                              .resourcesReady =
-    std::vector<uint64_t>(vkDev.queues.size(), 0ull),
-                                              .imageReady{VK_NULL_HANDLE},
-                                              .readyForPresent{VK_NULL_HANDLE},
-                                              .threadCS =
-    tf::CriticalSection{threadCount}, .lastTID{0}, .threadData =
-    std::vector<VulkanPerThread>(threadCount, VulkanPerThread{ .cmdBuffManagers
-    = std::vector<command_buffer_manager>(uniqueFamilyCount),
-                                                                                                          .destructionQueue = {}})});
-
-    for (uint32_t i = 0; i < framesInFlight; i++)
-    {
-        auto &pf = vkCtx.perFrame[i];
-
-        VK_CHECK_GOTO(CreateSemophore(vkDev.device, &pf.imageReady));
-        VK_CHECK_GOTO(CreateSemophore(vkDev.device, &pf.readyForPresent));
-
-        VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, pf.imageReady,
-    VK_OBJECT_TYPE_SEMAPHORE, "vkCtx frameId %d: image ready", i));
-        VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, pf.readyForPresent,
-    VK_OBJECT_TYPE_SEMAPHORE, "vkCtx frameId %d: ready for present", i));
-
-        for (uint32_t th = 0; th < threadCount; th++)
-        {
-            for (uint32_t qf = 0; qf < queueFamilyCount; qf++)
-                if (vkCtx.familyToIdx[qf] != UINT32_MAX)
-                {
-                    auto &cbm =
-    pf.threadData[th].cmdBuffManagers[vkCtx.familyToIdx[qf]];
-                    VK_CHECK_GOTO(cbm.init(vkDev.device, qf,
-    VK_COMMAND_POOL_CREATE_TRANSIENT_BIT));
-                    VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, cbm.cmdPool,
-    VK_OBJECT_TYPE_COMMAND_POOL, "vkCtx frameId %d: thread %d: family %d: cmd
-    buffer pool", i, th, qf));
-                }
-        }
-    }
-
-    for (uint32_t i = 0; i < (uint32_t)vkDev.queues.size(); i++)
-    {
-        VulkanQueue &q = vkDev.queues[i];
-        VK_CHECK_GOTO(CreateTimelineSemaphore(vkDev.device, 0ull, &q.timeline));
-        VK_CHECK_GOTO(SET_VK_NAME(vkDev.device, q.timeline,
-    VK_OBJECT_TYPE_SEMAPHORE, "vkCtx queue %d: (family %d) timeline", i,
-    q.family)); q.curTimeline = 0;
-    }
-
-    return VK_SUCCESS;
-
-    VK_CHECK_GOTO_HANDLE(ret);
-
-    DestroyVulkanContext(vkCtx);
-    return ret;
-}
 */
 
-detail::GpuAllocation::~GpuAllocation() {
-  if (m_allocation) {
-    m_allocator.freeMemory(m_allocation);
-  }
-}
-
-Buffer::Buffer(const Device &dev,
-               std::pair<vma::Allocation, vk::raii::Buffer> p)
-    : detail::GpuAllocation(dev.allocator(), p.first),
+Buffer::Buffer(const Device &device,
+               std::pair<vma::Allocation, vk::raii::Buffer> p,
+               bool hasDeviceAddress, const char *name)
+    : detail::GpuAllocation(device.allocator(), p.first),
       m_buffer(std::move(p.second)),
-      m_deviceAddress(dev.device().getBufferAddress({buffer()})) {}
+      m_deviceAddress(hasDeviceAddress
+                          ? device.device().getBufferAddress({buffer()})
+                          : vk::DeviceAddress{}) {
+  if (name)
+    setName(device, name);
+}
 
-Buffer::Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
-               const vma::AllocationCreateInfo &allocationCreateInfo)
-    : Buffer(dev, [&] {
-        vk::BufferCreateInfo bci{bufferCreateInfo};
-        bci.usage |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
+Buffer::Buffer(const Device &device,
+               const vk::BufferCreateInfo &bufferCreateInfo,
+               const vma::AllocationCreateInfo &allocationCreateInfo,
+               const char *name)
+    : Buffer(
+          device,
+          [&] {
+            auto [buffer, allocation] = device.allocator().createBuffer(
+                bufferCreateInfo, allocationCreateInfo);
 
-        auto [buffer, allocation] =
-            dev.allocator().createBuffer(bci, allocationCreateInfo);
+            return std::pair<vma::Allocation, vk::raii::Buffer>(
+                allocation, vk::raii::Buffer(device.device(), buffer));
+          }(),
+          static_cast<bool>(getBufferUsage(bufferCreateInfo) &
+                            vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress),
+          name) {}
 
-        return std::pair<vma::Allocation, vk::raii::Buffer>(
-            allocation, vk::raii::Buffer(dev.device(), buffer));
-      }()) {}
+Buffer::Buffer(const Device &device, vk::DeviceSize size,
+               vk::BufferUsageFlags2KHR usage,
+               const vma::AllocationCreateInfo &allocationCreateInfo,
+               const char *name, vk::BufferCreateFlags flags,
+               vk::ArrayProxy<const uint32_t> queueFamilyIndices)
+    : Buffer(device,
+             vk::StructureChain<vk::BufferCreateInfo,
+                                vk::BufferUsageFlags2CreateInfoKHR>{
+                 {
+                     flags,
+                     size,
+                     {},
+                     queueFamilyIndices.empty() ? vk::SharingMode::eExclusive
+                                                : vk::SharingMode::eConcurrent,
+                     queueFamilyIndices,
+                 },
+                 {usage},
+             }
+                 .get<>(),
+             allocationCreateInfo, name) {}
 
 Image::Image(const Device &device,
              std::pair<vma::Allocation, vk::raii::Image> image,
              vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
              uint32_t mipLevels, uint32_t arrayLayers,
-             vk::SampleCountFlagBits samples)
+             vk::SampleCountFlagBits samples, const char *name)
     : detail::GpuAllocation(device.allocator(), image.first),
       m_image(std::move(image.second)), m_imageType(imageType),
       m_format(format), m_extent(extent), m_mipLevels(mipLevels),
-      m_arrayLayers(arrayLayers), m_samples(samples) {}
+      m_arrayLayers(arrayLayers), m_samples(samples) {
+  if (name)
+    setName(device, name);
+}
 
 Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
-             const vma::AllocationCreateInfo &allocationCreateInfo)
+             const vma::AllocationCreateInfo &allocationCreateInfo,
+             const char *name)
     : Image(
           device,
           [&] {
@@ -678,20 +340,4 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
           }(),
           imageCreateInfo.imageType, imageCreateInfo.format,
           imageCreateInfo.extent, imageCreateInfo.mipLevels,
-          imageCreateInfo.arrayLayers, imageCreateInfo.samples) {}
-
-Texture::Texture(const Device &device, const ImageCreateInfo &imageCreateInfo,
-                 const vma::AllocationCreateInfo &allocationCreateInfo,
-                 vk::ImageViewCreateFlags viewFlags, vk::ImageViewType viewType,
-                 vk::ImageAspectFlags aspectFlags,
-                 vk::ComponentMapping components)
-    : Image(device, imageCreateInfo, allocationCreateInfo),
-      m_imageView({device.device(),
-                   {viewFlags,
-                    image(),
-                    viewType,
-                    format(),
-                    components,
-                    {aspectFlags, 0, vk::RemainingMipLevels, 0,
-                     vk::RemainingArrayLayers}}}) {}
-} // namespace v4dg
+          imageCreateInfo.arrayLayers, imageCreateInfo.samples, name) {}

@@ -1,7 +1,7 @@
 #include "VulkanCaches.hpp"
 
+#include "Context.hpp"
 #include "Debug.hpp"
-#include "VulkanHelpers.hpp"
 #include "v4dgVulkan.hpp"
 
 #include <ankerl/unordered_dense.h>
@@ -26,36 +26,39 @@ SamplerInfo::SamplerInfo(vk::SamplerCreateFlags flags) noexcept {
   setLodBounds();
   setBorderColor();
   setReductionMode();
-  setYcbcrConversion();
 }
 
-vk::raii::Sampler SamplerInfo::create(const Device *dev) const {
-  vk::StructureChain<vk::SamplerCreateInfo, vk::SamplerReductionModeCreateInfo,
-                     vk::SamplerYcbcrConversionInfo>
-      chain(sci, srmci, syci);
+std::shared_ptr<const Sampler> SamplerInfo::create(Context &ctx) const {
+  vk::StructureChain<vk::SamplerCreateInfo, vk::SamplerReductionModeCreateInfo>
+      chain(sci, srmci);
 
-  if (srmci.reductionMode != vk::SamplerReductionMode::eWeightedAverage)
-    chain.unlink<vk::SamplerReductionModeCreateInfo>();
+  auto res = std::make_shared<Sampler>(
+      vk::raii::Sampler{ctx.vkDevice(), chain.get<>()},
+      ctx.bindlessManager().allocate(BindlessType::eSampler));
+  
+  vk::DescriptorImageInfo dii{
+      *res->sampler
+  };
 
-  if (!syci.conversion)
-    chain.unlink<vk::SamplerYcbcrConversionInfo>();
+  ctx.vkDevice().updateDescriptorSets(
+    ctx.bindlessManager().write_for(*res->handle, dii),
+    {}
+  );
 
-  return {dev->device(), chain.get<>()};
+  return res;
 }
 
-std::size_t SamplerInfo::hash::operator()(const SamplerInfo &si) const noexcept {
+std::size_t
+SamplerInfo::hash::operator()(const SamplerInfo &si) const noexcept {
   std::size_t seed{};
-  detail::add_hash(seed,
-    si.sci,
-    si.srmci,
-    si.syci);
+  detail::add_hash(seed, si.sci, si.srmci);
   return seed;
-} 
+}
 
 size_t DescriptorSetLayoutInfo::hash::operator()(
     const DescriptorSetLayoutInfo &dsli) const noexcept {
   size_t seed = dsli.bindings.size();
-  
+
   auto add_hash = [&seed](auto &&...args) {
     detail::add_hash(seed, std::forward<decltype(args)>(args)...);
   };
@@ -88,7 +91,7 @@ DescriptorSetLayoutInfo &DescriptorSetLayoutInfo::add_binding(
 }
 
 vk::raii::DescriptorSetLayout
-DescriptorSetLayoutInfo::create(const Device *dev) const {
+DescriptorSetLayoutInfo::create(const Device &dev) const {
   vk::StructureChain<vk::DescriptorSetLayoutCreateInfo,
                      vk::DescriptorSetLayoutBindingFlagsCreateInfo>
       chain{
@@ -96,12 +99,11 @@ DescriptorSetLayoutInfo::create(const Device *dev) const {
           {bindFlags},
       };
 
-  return {dev->device(), chain.get<>()};
+  return {dev.device(), chain.get<>()};
 }
 
-vk::raii::PipelineLayout
-PipelineLayoutInfo::create(const Device *dev) const {
-  return {dev->device(), {flags, setLayouts, pushRanges}};
+vk::raii::PipelineLayout PipelineLayoutInfo::create(const Device &dev) const {
+  return {dev.device(), {flags, setLayouts, pushRanges}};
 }
 
 /*

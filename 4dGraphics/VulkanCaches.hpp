@@ -4,6 +4,7 @@
 #include "HandleCache.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
+#include "BindlessManager.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan.hpp>
@@ -19,6 +20,8 @@
 #include <vector>
 
 namespace v4dg {
+class Context;
+
 namespace detail {
 inline void hash_combine(::std::size_t &seed, ::std::size_t hash) noexcept {
   seed = ::ankerl::unordered_dense::detail::wyhash::mix(
@@ -71,15 +74,20 @@ inline void add_hash(::std::size_t &seed, auto &&...args) noexcept {
 
 } // namespace detail
 
+struct Sampler {
+  vk::raii::Sampler sampler;
+  UniqueBindlessResource handle;
+};
+
 class SamplerInfo {
 public:
-  using handle_type = vk::raii::Sampler;
-  using handle_data = const Device *;
+  using handle_type = Sampler;
+  using handle_data = Context &;
   struct hash {
     size_t operator()(const SamplerInfo &) const noexcept;
   };
 
-  SamplerInfo(vk::SamplerCreateFlags flags = {}) noexcept;
+  explicit SamplerInfo(vk::SamplerCreateFlags flags = {}) noexcept;
 
   SamplerInfo &setFilters(
       vk::Filter minFilter = vk::Filter::eLinear,
@@ -137,31 +145,24 @@ public:
     return *this;
   }
 
-  SamplerInfo &setYcbcrConversion(
-      vk::SamplerYcbcrConversion conversion = VK_NULL_HANDLE) noexcept {
-    syci.setConversion(conversion);
-    return *this;
-  }
-
   auto operator<=>(const SamplerInfo &) const = default;
 
-  vk::raii::Sampler create(const Device *) const;
+  std::shared_ptr<const Sampler> create(Context &) const;
 
 private:
   vk::SamplerCreateInfo sci;
   vk::SamplerReductionModeCreateInfo srmci;
-  vk::SamplerYcbcrConversionInfo syci;
 };
 
 class DescriptorSetLayoutInfo {
 public:
   using handle_type = vk::raii::DescriptorSetLayout;
-  using handle_data = const Device *;
+  using handle_data = const Device &;
   struct hash {
     size_t operator()(const DescriptorSetLayoutInfo &) const noexcept;
   };
 
-  DescriptorSetLayoutInfo(
+  explicit DescriptorSetLayoutInfo(
       vk::DescriptorSetLayoutCreateFlags flags = {}) noexcept
       : flags(flags) {}
 
@@ -173,7 +174,7 @@ public:
 
   auto operator<=>(const DescriptorSetLayoutInfo &) const = default;
 
-  vk::raii::DescriptorSetLayout create(const Device *) const;
+  vk::raii::DescriptorSetLayout create(const Device &) const;
 
 private:
   vk::DescriptorSetLayoutCreateFlags flags;
@@ -185,12 +186,12 @@ private:
 class PipelineLayoutInfo {
 public:
   using handle_type = vk::raii::PipelineLayout;
-  using handle_data = const Device *;
+  using handle_data = const Device &;
   struct hash {
     size_t operator()(const PipelineLayoutInfo &) const noexcept;
   };
 
-  PipelineLayoutInfo(vk::PipelineLayoutCreateFlags flags = {}) noexcept
+  explicit PipelineLayoutInfo(vk::PipelineLayoutCreateFlags flags = {}) noexcept
       : flags(flags) {}
 
   PipelineLayoutInfo &add_set(vk::DescriptorSetLayout set) {
@@ -198,6 +199,12 @@ public:
     return *this;
   }
 
+  PipelineLayoutInfo &add_sets(vk::DescriptorSetLayout sets) {
+    return add_sets({&sets,1});
+  }
+  PipelineLayoutInfo &add_sets(const vk::raii::DescriptorSetLayout &sets) {
+    return add_sets({&sets,1});
+  }
   PipelineLayoutInfo &add_sets(std::span<const vk::DescriptorSetLayout> sets) {
     setLayouts.insert(setLayouts.end(), sets.begin(), sets.end());
     return *this;
@@ -220,7 +227,7 @@ public:
 
   auto operator<=>(const PipelineLayoutInfo &) const = default;
 
-  vk::raii::PipelineLayout create(const Device *) const;
+  vk::raii::PipelineLayout create(const Device &) const;
 
 private:
   vk::PipelineLayoutCreateFlags flags;
@@ -274,7 +281,7 @@ public:
 */
 // typedef permament_handle_cache<SamplerYcbcrConversionInfo>
 // sampler_ycbcr_conversion_cache;
-typedef permament_handle_cache<SamplerInfo> sampler_cache;
+typedef handle_cache<SamplerInfo> sampler_cache;
 
 // typedef permament_handle_cache<DescriptorSetLayoutInfo>
 // descriptor_set_layout_cache; typedef

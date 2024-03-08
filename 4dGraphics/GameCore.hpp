@@ -15,8 +15,8 @@ struct ImFontAtlas;
 namespace v4dg {
 class ImGuiRAIIContext {
 public:
-  ImGuiRAIIContext(ImGuiRAIIContext &&o) : context(std::exchange(o.context, nullptr)) {}
-  ImGuiRAIIContext(ImFontAtlas *font = nullptr);
+  explicit ImGuiRAIIContext(ImGuiRAIIContext &&o) : context(std::exchange(o.context, nullptr)) {}
+  explicit ImGuiRAIIContext(ImFontAtlas *font = nullptr);
   ~ImGuiRAIIContext();
 
   ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
@@ -37,7 +37,7 @@ public:
 class SDL_Context {
 public:
   SDL_Context() = delete;
-  SDL_Context(Uint32 subsystems);
+  explicit SDL_Context(Uint32 subsystems);
   ~SDL_Context();
 
   SDL_Context(const SDL_Context &) = delete;
@@ -57,7 +57,7 @@ public:
   using native_type = ::SDL_Window *;
 
   Window() = delete;
-  Window(nullptr_t) : window(nullptr) {}
+  explicit Window(nullptr_t) : window(nullptr) {}
   explicit Window(native_type window) : window(window) {}
   Window(int width, int height, const char *title);
 
@@ -81,7 +81,7 @@ private:
 class ImGui_SDLImpl {
 public:
   ImGui_SDLImpl() = delete;
-  ImGui_SDLImpl(const Window &window);
+  explicit ImGui_SDLImpl(const Window &window);
   ~ImGui_SDLImpl();
 
   ImGui_SDLImpl(const ImGui_SDLImpl &) = delete;
@@ -92,7 +92,7 @@ public:
 
 class GameEngine {
 public:
-  GameEngine(Window window = {1024, 768, "4dGraphics"});
+  explicit GameEngine(Window window = {1024, 768, "4dGraphics"});
   virtual ~GameEngine();
 
   Window m_window;

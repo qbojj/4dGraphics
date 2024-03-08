@@ -44,7 +44,7 @@ private:
 
 class FileLogReciever : public ILogReciever {
 public:
-  FileLogReciever(const std::filesystem::path &path);
+  explicit FileLogReciever(const std::filesystem::path &path);
 
 private:
   void do_log(std::string_view fmt, std::format_args args,

@@ -1,6 +1,5 @@
 #include "Device.hpp"
 #include "Debug.hpp"
-#include "VulkanHelpers.hpp"
 #include "v4dgVulkan.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -154,14 +153,14 @@ constexpr std::array required_device_exts{
     vk::KHRSwapchainExtensionName,
 
     // VP_KHR_roadmap_2022
-    // vk::KHRGlobalPriorityExtensionName,
+    vk::KHRGlobalPriorityExtensionName,
 
     // VP_KHR_roadmap_2024
     // vk::KHRDynamicRenderingLocalReadExtensionName,
     // vk::KHRLoadStoreOpNoneExtensionName,
     // vk::KHRShaderQuadControlExtensionName,
     // vk::KHRShaderMaximalReconvergenceExtensionName,
-    // vk::KHRShaderSubgroupUniformControlFlowExtensionName,
+    vk::KHRShaderSubgroupUniformControlFlowExtensionName,
     // vk::KHRShaderSubgroupRotateExtensionName,
     // vk::KHRShaderFloatControls2ExtensionName,
     // vk::KHRShaderExpectAssumeExtensionName,
@@ -169,7 +168,7 @@ constexpr std::array required_device_exts{
     // vk::KHRVertexAttributeDivisorExtensionName,
     // vk::KHRIndexTypeUint8ExtensionName,
     // vk::KHRMapMemory2ExtensionName,
-    // vk::KHRMaintenance5ExtensionName,
+    vk::KHRMaintenance5ExtensionName,
     vk::KHRPushDescriptorExtensionName,
 };
 
@@ -279,7 +278,8 @@ Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
                          vk::makeApiVersion(0, 0, 0, 1), vk::ApiVersion13};
 
   vk::InstanceCreateFlags flags{};
-  if (contains(m_extensions, make_ext_storage(vk::KHRPortabilityEnumerationExtensionName)))
+  if (contains(m_extensions,
+               make_ext_storage(vk::KHRPortabilityEnumerationExtensionName)))
     flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 
   auto layers_c = to_c_vector(m_layers);
@@ -343,7 +343,8 @@ Device::Device(const Instance &instance, vk::SurfaceKHR surface)
       m_features.get());
   m_meshShader = msf && msf->meshShader && msf->taskShader;
 
-  m_deviceFault = contains(extensions(), make_ext_storage(vk::EXTDeviceFaultExtensionName));
+  m_deviceFault =
+      contains(extensions(), make_ext_storage(vk::EXTDeviceFaultExtensionName));
 }
 
 std::vector<extension_storage>
@@ -476,7 +477,9 @@ Device::chooseFeatures() const {
   auto all_features = std::make_shared<vk::StructureChain<
       vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+#ifdef VK_KHR_portability_subset
       vk::PhysicalDevicePortabilitySubsetFeaturesKHR,
+#endif
       vk::PhysicalDeviceMaintenance5FeaturesKHR,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
       vk::PhysicalDeviceFaultFeaturesEXT>>();
@@ -484,7 +487,9 @@ Device::chooseFeatures() const {
   auto avaiable_features = m_physicalDevice.getFeatures2<
       vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+#ifdef VK_KHR_portability_subset
       vk::PhysicalDevicePortabilitySubsetFeaturesKHR,
+#endif
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
       vk::PhysicalDeviceFaultFeaturesEXT>();
 
@@ -605,18 +610,22 @@ Device::chooseFeatures() const {
 
   feature_chain.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>()
       .setMaintenance5(vk::True);
-  
+
+#ifdef VK_KHR_portability_subset
   // portability subset
   feature_chain.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
 
-  if (!contains(m_extensions, make_ext_storage(vk::KHRPortabilitySubsetExtensionName)))
+  if (!contains(m_extensions,
+                make_ext_storage(vk::KHRPortabilitySubsetExtensionName)))
     feature_chain.unlink<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
+#endif
 
   // optional extensions
   feature_chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()
       .setMemoryPriority(vk::True);
 
-  if (!contains(m_extensions, make_ext_storage(vk::EXTMemoryPriorityExtensionName)))
+  if (!contains(m_extensions,
+                make_ext_storage(vk::EXTMemoryPriorityExtensionName)))
     feature_chain.unlink<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 
   feature_chain.get<vk::PhysicalDeviceFaultFeaturesEXT>()
@@ -625,7 +634,8 @@ Device::chooseFeatures() const {
           avaiable_features.get<vk::PhysicalDeviceFaultFeaturesEXT>()
               .deviceFaultVendorBinary);
 
-  if (!contains(m_extensions, make_ext_storage(vk::EXTDeviceFaultExtensionName)))
+  if (!contains(m_extensions,
+                make_ext_storage(vk::EXTDeviceFaultExtensionName)))
     feature_chain.unlink<vk::PhysicalDeviceFaultFeaturesEXT>();
 
   return {std::move(all_features), &all_features->get<>()};
@@ -637,7 +647,7 @@ vk::raii::Device Device::initDevice() const {
             std::views::transform([&, family = 0u](auto) mutable {
               return vk::DeviceQueueCreateInfo{{}, family++, 1, &prio};
             });
-  
+
   std::vector<vk::DeviceQueueCreateInfo> qcis{rg.begin(), rg.end()};
 
   logger.Log("Creating Vulkan device with {} extensions", m_extensions.size());
@@ -652,7 +662,8 @@ vma::UniqueAllocator Device::initAllocator() const {
   const vk::PhysicalDeviceFeatures2 *device_features = features();
 
   vma::AllocatorCreateFlags flags{};
-  if (contains(m_extensions, make_ext_storage(vk::EXTMemoryBudgetExtensionName)))
+  if (contains(m_extensions,
+               make_ext_storage(vk::EXTMemoryBudgetExtensionName)))
     flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
 
   {
@@ -694,40 +705,36 @@ vma::UniqueAllocator Device::initAllocator() const {
   aci.device = *m_device;
   aci.vulkanApiVersion = m_apiVer;
 
-  vma::VulkanFunctions functions{
-      instance().instance().getDispatcher()->vkGetInstanceProcAddr,
-      m_device.getDispatcher()->vkGetDeviceProcAddr,
-  };
+  vma::VulkanFunctions functions = vma::functionsFromDispatcher(
+      instance().instance().getDispatcher(), device().getDispatcher());
 
   aci.pVulkanFunctions = &functions;
 
   return vma::createAllocatorUnique(aci);
 }
 
-std::vector<std::vector<Handle<Queue>>> Device::initQueues() const {
-  auto rg =
-      m_physicalDevice.getQueueFamilyProperties() | std::views::enumerate |
-      std::views::transform(
-          [&](const auto &pair) -> std::vector<Handle<Queue>> {
-            auto &[family_, qfp] = pair;
-            uint32_t family = family_;
+std::vector<std::vector<Queue>> Device::initQueues() const {
+  std::vector<std::vector<Queue>> queues;
 
-            auto flags = qfp.queueFlags;
+  auto props = m_physicalDevice.getQueueFamilyProperties();
 
-            // graphics and compute queues can also do transfer operations
-            //  but are not required to have a transfer flag
-            if (flags &
-                (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
-              flags |= vk::QueueFlagBits::eTransfer;
-            
-            return {
-              make_handle<Queue>(
-                vk::raii::Queue{device(), family, 0u}, family, 0u, flags, qfp.timestampValidBits,
-                qfp.minImageTransferGranularity
-              )
-            };
-          });
+  for (const auto &[family_, qfp] : props | std::views::enumerate) {
+    uint32_t family = family_;
+    auto flags = qfp.queueFlags;
 
-  return {rg.begin(), rg.end()};
+    // graphics and compute queues can also do transfer operations
+    //  but are not required to have a transfer flag
+    if (flags & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
+      flags |= vk::QueueFlagBits::eTransfer;
+
+    std::vector<Queue> family_queues;
+    family_queues.push_back(Queue{vk::raii::Queue{device(), family, 0u}, family,
+                                  0u, flags, qfp.timestampValidBits,
+                                  qfp.minImageTransferGranularity});
+
+    queues.push_back(std::move(family_queues));
+  }
+
+  return queues;
 }
 } // namespace v4dg

@@ -49,9 +49,9 @@ public:
   };
 
   PerQueueFamily() = delete;
-  PerQueueFamily(Handle<Queue> queue, const vk::raii::Device &dev);
+  PerQueueFamily(const Queue &queue, const vk::raii::Device &dev);
 
-  auto &queue() const { return m_queue; }
+  auto &queue() const { return *m_queue; }
   const auto &semaphore() const { return m_semaphore; }
   uint64_t semaphoreValue() const { return m_semaphore_value; }
 
@@ -60,7 +60,7 @@ public:
   auto &commandBufferManager(size_t idx) { return m_command_buffer_managers[idx]; }
 
 private:
-  Handle<Queue> m_queue;
+  const Queue *m_queue;
 
   // timeline semaphore
   vk::raii::Semaphore m_semaphore;
@@ -117,7 +117,7 @@ class Context {
 public:
   using QueueType = PerQueueFamily::Type;
 
-  Context(const Device &device, std::optional<DSAllocatorWeights> weights = {});
+  explicit Context(const Device &device, std::optional<DSAllocatorWeights> weights = {});
   ~Context();
 
   // we will be refering this class as a reference type -> no copying/moving
@@ -212,4 +212,33 @@ private:
   PerQueueFamilyArray getFamilies() const;
 };
 
+/*
+Future-like object that is to use resource that is uploaded to the GPU
+*/
+template <typename T>
+class FutureResource {
+public:
+
+private:
+
+  struct impl {
+    T resource;
+    
+    // optional(semaphore+queue that uploaded the resource)
+    struct ExternalQueue {
+      vk::Semaphore semaphore;
+      uint64_t value;
+
+      uint32_t src_family;
+    };
+
+    std::optional<ExternalQueue> external_queue;
+
+    // for image resources
+    vk::ImageLayout src_layout;
+    vk::ImageLayout dst_layout;
+  };
+
+  std::future<impl> m_future;
+};
 } // namespace v4dg

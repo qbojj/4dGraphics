@@ -54,26 +54,23 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
   uint32_t min_image_count =
       swapchain.presentMode() == vk::PresentModeKHR::eMailbox ? 3 : 2;
 
-  ImGui_ImplVulkan_InitInfo ii{
-      .Instance = *ctx.vkInstance(),
-      .PhysicalDevice = *ctx.vkPhysicalDevice(),
-      .Device = *ctx.vkDevice(),
-      .QueueFamily = queue.queue()->family(),
-      .Queue = *queue.queue()->queue(),
-      .PipelineCache = *ctx.pipeline_cache(),
-      .DescriptorPool = *pool,
-      .Subpass = {},
-      .MinImageCount = min_image_count,
-      .ImageCount = uint32_t(swapchain.images().size()),
-      .MSAASamples =
-          static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1),
+  ImGui_ImplVulkan_InitInfo ii{};
 
-      .UseDynamicRendering = true,
-      .ColorAttachmentFormat = static_cast<VkFormat>(swapchain.format()),
+  ii.Instance = *ctx.vkInstance();
+  ii.PhysicalDevice = *ctx.vkPhysicalDevice();
+  ii.Device = *ctx.vkDevice();
+  ii.QueueFamily = queue.queue().family();
+  ii.Queue = *queue.queue().queue();
 
-      .Allocator = {},
-      .CheckVkResultFn = {},
-  };
+  ii.PipelineCache = *ctx.pipeline_cache();
+  ii.DescriptorPool = *pool;
+
+  ii.MinImageCount = min_image_count;
+  ii.ImageCount = static_cast<uint32_t>(swapchain.images().size());
+  ii.MSAASamples = static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1);
+
+  ii.UseDynamicRendering = true;
+  ii.ColorAttachmentFormat = static_cast<VkFormat>(swapchain.format());
 
   if (!ImGui_ImplVulkan_LoadFunctions(
           [](const char *name, void *user) {
@@ -103,7 +100,7 @@ MyGameHandler::MyGameHandler()
       }
                     .build(context)),
       imguiVulkanImpl(swapchain, context),
-      texture(device,
+      texture(context,
               Image::ImageCreateInfo{
                   .format = vk::Format::eR16G16B16A16Sfloat,
                   .extent = {1024, 720, 1},
@@ -111,29 +108,24 @@ MyGameHandler::MyGameHandler()
                            vk::ImageUsageFlagBits::eTransferSrc,
               },
               {{}, vma::MemoryUsage::eAuto}),
-      texture_resource(context.bindlessManager().allocate(BindlessType::eStorageImage)),
       descriptor_set_layout(nullptr),
       pipeline_layout(PipelineLayoutInfo()
                           .add_sets(context.bindlessManager().get_layouts())
                           .add_push({vk::ShaderStageFlagBits::eCompute, 0u,
                                      sizeof(MandelbrotPushConstants)})
-                          .create(&device)),
+                          .create(device)),
       pipeline({nullptr, nullptr, nullptr}) {
-  
+
   texture.setName(device, "mandelbrot texture");
-  vk::DescriptorImageInfo dii{
-      {},
-      texture.imageView(),
-      vk::ImageLayout::eGeneral,
-  };
-  device.device().updateDescriptorSets(
-    context.bindlessManager().write_for(*texture_resource, dii),
-    {}
-  );
   
   auto shader = load_shader_code("Shaders/Mandelbrot.comp.spv");
-  if (!shader)
-    throw exception("Could not load shader module");
+  if (!shader) {
+    std::visit(
+        [&](const auto &e) {
+          throw exception("Could not load shader: {}", to_string(e));
+        },
+        shader.error());
+  }
 
   for (int variant = 0; variant < 3; variant++) {
     ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, *shader);
@@ -314,22 +306,12 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
     auto labal = cb.debugLabelScope("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
     cb->bindPipeline(vk::PipelineBindPoint::eCompute,
                      *pipeline[current_pipeline]);
-    
-    context.bindlessManager().bind(cb, *pipeline_layout, vk::PipelineBindPoint::eCompute);
 
-    /*
-    vk::DescriptorImageInfo dii{
-        {},
-        texture.imageView(),
-        vk::ImageLayout::eGeneral,
-    };
+    context.bindlessManager().bind(cb, *pipeline_layout,
+                                   vk::PipelineBindPoint::eCompute);
 
-    cb->pushDescriptorSetKHR(
-        vk::PipelineBindPoint::eCompute, *pipeline_layout, 0,
-        {{{}, 0, 0, vk::DescriptorType::eStorageImage, dii, {}, {}}});
-    */
-    mandelbrot_push_constants.image_idx = *texture_resource;
-    
+    mandelbrot_push_constants.image_idx = texture.storageHandle();
+
     cb->pushConstants<MandelbrotPushConstants>(
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
@@ -423,9 +405,8 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
 void MyGameHandler::submit(vk::CommandBuffer cb, std::uint32_t image_idx) {
   ZoneScoped;
-  std::unique_lock<std::mutex> lock;
   auto &queue_g = context.get_queue(Context::QueueType::Graphics);
-  auto &queue = queue_g->queue()->lock(lock);
+  auto &queue = queue_g->queue().queue();
 
   std::vector<vk::SemaphoreSubmitInfo> waitSSI, signalSSI;
 
@@ -449,9 +430,7 @@ void MyGameHandler::submit(vk::CommandBuffer cb, std::uint32_t image_idx) {
 void MyGameHandler::present(uint32_t image_idx) {
   ZoneScoped;
   auto &queue_g = context.get_queue(Context::QueueType::Graphics);
-
-  std::unique_lock<std::mutex> lock;
-  auto &queue = queue_g->queue()->lock(lock);
+  auto &queue = queue_g->queue().queue();
 
   try {
     vk::Result res = queue.presentKHR({
@@ -477,16 +456,18 @@ int MyGameHandler::Run() try {
 
   while (!should_close) {
     auto now = std::chrono::high_resolution_clock::now();
-    auto delta = std::chrono::duration<double>(now - last_frame).count();
+    [[maybe_unused]] auto delta = std::chrono::duration<double>(now - last_frame).count();
     last_frame = now;
 
-    (void)delta;
-
-    if (!has_focus) // Don't waste CPU time when not focused
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    static const char *ZoneFrameMark = "frame";
-    FrameMarkStart(ZoneFrameMark);
+    {
+      using namespace std::chrono_literals;
+      if (!has_focus) // Don't waste CPU time when not focused
+        std::this_thread::sleep_for(50ms);
+    }
+    
+    FrameMarkStart(nullptr);
+    auto frame_mark_scope =
+        detail::destroy_helper([] { FrameMarkEnd(nullptr); });
 
     {
       ZoneScopedN("advance frame");
@@ -523,7 +504,6 @@ int MyGameHandler::Run() try {
     context.executor().run(tf).wait();
 
     present(image_idx);
-    FrameMarkEnd(ZoneFrameMark);
   }
 
   return 0;

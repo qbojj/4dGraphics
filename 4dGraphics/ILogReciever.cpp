@@ -23,8 +23,10 @@ void standard_format_header(auto &it, std::source_location lc,
                             v4dg::ILogReciever::LogLevel lv,
                             bool remove_type = true, size_t max_len = 40) {
   std::string_view file_name = lc.file_name();
-  file_name = file_name.substr(file_name.find_last_of("/\\") +
-                               1); // extract file name from path
+
+  auto pos = file_name.find_last_of("/\\");
+  if (pos != std::string_view::npos)
+    file_name = file_name.substr(pos + 1); // extract file name from path
 
   std::string_view fn_name = lc.function_name();
 
@@ -46,7 +48,9 @@ void standard_format_header(auto &it, std::source_location lc,
     }
 
     s = fn_name.find_first_not_of(" ", s);
-    fn_name = fn_name.substr(s);
+
+    if (s != std::string_view::npos)
+      fn_name = fn_name.substr(s);
   }
 
   std::format_to(it, "{:<8} {}({:.{}}{}):{}: ", lv, file_name, fn_name, max_len,

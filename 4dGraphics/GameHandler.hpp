@@ -1,12 +1,11 @@
 #pragma once
 #include "GameCore.hpp"
-#include "GameRenderHandler.hpp"
-#include "GameTickHandler.hpp"
 #include "cppHelpers.hpp"
 #include "Context.hpp"
 #include "PipelineBuilder.hpp"
 #include "VulkanConstructs.hpp"
 #include "BindlessManager.hpp"
+#include "VulkanResources.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -40,7 +39,6 @@ private:
   ImGui_VulkanImpl imguiVulkanImpl;
 
   Texture texture;
-  UniqueBindlessResource texture_resource;
 
   bool should_close{false};
   bool has_focus{true};

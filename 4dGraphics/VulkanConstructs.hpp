@@ -20,40 +20,48 @@ namespace detail {
 class GpuAllocation {
 private:
   struct map_deleter_type {
-    void operator()(void *) const {
-      obj->allocator().unmapMemory(obj->allocation());
-    }
-    GpuAllocation *obj;
+    void operator()(void *) const { allocator.unmapMemory(allocation); }
+    vma::Allocator allocator;
+    vma::Allocation allocation;
   };
 
 public:
   GpuAllocation(vma::Allocator allocator, vma::Allocation allocation)
       : m_allocator(allocator), m_allocation(allocation) {}
-  
-  ~GpuAllocation();
 
+  GpuAllocation() = delete;
   GpuAllocation(const GpuAllocation &) = delete;
   GpuAllocation &operator=(const GpuAllocation &) = delete;
+  GpuAllocation(GpuAllocation &&o) noexcept
+      : m_allocator(o.m_allocator),
+        m_allocation(std::exchange(o.m_allocation, {})) {}
+  GpuAllocation &operator=(GpuAllocation &&o) noexcept {
+    if (this != &o) {
+      if (m_allocation)
+        m_allocator.freeMemory(m_allocation);
 
-  GpuAllocation(GpuAllocation &&o) noexcept : m_allocator(o.m_allocator), m_allocation(std::exchange(o.m_allocation, {})) {}
-  GpuAllocation &operator=(GpuAllocation o) noexcept {
-    std::swap(m_allocator, o.m_allocator);
-    std::swap(m_allocation, o.m_allocation);
+      m_allocator = o.m_allocator;
+      m_allocation = std::exchange(o.m_allocation, {});
+    }
     return *this;
+  }
+  ~GpuAllocation() {
+    if (m_allocation) {
+      m_allocator.freeMemory(m_allocation);
+    }
   }
 
   vma::Allocator allocator() const noexcept { return m_allocator; }
   vma::Allocation allocation() const noexcept { return m_allocation; }
 
-  template <typename T> using map_type = std::unique_ptr<T, map_deleter_type>;
+  template <typename T> using map_type = std::unique_ptr<T[], map_deleter_type>;
 
   template <typename T> map_type<T> map() {
-    return make_unique_obj(
-        static_cast<T *>(allocator().mapMemory(allocation())), {this});
+    return map_type<T>(static_cast<T *>(allocator().mapMemory(allocation())),
+                       {allocator(), allocation()});
   }
 
-  void flush(vk::DeviceSize offset = 0,
-             vk::DeviceSize size = vk::WholeSize) {
+  void flush(vk::DeviceSize offset = 0, vk::DeviceSize size = vk::WholeSize) {
     allocator().flushAllocation(allocation(), offset, size);
   }
   void invalidate(vk::DeviceSize offset = 0,
@@ -73,11 +81,20 @@ private:
 
 class Buffer : public detail::GpuAllocation {
 public:
-  Buffer(const Device &dev,
-          std::pair<vma::Allocation, vk::raii::Buffer> buffer);
+  Buffer(const Device &device,
+         std::pair<vma::Allocation, vk::raii::Buffer> buffer,
+         bool hasDeviceAddress = false, const char *name = nullptr);
 
-  Buffer(const Device &dev, const vk::BufferCreateInfo &bufferCreateInfo,
-         const vma::AllocationCreateInfo &allocationCreateInfo);
+  Buffer(const Device &device, const vk::BufferCreateInfo &bufferCreateInfo,
+         const vma::AllocationCreateInfo &allocationCreateInfo,
+         const char *name = nullptr);
+
+  Buffer(const Device &device, vk::DeviceSize size,
+         vk::BufferUsageFlags2KHR usage,
+         const vma::AllocationCreateInfo &allocationCreateInfo =
+             {{}, vma::MemoryUsage::eAuto},
+         const char *name = nullptr, vk::BufferCreateFlags flags = {},
+         vk::ArrayProxy<const uint32_t> queueFamilyIndices = {});
 
   vk::Buffer buffer() const { return *m_buffer; }
   operator vk::Buffer() const { return buffer(); }
@@ -85,13 +102,14 @@ public:
 
   vk::DeviceAddress deviceAddress() const { return m_deviceAddress; }
 
-  void setName(const Device& dev, const char *name) {
+  void setName(const Device &dev, const char *name) {
     dev.setDebugNameString(buffer(), name);
     detail::GpuAllocation::setName(name);
   }
 
-  template<typename... Args>
-  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
+  template <typename... Args>
+  void setName(const Device &dev, std::format_string<Args...> fmt,
+               Args &&...args) {
     if (dev.debugNamesAvaiable())
       setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
   }
@@ -123,14 +141,14 @@ public:
     std::optional<vk::ImageUsageFlags> stencilUsage = {};
   };
 
-  Image(const Device &device,
-        std::pair<vma::Allocation, vk::raii::Image> image,
+  Image(const Device &device, std::pair<vma::Allocation, vk::raii::Image> image,
         vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
         uint32_t mipLevels, uint32_t arrayLayers,
-        vk::SampleCountFlagBits samples);
+        vk::SampleCountFlagBits samples, const char *name = nullptr);
 
   Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
-        const vma::AllocationCreateInfo &allocationCreateInfo);
+        const vma::AllocationCreateInfo &allocationCreateInfo,
+        const char *name = nullptr);
 
   vk::Image image() const { return *m_image; }
 
@@ -141,13 +159,14 @@ public:
   uint32_t arrayLayers() const { return m_arrayLayers; }
   vk::SampleCountFlagBits samples() const { return m_samples; }
 
-  void setName(const Device& dev, const char *name) {
+  void setName(const Device &dev, const char *name) {
     dev.setDebugNameString(image(), name);
     detail::GpuAllocation::setName(name);
   }
 
-  template<typename... Args>
-  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
+  template <typename... Args>
+  void setName(const Device &dev, std::format_string<Args...> fmt,
+               Args &&...args) {
     if (dev.debugNamesAvaiable())
       setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
   }
@@ -162,44 +181,4 @@ private:
   uint32_t m_arrayLayers;
   vk::SampleCountFlagBits m_samples;
 };
-
-// image with a single view
-class Texture : public Image {
-public:
-  Texture(const Device &device, const ImageCreateInfo &imageCreateInfo,
-          const vma::AllocationCreateInfo &allocationCreateInfo,
-          vk::ImageViewCreateFlags flags = {},
-          vk::ImageViewType viewType = vk::ImageViewType::e2D,
-          vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor,
-          vk::ComponentMapping components = {});
-
-  vk::ImageView imageView() const { return *m_imageView; }
-
-  template<typename... Args>
-  void setName(const Device& dev, std::format_string<Args...> fmt, Args&&... args) {
-    if (dev.debugNamesAvaiable()) {
-      std::string name = std::format(fmt, std::forward<Args>(args)...);
-      Image::setName(dev, name.c_str());
-      name.append(" view");
-      dev.setDebugNameString(imageView(), name.c_str());
-    }
-  }
-
-private:
-  vk::raii::ImageView m_imageView;
-};
-
-
-/*
-VkResult CreateTextureImage(VulkanThreadCtx &vkCtx, const char *filename,
-                            VulkanTexture *texture);
-
-
-VkResult CreateSSBOVertexBuffer( VulkanRenderDevice &vkDev,
-        const char *filename,
-        VkBuffer *storageBuffer, VmaAllocation *storageBufferMemory,
-        VulkanBufferSuballocation *vertexBuffer,
-        VulkanBufferSuballocation *indexBuffer
-);
-*/
 } // namespace v4dg

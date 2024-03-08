@@ -8,13 +8,29 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <future>
 #include <optional>
 #include <vector>
+#include <string_view>
 
 namespace v4dg {
-std::optional<std::vector<std::uint32_t>>
+
+enum class load_shader_error {
+  bad_magic_number,
+};
+
+constexpr inline std::string_view to_string(load_shader_error e) {
+  switch (e) {
+  case load_shader_error::bad_magic_number:
+    return "bad_magic_number";
+  }
+  return "unknown";
+}
+
+std::expected<std::vector<std::uint32_t>,
+               std::variant<detail::get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path);
 
 class GraphicsPipelineBuilder;

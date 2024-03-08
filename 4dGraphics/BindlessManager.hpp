@@ -2,6 +2,7 @@
 
 #include "Device.hpp"
 #include "v4dgCore.hpp"
+#include "VulkanConstructs.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -12,6 +13,7 @@
 #include <mutex>
 #include <ranges>
 #include <utility>
+#include <optional>
 
 namespace v4dg {
 enum class BindlessType : uint8_t {
@@ -61,7 +63,7 @@ private:
     assert(version_v <= version_mask);
 
     m_resource = (index << index_shift) | (type_v << type_shift) |
-                 (version_v << version_shift) | (1 << 31);
+                 (version_v << version_shift) | (1u << 31);
   }
 
   void bump_version() {
@@ -108,17 +110,17 @@ private:
 
 class BindlessManager {
 public:
-  static constexpr uint32_t layout_count = 4;
+  static constexpr uint32_t layout_count = 1;
   static constexpr uint32_t resource_count = 4;
 
-  BindlessManager(const Device &device);
+  explicit BindlessManager(const Device &device);
 
-  const auto &get_layouts() const { return m_layouts; }
+  const auto &get_layouts() const { return m_layout; }
 
   void bind(const vk::raii::CommandBuffer &cb,
             vk::PipelineLayout pipelineLayout,
             vk::PipelineBindPoint bind_point) const {
-    cb.bindDescriptorSets(bind_point, pipelineLayout, 0, m_sets, {});
+    cb.bindDescriptorSets(bind_point, pipelineLayout, 0, m_set, {});
   }
 
   UniqueBindlessResource allocate(BindlessType type);
@@ -127,9 +129,17 @@ public:
   vk::WriteDescriptorSet write_for(BindlessResource res) const;
   vk::WriteDescriptorSet
   write_for(BindlessResource res,
-            vk::ArrayProxyNoTemporaries<const vk::DescriptorImageInfo>
-                image_info) const {
+            vk::DescriptorImageInfo &image_info) const {
+    assert(res.type() == BindlessType::eSampledImage ||
+           res.type() == BindlessType::eStorageImage ||
+           res.type() == BindlessType::eSampler);
     return write_for(res).setImageInfo(image_info);
+  }
+  vk::WriteDescriptorSet
+  write_for(BindlessResource res,
+            vk::WriteDescriptorSetAccelerationStructureKHR &as_info) const {
+    assert(res.type() == BindlessType::eAccelerationStructureKHR);
+    return write_for(res).setPNext(&as_info);
   }
 
 private:
@@ -142,20 +152,34 @@ private:
     void free(BindlessResource);
 
   private:
-    BindlessType m_type;
+    BindlessType m_type{};
 
-    uint32_t m_max_count;
+    uint32_t m_max_count{};
     uint32_t m_count{0};
 
     std::mutex m_mutex;
     std::deque<BindlessResource> m_free;
   };
 
-  const Device *m_device;
-  std::array<vk::raii::DescriptorSetLayout, 4> m_layouts;
+  struct VersionBufferHeader {
+    uint32_t maxHandles[resource_count];
+    VkDeviceAddress versionBuffers[resource_count];
+  };
 
+  struct VersionBufferInfo {
+    VersionBufferHeader *buffers_header;
+    uint8_t *versionBuffers[resource_count];
+  };
+
+  const Device *m_device;
+  
+  // all resources reside in the same descriptor set
+  vk::raii::DescriptorSetLayout m_layout;
   vk::raii::DescriptorPool m_pool;
-  std::array<vk::DescriptorSet, layout_count> m_sets;
+
+  std::optional<std::pair<Buffer,VersionBufferInfo>> m_versionBuffer;
+  vk::DescriptorSet m_set;
+
   std::array<BindlessHeap, resource_count> m_heaps;
 
   static std::array<uint32_t, resource_count>

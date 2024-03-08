@@ -12,7 +12,7 @@
 
 namespace v4dg {
 template <class T, class U>
-concept vulkan_struct_extends = (bool)vk::StructExtends<T, U>::value;
+concept vulkan_struct_extends = !!vk::StructExtends<T, U>::value;
 
 template <class T>
 concept vulkan_handle = requires() {
@@ -22,7 +22,7 @@ concept vulkan_handle = requires() {
 
 template <typename T, typename U>
   requires vulkan_struct_extends<T, U>
-T *getVkStructureFromChain(U *pNextChain) {
+[[nodiscard]] T *getVkStructureFromChain(U *pNextChain) {
   auto *pNext = reinterpret_cast<T *>(pNextChain);
   while (pNext) {
     if (pNext->sType == T::structureType) {
@@ -35,7 +35,7 @@ T *getVkStructureFromChain(U *pNextChain) {
 
 template <typename T, typename U>
   requires vulkan_struct_extends<T, U>
-const T *getVkStructureFromChain(const U *pNextChain) {
+[[nodiscard]] const T *getVkStructureFromChain(const U *pNextChain) {
   auto *pNext = reinterpret_cast<const T *>(pNextChain);
   while (pNext) {
     if (pNext->sType == T::structureType) {
@@ -45,6 +45,8 @@ const T *getVkStructureFromChain(const U *pNextChain) {
   }
   return nullptr;
 }
+
+[[nodiscard]] vk::BufferUsageFlags2KHR getBufferUsage(const vk::BufferCreateInfo &bci);
 
 template <typename T>
 concept vulkan_raii_handle =
@@ -56,21 +58,22 @@ concept vulkan_raii_handle =
 
 template <vulkan_raii_handle T> class vulkan_raii_view {
 public:
-  explicit vulkan_raii_view(T t) : t(std::move(t)) {}
+  explicit vulkan_raii_view(nullptr_t) noexcept : t(nullptr) {}
+  explicit vulkan_raii_view(T t) noexcept : t(std::move(t)) {}
   ~vulkan_raii_view() { (void)t.release(); }
 
   vulkan_raii_view(const vulkan_raii_view &) = delete;
   vulkan_raii_view(vulkan_raii_view &&o) = default;
 
-  vulkan_raii_view &operator=(vulkan_raii_view o) {
+  vulkan_raii_view &operator=(vulkan_raii_view o) noexcept {
     std::swap(t, o.t);
     return *this;
   }
 
-  operator const T&() const { return t; }
+  operator const T&() const noexcept { return t; }
 
-  const typename T::CppType operator*() const { return *t; }
-  const T *operator->() const { return &t; }
+  const typename T::CppType operator*() const noexcept { return *t; }
+  const T *operator->() const noexcept { return &t; }
 
 private:
   T t;
@@ -90,6 +93,7 @@ private:
 };
 
 using DestructionItem = std::move_only_function<void()>;
+
 class DestructionStack {
 public:
   ~DestructionStack() { flush(); }
