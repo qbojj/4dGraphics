@@ -81,20 +81,15 @@ private:
 
 class Buffer : public detail::GpuAllocation {
 public:
-  Buffer(const Device &device,
-         std::pair<vma::Allocation, vk::raii::Buffer> buffer,
-         bool hasDeviceAddress = false, const char *name = nullptr);
-
   Buffer(const Device &device, const vk::BufferCreateInfo &bufferCreateInfo,
-         const vma::AllocationCreateInfo &allocationCreateInfo,
-         const char *name = nullptr);
+         const vma::AllocationCreateInfo &allocationCreateInfo);
 
   Buffer(const Device &device, vk::DeviceSize size,
          vk::BufferUsageFlags2KHR usage,
          const vma::AllocationCreateInfo &allocationCreateInfo =
              {{}, vma::MemoryUsage::eAuto},
-         const char *name = nullptr, vk::BufferCreateFlags flags = {},
-         vk::ArrayProxy<const uint32_t> queueFamilyIndices = {});
+         vk::BufferCreateFlags flags = {},
+         vk::ArrayProxy<const std::uint32_t> queueFamilyIndices = {});
 
   vk::Buffer buffer() const { return *m_buffer; }
   operator vk::Buffer() const { return buffer(); }
@@ -102,20 +97,24 @@ public:
 
   vk::DeviceAddress deviceAddress() const { return m_deviceAddress; }
 
-  void setName(const Device &dev, const char *name) {
-    dev.setDebugNameString(buffer(), name);
-    detail::GpuAllocation::setName(name);
-  }
-
   template <typename... Args>
   void setName(const Device &dev, std::format_string<Args...> fmt,
                Args &&...args) {
-    if (dev.debugNamesAvaiable())
-      setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
+    if (dev.debugNamesAvaiable()) {
+      std::string name = std::format(fmt, std::forward<Args>(args)...);
+      dev.setDebugNameString(buffer(), name.c_str());
+      detail::GpuAllocation::setName(name.c_str());
+    }
   }
 
 private:
+  Buffer(const Device &device,
+         std::pair<vma::Allocation, vk::raii::Buffer> buffer,
+         vk::DeviceSize size,
+         bool hasDeviceAddress);
+  
   vk::raii::Buffer m_buffer;
+  vk::DeviceSize m_size;
   vk::DeviceAddress m_deviceAddress;
 };
 
@@ -144,11 +143,10 @@ public:
   Image(const Device &device, std::pair<vma::Allocation, vk::raii::Image> image,
         vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
         uint32_t mipLevels, uint32_t arrayLayers,
-        vk::SampleCountFlagBits samples, const char *name = nullptr);
+        vk::SampleCountFlagBits samples);
 
   Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
-        const vma::AllocationCreateInfo &allocationCreateInfo,
-        const char *name = nullptr);
+        const vma::AllocationCreateInfo &allocationCreateInfo);
 
   vk::Image image() const { return *m_image; }
 
@@ -159,16 +157,14 @@ public:
   uint32_t arrayLayers() const { return m_arrayLayers; }
   vk::SampleCountFlagBits samples() const { return m_samples; }
 
-  void setName(const Device &dev, const char *name) {
-    dev.setDebugNameString(image(), name);
-    detail::GpuAllocation::setName(name);
-  }
-
   template <typename... Args>
   void setName(const Device &dev, std::format_string<Args...> fmt,
                Args &&...args) {
-    if (dev.debugNamesAvaiable())
-      setName(dev, std::format(fmt, std::forward<Args>(args)...).c_str());
+    if (dev.debugNamesAvaiable()) {
+      std::string name = std::format(fmt, std::forward<Args>(args)...);
+      dev.setDebugNameString(image(), name.c_str());
+      detail::GpuAllocation::setName(name.c_str());
+    }
   }
 
 private:

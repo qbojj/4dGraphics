@@ -233,20 +233,16 @@ VK_NULL_HANDLE;
 
 Buffer::Buffer(const Device &device,
                std::pair<vma::Allocation, vk::raii::Buffer> p,
-               bool hasDeviceAddress, const char *name)
+               vk::DeviceSize size, bool hasDeviceAddress)
     : detail::GpuAllocation(device.allocator(), p.first),
-      m_buffer(std::move(p.second)),
-      m_deviceAddress(hasDeviceAddress
-                          ? device.device().getBufferAddress({buffer()})
-                          : vk::DeviceAddress{}) {
-  if (name)
-    setName(device, name);
+      m_buffer(std::move(p.second)), m_size(size) {
+  if (hasDeviceAddress)
+    m_deviceAddress = device.device().getBufferAddress({buffer()});
 }
 
 Buffer::Buffer(const Device &device,
                const vk::BufferCreateInfo &bufferCreateInfo,
-               const vma::AllocationCreateInfo &allocationCreateInfo,
-               const char *name)
+               const vma::AllocationCreateInfo &allocationCreateInfo)
     : Buffer(
           device,
           [&] {
@@ -256,14 +252,15 @@ Buffer::Buffer(const Device &device,
             return std::pair<vma::Allocation, vk::raii::Buffer>(
                 allocation, vk::raii::Buffer(device.device(), buffer));
           }(),
-          static_cast<bool>(getBufferUsage(bufferCreateInfo) &
-                            vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress),
-          name) {}
+          bufferCreateInfo.size,
+          static_cast<bool>(
+              getBufferUsage(bufferCreateInfo) &
+              vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress)) {}
 
 Buffer::Buffer(const Device &device, vk::DeviceSize size,
                vk::BufferUsageFlags2KHR usage,
                const vma::AllocationCreateInfo &allocationCreateInfo,
-               const char *name, vk::BufferCreateFlags flags,
+               vk::BufferCreateFlags flags,
                vk::ArrayProxy<const uint32_t> queueFamilyIndices)
     : Buffer(device,
              vk::StructureChain<vk::BufferCreateInfo,
@@ -279,24 +276,20 @@ Buffer::Buffer(const Device &device, vk::DeviceSize size,
                  {usage},
              }
                  .get<>(),
-             allocationCreateInfo, name) {}
+             allocationCreateInfo) {}
 
 Image::Image(const Device &device,
              std::pair<vma::Allocation, vk::raii::Image> image,
              vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
              uint32_t mipLevels, uint32_t arrayLayers,
-             vk::SampleCountFlagBits samples, const char *name)
+             vk::SampleCountFlagBits samples)
     : detail::GpuAllocation(device.allocator(), image.first),
       m_image(std::move(image.second)), m_imageType(imageType),
       m_format(format), m_extent(extent), m_mipLevels(mipLevels),
-      m_arrayLayers(arrayLayers), m_samples(samples) {
-  if (name)
-    setName(device, name);
-}
+      m_arrayLayers(arrayLayers), m_samples(samples) {}
 
 Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
-             const vma::AllocationCreateInfo &allocationCreateInfo,
-             const char *name)
+             const vma::AllocationCreateInfo &allocationCreateInfo)
     : Image(
           device,
           [&] {
@@ -340,4 +333,4 @@ Image::Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
           }(),
           imageCreateInfo.imageType, imageCreateInfo.format,
           imageCreateInfo.extent, imageCreateInfo.mipLevels,
-          imageCreateInfo.arrayLayers, imageCreateInfo.samples, name) {}
+          imageCreateInfo.arrayLayers, imageCreateInfo.samples) {}

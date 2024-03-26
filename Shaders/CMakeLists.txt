@@ -30,13 +30,17 @@ set(SHADER_OUTPUTS)
 set(SHADER_OUTPUTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Shaders)
 set(SHADER_DEPENDS_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Depends)
 
-set(DEFINES $<$<CONFIG:Debug>:-DBINDLESS_CHECKS> $<$<CONFIG:Debug>:-DBINDLESS_CHECK_BUFFER>)
+set(OPTS_RELEASE -O)
+set(OPTS_REL_WITH_DEB_INFO -g -O)
+set(OPTS_MIN_SIZE_REL -Os)
+set(OPTS_DEBUG -g -O0 -DBINDLESS_CHECKS -DBINDLESS_CHECK_BUFFER)
 
-set(OPTS --target-env=vulkan1.3 $<$<CONFIG:Debug,RelWithDebInfo>:-g>
-          $<$<CONFIG:Release,RelWithDebInfo>:-O> $<$<CONFIG:MinSizeRel>:-Os>
-          $<$<CONFIG:Debug>:-O0> ${DEFINES})
-
-# Add a custom target to compile all shaders
+set(OPTS
+    --target-env=vulkan1.3
+    $<$<CONFIG:Release>:${OPTS_RELEASE}>
+    $<$<CONFIG:RelWithDebInfo>:${OPTS_REL_WITH_DEB_INFO}>
+    $<$<CONFIG:MinSizeRel>:${OPTS_MIN_SIZE_REL}>
+    $<$<CONFIG:Debug>:${OPTS_DEBUG}>)
 
 # Compile shaders using glslc and generate make dependencies
 foreach(SHADER_FILE ${SHADER_FILES})
@@ -50,10 +54,11 @@ foreach(SHADER_FILE ${SHADER_FILES})
 
   add_custom_command(
     OUTPUT ${SHADER_OUTPUT}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_OUTPUT_DIR} ${SHADER_DEPENDENCY_DIR}
-    COMMAND
-      ${GLSLC} -o ${SHADER_OUTPUT} -MD -MF ${SHADER_DEPENDENCY}
-      ${OPTS} ${SHADER_FILE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_OUTPUT_DIR}
+            ${SHADER_DEPENDENCY_DIR}
+    COMMAND ${GLSLC} -o "${SHADER_OUTPUT}" -MD -MF "${SHADER_DEPENDENCY}"
+            "${OPTS}" "${SHADER_FILE}"
+    COMMAND_EXPAND_LISTS
     DEPENDS ${SHADER_FILE}
     DEPFILE ${SHADER_DEPENDENCY}
     COMMENT "Compiling shader ${SHADER_FILE}")
@@ -61,13 +66,14 @@ foreach(SHADER_FILE ${SHADER_FILES})
   list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT})
 endforeach()
 
+# Add a custom target to compile all shaders
 add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
 
 add_custom_command(
   TARGET Shaders
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_OUTPUTS_DIR}
-    $<TARGET_FILE_DIR:4dGraphics>/Shaders
+          $<TARGET_FILE_DIR:4dGraphics>/Shaders
   COMMENT "Copying shaders to binary directory")
 
 install(DIRECTORY ${SHADER_OUTPUTS_DIR} DESTINATION .)

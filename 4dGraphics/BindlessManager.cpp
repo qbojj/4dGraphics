@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <functional>
 
 using namespace v4dg;
 
@@ -131,11 +132,14 @@ BindlessManager::BindlessManager(const Device &device)
     }
 
     std::vector<uint32_t> queue_fam;
-    for (auto &q_fam : device.queues())
-      if (!q_fam.empty() &&
-          !std::ranges::contains(queue_fam, q_fam.front().family()))
-        queue_fam.push_back(q_fam.front().family());
-
+    for (const auto &q_fam : device.queues() | std::views::filter(std::not_fn(&std::vector<Queue>::empty))) {
+      if (!q_fam.empty()) {
+        Queue q = q_fam.front();
+        if (q.flags() & (vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eGraphics) &&
+            !std::ranges::contains(queue_fam, q.family()))
+          queue_fam.push_back(q.family());
+      }
+    }
     Buffer version_buf{*m_device,
                        whole_size,
                        vk::BufferUsageFlagBits2KHR::eUniformBuffer |
@@ -144,14 +148,16 @@ BindlessManager::BindlessManager(const Device &device)
                             vma::AllocationCreateFlagBits::eMapped,
                         vma::MemoryUsage::eAuto,
                         vk::MemoryPropertyFlagBits::eHostCoherent},
-                       "bindless version buffer",
                        {},
                        queue_fam};
 
+    version_buf.setName(*m_device, "bindless version buffer");
+
     VersionBufferInfo info{};
-    
-    auto ai = version_buf.allocator().getAllocationInfo(version_buf.allocation());
-    std::byte *data = static_cast<std::byte*>(ai.pMappedData);
+
+    auto ai =
+        version_buf.allocator().getAllocationInfo(version_buf.allocation());
+    std::byte *data = static_cast<std::byte *>(ai.pMappedData);
 
     size_t offset = 0;
     info.buffers_header =

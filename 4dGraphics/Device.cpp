@@ -106,12 +106,9 @@ debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       pUserData));
 }
 
-constexpr bool contains(const auto &container, const auto &ext) {
-  return std::ranges::contains(container, ext);
-}
+using std::ranges::contains;
 
-constexpr auto make_ext_storage(const auto &ext_) {
-  std::string_view ext = ext_;
+constexpr auto make_ext_storage(std::string_view ext) {
   extension_storage storage;
   assert(ext.size() < storage.size());
 
@@ -437,8 +434,8 @@ Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
         vk::PhysicalDeviceType::eVirtualGpu,
     };
 
-    auto a_it = std::find(prefered.begin(), prefered.end(), a_type);
-    auto b_it = std::find(prefered.begin(), prefered.end(), b_type);
+    auto a_it = std::ranges::find(prefered, a_type);
+    auto b_it = std::ranges::find(prefered, b_type);
 
     return a_it < b_it;
   });

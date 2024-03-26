@@ -13,45 +13,38 @@ find_package(Taskflow CONFIG REQUIRED)
 find_package(unofficial-vulkan-memory-allocator-hpp CONFIG REQUIRED)
 find_package(Tracy CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
+find_package(Ktx CONFIG REQUIRED)
 
 file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 file(GLOB HEADERS CONFIGURE_DEPENDS *.hpp *.h)
 
 add_executable(4dGraphics WIN32)
-target_sources(4dGraphics
-  PRIVATE
-    ${SOURCES}
-  PUBLIC
-    FILE_SET HEADERS
-    BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
-    FILES ${HEADERS}
-  )
+target_sources(
+  4dGraphics
+  PRIVATE ${SOURCES}
+  PUBLIC FILE_SET HEADERS BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
+         ${HEADERS})
 
-target_precompile_headers(4dGraphics PRIVATE
+target_precompile_headers(
+  4dGraphics
+  PRIVATE
   <glm/ext.hpp>
   <glm/glm.hpp>
-  
   <taskflow/algorithm/critical.hpp>
   <taskflow/algorithm/for_each.hpp>
   <taskflow/taskflow.hpp>
-  
   <vulkan/vulkan.hpp>
   <vulkan/vulkan_extension_inspection.hpp>
   <vulkan/vulkan_format_traits.hpp>
   <vulkan/vulkan_hash.hpp>
   <vulkan/vulkan_raii.hpp>
   <vulkan/vulkan_to_string.hpp>
-  
   <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
-  
   <SDL2/SDL.h>
-  
   <tracy/Tracy.hpp>
-  
   <imgui.h>
   <imgui_impl_sdl2.h>
   <imgui_impl_vulkan.h>
-
   # all of c++23 headers
   <algorithm>
   <any>
@@ -73,8 +66,7 @@ target_precompile_headers(4dGraphics PRIVATE
   <execution>
   <expected>
   <filesystem>
-  # <flat_map>
-  # <flat_set>
+  # <flat_map> <flat_set>
   <format>
   <forward_list>
   <fstream>
@@ -137,43 +129,37 @@ target_precompile_headers(4dGraphics PRIVATE
   <valarray>
   <variant>
   <vector>
-  <version>
-  )
+  <version>)
 
 target_link_libraries(
   4dGraphics
-  PRIVATE WarningSettings
-          argparse::argparse
-          fastgltf::fastgltf
-          glm::glm
-          Vulkan::Headers
-          imgui::imgui
-          $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
-          Taskflow::Taskflow
-          Tracy::TracyClient
-          unordered_dense::unordered_dense
-          unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
+  PUBLIC imgui::imgui
+         $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
+         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+         Taskflow::Taskflow
+         glm::glm
+         Vulkan::Headers
+         unordered_dense::unordered_dense
+         unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp
+         Tracy::TracyClient
+  PRIVATE WarningSettings argparse::argparse fastgltf::fastgltf
+          KTX::ktx KTX::astcenc-avx2-static)
 
-target_include_directories(
-  4dGraphics
-  PUBLIC ${PROJECT_SOURCE_DIR} ${Stb_INCLUDE_DIR})
+target_include_directories(4dGraphics PUBLIC ${PROJECT_SOURCE_DIR}
+                                             ${Stb_INCLUDE_DIR})
 
 target_compile_definitions(
   4dGraphics
   PUBLIC VK_ENABLE_BETA_EXTENSIONS=1
-          VK_NO_PROTOTYPES=1
-          VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
-          
-          GLM_FORCE_SILENT_WARNINGS
-          GLM_FORCE_DEPTH_ZERO_TO_ONE
-          GLM_FORCE_SWIZZLE
-          GLM_FORCE_RADIANS
-          GLM_FORCE_CTOR_INIT
-          GLM_ENABLE_EXPERIMENTAL
-
-  PRIVATE WIN32_LEAN_AND_MEAN
-          TRACY_VK_USE_SYMBOL_TABLE=1)
+         VK_NO_PROTOTYPES=1
+         VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
+         GLM_FORCE_SILENT_WARNINGS
+         GLM_FORCE_DEPTH_ZERO_TO_ONE
+         GLM_FORCE_SWIZZLE
+         GLM_FORCE_RADIANS
+         GLM_FORCE_CTOR_INIT
+         GLM_ENABLE_EXPERIMENTAL
+  PRIVATE WIN32_LEAN_AND_MEAN TRACY_VK_USE_SYMBOL_TABLE=1)
 
 setup_common(4dGraphics "4dGraphics")
 

@@ -211,34 +211,4 @@ private:
 
   PerQueueFamilyArray getFamilies() const;
 };
-
-/*
-Future-like object that is to use resource that is uploaded to the GPU
-*/
-template <typename T>
-class FutureResource {
-public:
-
-private:
-
-  struct impl {
-    T resource;
-    
-    // optional(semaphore+queue that uploaded the resource)
-    struct ExternalQueue {
-      vk::Semaphore semaphore;
-      uint64_t value;
-
-      uint32_t src_family;
-    };
-
-    std::optional<ExternalQueue> external_queue;
-
-    // for image resources
-    vk::ImageLayout src_layout;
-    vk::ImageLayout dst_layout;
-  };
-
-  std::future<impl> m_future;
-};
 } // namespace v4dg
