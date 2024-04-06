@@ -37,5 +37,13 @@
         "vulkan"
       ]
     }
+  ],
+  "$comment": "THIS IS A WORKAROUND FOR https://github.com/microsoft/vcpkg/issues/37962#issuecomment-2036223908",
+  "builtin-baseline": "be9eb6694585a8db137872b29fcad3619a5f893a",
+  "overrides": [
+    {
+      "name": "liblzma",
+      "version": "5.4.4"
+    }
   ]
 }
