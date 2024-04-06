@@ -160,8 +160,7 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
 void Context::next_frame() {
   ZoneScoped;
 
-  logger.Log("end of frame {}", m_frame_idx);
-
+  logger.Debug("end of frame {}", m_frame_idx);
   logger.Debug("frame {} summary:", m_frame_idx);
   auto &cur_frame = get_frame_ctx();
 
@@ -199,8 +198,7 @@ void Context::next_frame() {
   }
 
   logger.Debug("  waiting ended");
-
-  logger.Log("moving to frame {}", m_frame_idx);
+  logger.Debug("moving to frame {}", m_frame_idx);
 
   {
     ZoneScopedN("clear stacks");

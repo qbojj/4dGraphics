@@ -511,27 +511,11 @@ int MyGameHandler::Run() try {
   logger.FatalError("Device lost: {}", e.what());
 
   if (device.m_deviceFault) {
-    vk::DeviceFaultCountsEXT counts;
-    vk::DeviceFaultInfoEXT info;
-    auto &disp = *device.device().getDispatcher();
-    vk::Result res{};
+    auto [counts, info] = device.device().getFaultInfoEXT();
 
-    std::vector<vk::DeviceFaultAddressInfoEXT> addressInfos;
-    std::vector<vk::DeviceFaultVendorInfoEXT> vendorInfos;
-    std::vector<std::byte> vendorData;
-
-    do {
-      res = (*device.device()).getFaultInfoEXT(&counts, nullptr, disp);
-      addressInfos.resize(counts.addressInfoCount);
-      vendorInfos.resize(counts.vendorInfoCount);
-      vendorData.resize(counts.vendorBinarySize);
-
-      info.setPAddressInfos(addressInfos.data())
-          .setPVendorInfos(vendorInfos.data())
-          .setPVendorBinaryData(vendorData.data());
-
-      res = (*device.device()).getFaultInfoEXT(&counts, &info, disp);
-    } while (res == vk::Result::eIncomplete);
+    std::span addressInfos{info.pAddressInfos, counts.addressInfoCount};
+    std::span vendorInfos{info.pVendorInfos, counts.vendorInfoCount};
+    std::span<const std::byte> vendorData{static_cast<std::byte*>(info.pVendorBinaryData), counts.vendorBinarySize};
 
     auto make_append_to = [](auto &&it) {
       return [it]<typename... Args>(std::format_string<Args...> fmt,
