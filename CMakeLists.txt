@@ -1,4 +1,15 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.28)
+
+find_program(CCACHE_PROGRAM ccache)
+option(4DG_USE_CCACHE "Use ccache" ON)
+
+if(4DG_USE_CCACHE)
+  if (CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+  else()
+    message(WARNING "ccache not found")
+  endif()
+endif()
 
 project(4DG)
 
@@ -26,7 +37,6 @@ if(4DG_ALL_WARINGS)
         -Wall
         -Wextra
         -pedantic
-        $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>
     )
   endif()
 endif()

@@ -12,8 +12,8 @@
 #include <filesystem>
 #include <future>
 #include <optional>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 namespace v4dg {
 
@@ -30,7 +30,7 @@ constexpr inline std::string_view to_string(load_shader_error e) {
 }
 
 std::expected<std::vector<std::uint32_t>,
-               std::variant<detail::get_file_error, load_shader_error>>
+              std::variant<detail::get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path);
 
 class GraphicsPipelineBuilder;

@@ -15,6 +15,10 @@
 #include <utility>
 
 namespace v4dg {
+
+class Buffer;
+class Image;
+
 namespace detail {
 
 class GpuAllocation {
@@ -29,22 +33,13 @@ public:
   GpuAllocation(vma::Allocator allocator, vma::Allocation allocation)
       : m_allocator(allocator), m_allocation(allocation) {}
 
+  // remove all movability as it is meant to represent immutable objects
   GpuAllocation() = delete;
   GpuAllocation(const GpuAllocation &) = delete;
   GpuAllocation &operator=(const GpuAllocation &) = delete;
-  GpuAllocation(GpuAllocation &&o) noexcept
-      : m_allocator(o.m_allocator),
-        m_allocation(std::exchange(o.m_allocation, {})) {}
-  GpuAllocation &operator=(GpuAllocation &&o) noexcept {
-    if (this != &o) {
-      if (m_allocation)
-        m_allocator.freeMemory(m_allocation);
+  GpuAllocation(GpuAllocation &&) = delete;
+  GpuAllocation &operator=(GpuAllocation &&) = delete;
 
-      m_allocator = o.m_allocator;
-      m_allocation = std::exchange(o.m_allocation, {});
-    }
-    return *this;
-  }
   ~GpuAllocation() {
     if (m_allocation) {
       m_allocator.freeMemory(m_allocation);
@@ -56,20 +51,21 @@ public:
 
   template <typename T> using map_type = std::unique_ptr<T[], map_deleter_type>;
 
-  template <typename T> map_type<T> map() {
+  template <typename T> map_type<T> map() const {
     return map_type<T>(static_cast<T *>(allocator().mapMemory(allocation())),
                        {allocator(), allocation()});
   }
 
-  void flush(vk::DeviceSize offset = 0, vk::DeviceSize size = vk::WholeSize) {
+  void flush(vk::DeviceSize offset = 0,
+             vk::DeviceSize size = vk::WholeSize) const {
     allocator().flushAllocation(allocation(), offset, size);
   }
   void invalidate(vk::DeviceSize offset = 0,
-                  vk::DeviceSize size = vk::WholeSize) {
+                  vk::DeviceSize size = vk::WholeSize) const {
     allocator().invalidateAllocation(allocation(), offset, size);
   }
 
-  void setName(const char *name) {
+  void setName(const char *name) const {
     allocator().setAllocationName(allocation(), name);
   }
 
@@ -77,10 +73,139 @@ private:
   vma::Allocator m_allocator;
   vma::Allocation m_allocation;
 };
+
+class BufferObject : public GpuAllocation {
+private:
+  struct internal_construct_t {};
+
+public:
+  BufferObject() = delete;
+  BufferObject(const BufferObject &) = delete;
+  BufferObject(BufferObject &&) = delete;
+  BufferObject &operator=(const BufferObject &) = delete;
+  BufferObject &operator=(BufferObject &&) = delete;
+
+  [[nodiscard]] vk::Buffer buffer() const { return *m_buffer; }
+  [[nodiscard]] vk::Buffer vk() const { return buffer(); }
+  operator vk::Buffer() const { return buffer(); }
+  vk::Buffer operator*() const { return buffer(); }
+
+  [[nodiscard]] vk::DeviceSize size() const { return m_size; }
+  [[nodiscard]] vk::DeviceAddress deviceAddress() const {
+    return m_deviceAddress;
+  }
+
+  template <typename... Args>
+  void setName(const Device &dev, std::format_string<Args...> fmt,
+               Args &&...args) const {
+    if (dev.debugNamesAvaiable()) {
+      std::string name = std::format(fmt, std::forward<Args>(args)...);
+      dev.setDebugNameString(buffer(), name.c_str());
+      detail::GpuAllocation::setName(name.c_str());
+    }
+  }
+
+  BufferObject(internal_construct_t, const Device &device,
+               const vk::BufferCreateInfo &bufferCreateInfo,
+               const vma::AllocationCreateInfo &allocationCreateInfo);
+
+  BufferObject(internal_construct_t, const Device &device, vk::DeviceSize size,
+               vk::BufferUsageFlags2KHR usage,
+               const vma::AllocationCreateInfo &allocationCreateInfo,
+               vk::BufferCreateFlags flags,
+               vk::ArrayProxy<const std::uint32_t> queueFamilyIndices);
+
+private:
+  BufferObject(internal_construct_t, const Device &device,
+               std::pair<vma::Allocation, vk::raii::Buffer> buffer,
+               vk::DeviceSize size, bool hasDeviceAddress);
+
+  vk::raii::Buffer m_buffer;
+  vk::DeviceSize m_size;
+  vk::DeviceAddress m_deviceAddress;
+
+  friend Buffer;
+};
+
+class ImageObject : public GpuAllocation {
+private:
+  struct internal_construct_t {};
+
+public:
+  struct ImageCreateInfo {
+    vk::ImageCreateFlags flags = {};
+    vk::ImageType imageType = vk::ImageType::e2D;
+    vk::Format format = vk::Format::eUndefined;
+    vk::Extent3D extent = {};
+    std::uint32_t mipLevels = 1;
+    std::uint32_t arrayLayers = 1;
+    vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
+    vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
+    vk::ImageUsageFlags usage = {};
+    vk::SharingMode sharingMode = vk::SharingMode::eExclusive;
+    std::span<const std::uint32_t> queueFamilyIndices = {};
+    vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
+
+    // mutable formats
+    std::optional<std::span<const vk::Format>> formats = {};
+
+    std::optional<vk::ImageUsageFlags> stencilUsage = {};
+  };
+
+  ImageObject() = delete;
+  ImageObject(const ImageObject &) = delete;
+  ImageObject(ImageObject &&) = delete;
+  ImageObject &operator=(const ImageObject &) = delete;
+  ImageObject &operator=(ImageObject &&) = delete;
+
+  vk::Image image() const { return *m_image; }
+  vk::Image vk() const { return image(); }
+
+  vk::ImageType imageType() const { return m_imageType; }
+  vk::Format format() const { return m_format; }
+  vk::Extent3D extent() const { return m_extent; }
+  std::uint32_t mipLevels() const { return m_mipLevels; }
+  std::uint32_t arrayLayers() const { return m_arrayLayers; }
+  vk::SampleCountFlagBits samples() const { return m_samples; }
+
+  template <typename... Args>
+  void setName(const Device &dev, std::format_string<Args...> fmt,
+               Args &&...args) const {
+    if (dev.debugNamesAvaiable()) {
+      std::string name = std::format(fmt, std::forward<Args>(args)...);
+      dev.setDebugNameString(image(), name.c_str());
+      detail::GpuAllocation::setName(name.c_str());
+    }
+  }
+
+  ImageObject(internal_construct_t, const Device &device,
+              std::pair<vma::Allocation, vk::raii::Image> image,
+              vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
+              std::uint32_t mipLevels, std::uint32_t arrayLayers,
+              vk::SampleCountFlagBits samples);
+
+  ImageObject(internal_construct_t, const Device &device,
+              const ImageCreateInfo &imageCreateInfo,
+              const vma::AllocationCreateInfo &allocationCreateInfo);
+
+private:
+  vk::raii::Image m_image;
+
+  vk::ImageType m_imageType;
+  vk::Format m_format;
+  vk::Extent3D m_extent;
+  std::uint32_t m_mipLevels;
+  std::uint32_t m_arrayLayers;
+  vk::SampleCountFlagBits m_samples;
+
+  friend Image;
+};
 } // namespace detail
 
-class Buffer : public detail::GpuAllocation {
+class Buffer : public std::shared_ptr<const detail::BufferObject> {
 public:
+  Buffer() = delete;
+
   Buffer(const Device &device, const vk::BufferCreateInfo &bufferCreateInfo,
          const vma::AllocationCreateInfo &allocationCreateInfo);
 
@@ -90,91 +215,16 @@ public:
              {{}, vma::MemoryUsage::eAuto},
          vk::BufferCreateFlags flags = {},
          vk::ArrayProxy<const std::uint32_t> queueFamilyIndices = {});
-
-  vk::Buffer buffer() const { return *m_buffer; }
-  operator vk::Buffer() const { return buffer(); }
-  vk::Buffer operator*() const { return buffer(); }
-
-  vk::DeviceAddress deviceAddress() const { return m_deviceAddress; }
-
-  template <typename... Args>
-  void setName(const Device &dev, std::format_string<Args...> fmt,
-               Args &&...args) {
-    if (dev.debugNamesAvaiable()) {
-      std::string name = std::format(fmt, std::forward<Args>(args)...);
-      dev.setDebugNameString(buffer(), name.c_str());
-      detail::GpuAllocation::setName(name.c_str());
-    }
-  }
-
-private:
-  Buffer(const Device &device,
-         std::pair<vma::Allocation, vk::raii::Buffer> buffer,
-         vk::DeviceSize size,
-         bool hasDeviceAddress);
-  
-  vk::raii::Buffer m_buffer;
-  vk::DeviceSize m_size;
-  vk::DeviceAddress m_deviceAddress;
 };
 
-class Image : public detail::GpuAllocation {
+class Image : public std::shared_ptr<const detail::ImageObject> {
 public:
-  struct ImageCreateInfo {
-    vk::ImageCreateFlags flags = {};
-    vk::ImageType imageType = vk::ImageType::e2D;
-    vk::Format format = vk::Format::eUndefined;
-    vk::Extent3D extent = {};
-    uint32_t mipLevels = 1;
-    uint32_t arrayLayers = 1;
-    vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
-    vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
-    vk::ImageUsageFlags usage = {};
-    vk::SharingMode sharingMode = vk::SharingMode::eExclusive;
-    std::span<const uint32_t> queueFamilyIndices = {};
-    vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
+  using ImageCreateInfo = detail::ImageObject::ImageCreateInfo;
 
-    // mutable formats
-    std::optional<std::span<const vk::Format>> formats = {};
-
-    std::optional<vk::ImageUsageFlags> stencilUsage = {};
-  };
-
-  Image(const Device &device, std::pair<vma::Allocation, vk::raii::Image> image,
-        vk::ImageType imageType, vk::Format format, vk::Extent3D extent,
-        uint32_t mipLevels, uint32_t arrayLayers,
-        vk::SampleCountFlagBits samples);
+  Image() = delete;
 
   Image(const Device &device, const ImageCreateInfo &imageCreateInfo,
         const vma::AllocationCreateInfo &allocationCreateInfo);
-
-  vk::Image image() const { return *m_image; }
-
-  vk::ImageType imageType() const { return m_imageType; }
-  vk::Format format() const { return m_format; }
-  vk::Extent3D extent() const { return m_extent; }
-  uint32_t mipLevels() const { return m_mipLevels; }
-  uint32_t arrayLayers() const { return m_arrayLayers; }
-  vk::SampleCountFlagBits samples() const { return m_samples; }
-
-  template <typename... Args>
-  void setName(const Device &dev, std::format_string<Args...> fmt,
-               Args &&...args) {
-    if (dev.debugNamesAvaiable()) {
-      std::string name = std::format(fmt, std::forward<Args>(args)...);
-      dev.setDebugNameString(image(), name.c_str());
-      detail::GpuAllocation::setName(name.c_str());
-    }
-  }
-
-private:
-  vk::raii::Image m_image;
-
-  vk::ImageType m_imageType;
-  vk::Format m_format;
-  vk::Extent3D m_extent;
-  uint32_t m_mipLevels;
-  uint32_t m_arrayLayers;
-  vk::SampleCountFlagBits m_samples;
 };
+
 } // namespace v4dg

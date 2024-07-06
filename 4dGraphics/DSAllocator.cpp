@@ -8,22 +8,23 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <mutex>
 #include <algorithm>
 #include <cassert>
+#include <mutex>
 #include <utility>
 
 namespace v4dg {
-DSAllocator::DSAllocator(DSAllocatorPool &owner) : m_owner(&owner), m_pool(nullptr) {}
-DSAllocator::~DSAllocator() { 
-  if(*m_pool)
+DSAllocator::DSAllocator(DSAllocatorPool &owner)
+    : m_owner(&owner), m_pool(nullptr) {}
+DSAllocator::~DSAllocator() {
+  if (*m_pool)
     m_owner->ret_allocator(std::move(m_pool));
 }
 
-void 
-DSAllocator::allocate_internal(std::span<const vk::DescriptorSetLayout> setLayouts,
-                      std::span<const uint32_t> descriptorCounts,
-                      std::span<vk::DescriptorSet> out) {
+void DSAllocator::allocate_internal(
+    std::span<const vk::DescriptorSetLayout> setLayouts,
+    std::span<const uint32_t> descriptorCounts,
+    std::span<vk::DescriptorSet> out) {
   assert(m_owner);
 
   if (!descriptorCounts.empty() && descriptorCounts.size() != setLayouts.size())
@@ -32,7 +33,7 @@ DSAllocator::allocate_internal(std::span<const vk::DescriptorSetLayout> setLayou
 
   if (!*m_pool)
     m_pool = m_owner->get_new_pool();
-  
+
   auto device = m_pool.getDevice();
   auto *disp = m_pool.getDispatcher();
 
@@ -73,7 +74,7 @@ DSAllocatorWeights::create(const vk::raii::Device &device,
   sizes.reserve(m_weights.size());
   for (const auto &weight : m_weights)
     sizes.emplace_back(weight.type, to_count(weight.weight));
-  
+
   std::vector<vk::MutableDescriptorTypeListVALVE> mutableTypeLists{};
   mutableTypeLists.reserve(m_mutableTypeLists.size());
   for (const auto &list : m_mutableTypeLists)
@@ -81,24 +82,22 @@ DSAllocatorWeights::create(const vk::raii::Device &device,
 
   vk::StructureChain<vk::DescriptorPoolCreateInfo,
                      vk::DescriptorPoolInlineUniformBlockCreateInfo,
-                     vk::MutableDescriptorTypeCreateInfoEXT> chain{
-                      {flags, maxSets, sizes},
-                      {to_count(m_inlineUniformBindingWeight)},
-                      {mutableTypeLists}
-                     };
-  
+                     vk::MutableDescriptorTypeCreateInfoEXT>
+      chain{{flags, maxSets, sizes},
+            {to_count(m_inlineUniformBindingWeight)},
+            {mutableTypeLists}};
+
   if (m_inlineUniformBindingWeight == 0.0f)
     chain.unlink<vk::DescriptorPoolInlineUniformBlockCreateInfo>();
-  
+
   if (mutableTypeLists.empty())
     chain.unlink<vk::MutableDescriptorTypeCreateInfoEXT>();
 
   return {device, chain.get<>()};
 }
 
-DSAllocatorPool::DSAllocatorPool(
-    const vk::raii::Device &device,
-    DSAllocatorWeights weights)
+DSAllocatorPool::DSAllocatorPool(const vk::raii::Device &device,
+                                 DSAllocatorWeights weights)
     : m_device(device), m_weights(std::move(weights)) {}
 
 void DSAllocatorPool::advance_frame(vk::Bool32 trim,

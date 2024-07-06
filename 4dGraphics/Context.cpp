@@ -1,10 +1,13 @@
 #include "Context.hpp"
 
+#include "CommandBuffer.hpp"
 #include "CommandBufferManager.hpp"
 #include "Debug.hpp"
 #include "cppHelpers.hpp"
 #include "v4dgCore.hpp"
 
+#include <mutex>
+#include <optional>
 #include <taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -13,36 +16,84 @@
 #include <ranges>
 #include <utility>
 #include <vector>
+#include <vulkan/vulkan_structs.hpp>
 
-namespace v4dg {
-namespace {
-class WorkerInterface : public tf::WorkerInterface {
-public:
-  void scheduler_prologue(tf::Worker &worker) override {
-    // set thread name
-    std::string name = "v4dg worker " + std::to_string(worker.id());
-    tracy::SetThreadName(name.c_str());
+using namespace v4dg;
+
+PerQueueFamily::PerQueueFamily(Context &ctx, const Queue &queue)
+    : m_ctx{&ctx}, m_queue{&queue},
+      m_semaphore{
+          m_ctx->vkDevice(),
+          vk::StructureChain{
+              vk::SemaphoreCreateInfo{},
+              vk::SemaphoreTypeCreateInfo{vk::SemaphoreType::eTimeline, 0},
+          }
+              .get<>(),
+      },
+      m_command_buffer_managers{
+          make_per_frame<command_buffer_manager>(m_ctx->vkDevice(),
+                                                 m_queue->family()),
+      } {}
+
+void PerQueueFamily::submit(std::span<SubmitionInfo> infos, vk::Fence fence) {
+  ZoneScoped;
+
+  if (infos.empty())
+    return;
+
+  std::scoped_lock _{queue_mutex()};
+
+  infos.back().signals.emplace_back(
+      *m_semaphore, m_semaphore_value + 1,
+      vk::PipelineStageFlagBits2KHR::eBottomOfPipe);
+
+  for (auto &info : infos) {
+    // append resources to the resource hold stack
+    m_ctx->get_destruction_stack().append(std::move(info.resources));
   }
 
-  void scheduler_epilogue(tf::Worker &, std::exception_ptr) override {
-    // do nothing
-  }
-};
-} // namespace
-PerQueueFamily::PerQueueFamily(const Queue &queue, const vk::raii::Device &dev)
-    : m_queue(&queue), m_semaphore(nullptr),
-      m_command_buffer_managers(
-          make_per_frame<command_buffer_manager>(dev, m_queue->family())) {
-  vk::StructureChain<vk::SemaphoreCreateInfo, vk::SemaphoreTypeCreateInfo> sci{
-      {}, {vk::SemaphoreType::eTimeline, 0}};
+  m_queue->queue().submit2(infos | std::views::transform(&SubmitionInfo::get) |
+                               std::ranges::to<std::vector>(),
+                           fence);
 
-  m_semaphore = {dev, sci.get<>()};
+  logger.Debug("Submitting {} command groups to queue fam-{}:idx-{}",
+               infos.size(), m_queue->family(), m_queue->index());
+
+  for (auto &info : infos) {
+    logger.Debug("  command group: {} command buffers",
+                 info.command_buffers.size());
+    logger.Debug("  command group: {} signal semaphores", info.signals.size());
+    for (auto &sig : info.signals) {
+      logger.Debug("    signal sem: {} value: {} stages: {}",
+                   (void *)(sig.semaphore), sig.value, sig.stageMask);
+    }
+    logger.Debug("  command group: {} wait semaphores", info.waits.size());
+    for (auto &wait : info.waits) {
+      logger.Debug("    wait sem: {} value: {} stages: {}",
+                   (void *)(wait.semaphore), wait.value, wait.stageMask);
+    }
+  }
+
+  ++m_semaphore_value;
+}
+
+CommandBuffer
+PerQueueFamily::getCommandBuffer(vk::CommandBufferLevel level,
+                                 command_buffer_manager::category cat) {
+  return {
+      m_command_buffer_managers.at(m_ctx->frame_ref()).get(level, cat),
+      *m_ctx,
+      queue().family(),
+      std::unique_lock(m_cbm_mutex),
+  };
+}
+
+void PerQueueFamily::flush_frame(std::uint32_t frame) {
+  m_command_buffer_managers.at(frame).reset();
 }
 
 Context::Context(const Device &dev, std::optional<DSAllocatorWeights> weights)
-    : m_instance(dev.instance()), m_device(dev),
-      m_executor(std::thread::hardware_concurrency(),
-                 std::make_shared<WorkerInterface>()),
+    : m_instance(dev.instance()), m_device(dev), m_executor{},
       m_main_thread_id(std::this_thread::get_id()), m_families(getFamilies()),
       m_per_frame{
           make_per_frame<PerFrame>(vkDevice(), m_families.size(),
@@ -80,7 +131,7 @@ void Context::cleanup() {
     next_frame();
 }
 
-auto Context::getFamilies() const -> PerQueueFamilyArray {
+auto Context::getFamilies() -> PerQueueFamilyArray {
   static constexpr auto N = PerQueueFamily::QueueTypes.size();
   std::array<std::pair<int, int>, N> families_queues =
       make_array_it<std::pair<int, int>, N>([](auto) {
@@ -99,7 +150,7 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
   };
 
   auto flag_count = [](vk::QueueFlags flags) {
-    return std::popcount(static_cast<uint32_t>(flags));
+    return std::popcount(static_cast<std::uint32_t>(flags));
   };
 
   auto get_at = [&](std::pair<int, int> &pair) -> const Queue & {
@@ -107,7 +158,7 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
   };
 
   auto get_queue_idx = [&](QueueType type) -> std::pair<int, int> & {
-    return families_queues[to_idx(type)];
+    return families_queues.at(to_idx(type));
   };
 
   auto has_queue = [&](QueueType type) -> bool {
@@ -147,14 +198,13 @@ auto Context::getFamilies() const -> PerQueueFamilyArray {
   if (!has_queue(PerQueueFamily::Type::Graphics))
     throw exception("no graphics queue found");
 
-  return make_array_it<std::optional<PerQueueFamily>, N>(
-      [&](auto i) -> std::optional<PerQueueFamily> {
-        auto type = PerQueueFamily::QueueTypes[i].type;
-        if (!has_queue(type))
-          return std::nullopt;
+  return make_array_it<N>([&](auto i) -> std::unique_ptr<PerQueueFamily> {
+    auto type = PerQueueFamily::QueueTypes.at(i).type;
+    if (!has_queue(type))
+      return nullptr;
 
-        return PerQueueFamily{get_queue(type), vkDevice()};
-      });
+    return std::make_unique<PerQueueFamily>(*this, get_queue(type));
+  });
 }
 
 void Context::next_frame() {
@@ -165,10 +215,15 @@ void Context::next_frame() {
   auto &cur_frame = get_frame_ctx();
 
   for (auto [i, q] : std::views::enumerate(m_families)) {
-    cur_frame.m_semaphore_ready_values[i] = q ? q->semaphoreValue() : 0;
-    if (q)
-      logger.Debug("  queue {}: sem value {}", i,
-                   cur_frame.m_semaphore_ready_values[i]);
+    auto &sem_value = cur_frame.m_semaphore_ready_values[i];
+    if (q) {
+      std::scoped_lock _{q->queue_mutex()};
+      sem_value = q->semaphore_value();
+    } else {
+      sem_value = 0;
+    }
+
+    logger.Debug("  queue {}: sem value {}", i, sem_value);
   }
 
   // we want to wait for every resource from previous 'next' frame to be not
@@ -177,19 +232,21 @@ void Context::next_frame() {
   auto &next_frame = get_frame_ctx();
 
   logger.Debug("  waiting for frame {}:",
-               static_cast<int64_t>(m_frame_idx - max_frames_in_flight));
+               static_cast<std::int64_t>(m_frame_idx - max_frames_in_flight));
 
   std::vector<vk::Semaphore> semaphores;
-  std::vector<uint64_t> values;
+  std::vector<std::uint64_t> values;
   for (auto [i, q] : std::views::enumerate(m_families)) {
-    if (q) {
-      semaphores.push_back(*q->semaphore());
-      values.push_back(next_frame.m_semaphore_ready_values[i]);
-      logger.Debug("    queue {}: sem value {}", i, values.back());
-    }
+    auto sem_value = next_frame.m_semaphore_ready_values[i];
+    if (!q || sem_value == 0)
+      continue;
+
+    semaphores.push_back(*q->semaphore());
+    values.push_back(sem_value);
+    logger.Debug("    queue {}: sem value {}", i, sem_value);
   }
 
-  {
+  if (!semaphores.empty()) {
     ZoneScopedN("wait for semaphores");
     auto result = vkDevice().waitSemaphores(
         {{}, semaphores, values}, std::numeric_limits<uint64_t>::max());
@@ -205,21 +262,17 @@ void Context::next_frame() {
 
     next_frame.flush();
     for (auto &per_thread : m_per_thread)
-      per_thread.m_per_frame[frame_ref()].flush();
+      per_thread.m_per_frame.at(frame_ref()).flush();
     for (auto &q : m_families)
       if (q)
-        q->commandBufferManager(frame_ref()).reset();
+        q->flush_frame(frame_ref());
   }
 }
 
-DSAllocatorWeights Context::default_weights(const Device &dev) {
+DSAllocatorWeights Context::default_weights(const Device &) {
   DSAllocatorWeights weights{
       .m_weights =
           {
-              {vk::DescriptorType::eSampler, 0.5f},
-              {vk::DescriptorType::eCombinedImageSampler, 4.f},
-              {vk::DescriptorType::eSampledImage, 4.f},
-              {vk::DescriptorType::eStorageImage, 1.f},
               {vk::DescriptorType::eUniformTexelBuffer, 1.f},
               {vk::DescriptorType::eStorageTexelBuffer, 1.f},
               {vk::DescriptorType::eUniformBuffer, 2.f},
@@ -230,11 +283,5 @@ DSAllocatorWeights Context::default_weights(const Device &dev) {
           },
   };
 
-  // add acceleration structure if applicable
-  if (dev.m_rayTracing)
-    weights.m_weights.push_back(
-        {vk::DescriptorType::eAccelerationStructureKHR, 1.f});
-
   return weights;
 };
-} // namespace v4dg

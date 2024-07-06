@@ -15,13 +15,17 @@ struct ImFontAtlas;
 namespace v4dg {
 class ImGuiRAIIContext {
 public:
-  explicit ImGuiRAIIContext(ImGuiRAIIContext &&o) : context(std::exchange(o.context, nullptr)) {}
+  explicit ImGuiRAIIContext(ImGuiRAIIContext &&o)
+      : context(std::exchange(o.context, nullptr)) {}
   explicit ImGuiRAIIContext(ImFontAtlas *font = nullptr);
   ~ImGuiRAIIContext();
 
   ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
-  
-  ImGuiRAIIContext &operator=(ImGuiRAIIContext o) { std::swap(context, o.context); return *this; }
+
+  ImGuiRAIIContext &operator=(ImGuiRAIIContext o) {
+    std::swap(context, o.context);
+    return *this;
+  }
   operator ::ImGuiContext *() const { return context; }
 
 private:
@@ -57,7 +61,7 @@ public:
   using native_type = ::SDL_Window *;
 
   Window() = delete;
-  explicit Window(nullptr_t) : window(nullptr) {}
+  explicit Window(std::nullptr_t) : window(nullptr) {}
   explicit Window(native_type window) : window(window) {}
   Window(int width, int height, const char *title);
 
@@ -65,13 +69,14 @@ public:
   Window(Window &&o) : window(o.release()) {}
   ~Window();
 
-  Window &operator=(Window o) { std::swap(window, o.window); return *this; } 
+  Window &operator=(Window o) {
+    std::swap(window, o.window);
+    return *this;
+  }
 
   operator native_type() const { return window; }
 
-  native_type release() {
-    return std::exchange(window, nullptr);
-  }
+  native_type release() { return std::exchange(window, nullptr); }
 
 private:
   SDL_Context sdlCtx{SDL_INIT_VIDEO};

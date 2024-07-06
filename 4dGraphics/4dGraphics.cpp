@@ -1,10 +1,10 @@
 #include "Debug.hpp"
+#include "GameCore.hpp"
 #include "GameHandler.hpp"
 #include "ILogReciever.hpp"
-#include "GameCore.hpp"
 
-#include <argparse/argparse.hpp>
 #include <SDL2/SDL_main.h>
+#include <argparse/argparse.hpp>
 #include <tracy/Tracy.hpp>
 
 #include <cstdlib>
@@ -43,22 +43,25 @@ void operator delete(void *ptr, std::size_t) noexcept {
 class TracyLogReciever : public v4dg::ILogReciever {
 public:
   void do_log(std::string_view fmt, std::format_args args,
-                      std::source_location lc, LogLevel lv) override {
-    std::string msg = std::format("[{}] {}:{}:{}: ", lv, lc.file_name(), lc.line(), lc.function_name());
+              std::source_location lc, LogLevel lv) override {
+    std::string msg = std::format("[{}] {}:{}:{}: ", lv, lc.file_name(),
+                                  lc.line(), lc.function_name());
     std::vformat_to(std::back_inserter(msg), fmt, args);
 
     TracyMessage(msg.c_str(), msg.size());
   }
 };
 
-v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways, v4dg::cerrLogReciever);
+v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways,
+                          v4dg::cerrLogReciever);
 
 void parse_args(int argc, const char *argv[]) {
   argparse::ArgumentParser parser;
 
   parser.add_argument("-d", "--debug-level")
       .help("set debug level. possible values (d, l, w, e, f, q)")
-      .default_value("l").nargs(1);
+      .default_value("l")
+      .nargs(1);
   parser.add_argument("--log-path").help("set path of log file");
   parser.add_argument("-q", "--quiet")
       .help("disable logging to terminal")
@@ -84,7 +87,7 @@ void parse_args(int argc, const char *argv[]) {
     throw;
   }
 
-  v4dg::Logger::LogLevel ll;
+  v4dg::Logger::LogLevel ll{};
 
   auto debug_level = parser.get<std::string>("-d");
   if (debug_level.size() != 1)
@@ -138,27 +141,24 @@ void parse_args(int argc, const char *argv[]) {
 
   v4dg::logger.setLogLevel(ll);
   v4dg::logger.setLogReciever(
-      recievers.size() == 0 ? v4dg::nullLogReciever
+      recievers.size() == 0 ? nullptr
       : recievers.size() == 1
           ? std::move(recievers.front())
           : std::make_shared<v4dg::MultiLogReciever>(recievers));
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
-int
-main([[maybe_unused]] int argc, [[maybe_unused]] const char *argv[]) try {
-    std::srand((unsigned int)std::time(NULL));
-    parse_args(argc, argv);
+extern "C" int main([[maybe_unused]] int argc,
+                    [[maybe_unused]] const char *argv[]) try {
+  std::srand((unsigned int)std::time(NULL));
+  parse_args(argc, argv);
 
-    v4dg::logger.Log("starting");
-    v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
-    v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
+  v4dg::logger.Log("starting");
+  v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
+  v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
 
-    v4dg::SDL_GlobalContext gc;
+  v4dg::SDL_GlobalContext gc;
 
-    return v4dg::MyGameHandler{}.Run();
+  return v4dg::MyGameHandler{}.Run();
 } catch (const std::exception &e) {
   v4dg::logger.FatalError("Exception: {}", e.what());
   return EXIT_FAILURE;

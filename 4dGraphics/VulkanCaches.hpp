@@ -1,10 +1,10 @@
 #pragma once
 
+#include "BindlessManager.hpp"
 #include "Device.hpp"
 #include "HandleCache.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
-#include "BindlessManager.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan.hpp>
@@ -200,16 +200,17 @@ public:
   }
 
   PipelineLayoutInfo &add_sets(vk::DescriptorSetLayout sets) {
-    return add_sets({&sets,1});
+    return add_sets({&sets, 1});
   }
   PipelineLayoutInfo &add_sets(const vk::raii::DescriptorSetLayout &sets) {
-    return add_sets({&sets,1});
+    return add_sets({&sets, 1});
   }
   PipelineLayoutInfo &add_sets(std::span<const vk::DescriptorSetLayout> sets) {
     setLayouts.insert(setLayouts.end(), sets.begin(), sets.end());
     return *this;
   }
-  PipelineLayoutInfo &add_sets(std::span<const vk::raii::DescriptorSetLayout> sets) {
+  PipelineLayoutInfo &
+  add_sets(std::span<const vk::raii::DescriptorSetLayout> sets) {
     for (const auto &set : sets)
       setLayouts.push_back(*set);
     return *this;

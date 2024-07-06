@@ -11,44 +11,60 @@
 #include <type_traits>
 
 namespace v4dg {
+class ImageView;
+namespace detail {
 
 /*
 from
 https://github.com/KhronosGroup/Vulkan-Docs/issues/2311#issuecomment-1959896807:
-> With sync2, there are pretty much just 2 layouts a subresource 
+> With sync2, there are pretty much just 2 layouts a subresource
 >   accessible by shader should ever be in: GENERAL and READ_ONLY_OPTIMAL [...].
 > Images that is only ever imageStored into and then sampled from,
 >   you can just keep in GENERAL at likely no performance loss
 >   (READ_ONLY helps when you're transitioning away from ATTACHMENT_OPTIMAL, on
 >   some hardware.)
 */
-class ImageView {
-public:
-  ImageView(Context &ctx, vk::ImageViewCreateFlags flags, vk::Image image,
-            vk::ImageViewType viewType, vk::Format format,
-            vk::ImageUsageFlags usage, vk::ComponentMapping components = {},
-            vk::ImageSubresourceRange subresourceRange = {
-                vk::ImageAspectFlagBits::eColor, 0, vk::RemainingMipLevels, 0,
-                vk::RemainingArrayLayers});
+class ImageViewObject {
+private:
+  struct internal_construct_t {};
 
+public:
   template <typename... Args>
   void setName(const Device &dev, std::format_string<Args...> fmt,
-               Args &&...args) {
+               Args &&...args) const {
     dev.setDebugName(imageView(), fmt, std::forward<Args>(args)...);
   }
 
-  vk::ImageView imageView() const { return *m_imageView; }
-  vk::ImageViewType viewType() const { return m_viewType; }
-  
-  BindlessResource sampledOptimalHandle() const {
+  [[nodiscard]] auto image() const noexcept { return m_image; }
+  [[nodiscard]] auto vkImage() const noexcept { return image()->vk(); }
+
+  [[nodiscard]] vk::ImageView imageView() const noexcept {
+    return *m_imageView;
+  }
+  [[nodiscard]] vk::ImageView vk() const noexcept { return imageView(); }
+
+  [[nodiscard]] vk::ImageViewType viewType() const noexcept {
+    return m_viewType;
+  }
+
+  [[nodiscard]] BindlessResource sampledOptimalHandle() const noexcept {
     return m_sampledOptimalHandle.get();
   }
-  BindlessResource sampledGeneralHandle() const {
+  [[nodiscard]] BindlessResource sampledGeneralHandle() const noexcept {
     return m_sampledGeneralHandle.get();
   }
-  BindlessResource storageHandle() const { return m_storageHandle.get(); }
+  [[nodiscard]] BindlessResource storageHandle() const noexcept {
+    return m_storageHandle.get();
+  }
+
+  ImageViewObject(internal_construct_t, Context &ctx, Image image,
+                  vk::ImageViewCreateFlags flags, vk::ImageViewType viewType,
+                  vk::Format format, vk::ImageUsageFlags usage,
+                  vk::ComponentMapping components,
+                  vk::ImageSubresourceRange subresourceRange);
 
 private:
+  Image m_image;
   vk::raii::ImageView m_imageView;
 
   vk::ImageViewType m_viewType;
@@ -59,28 +75,31 @@ private:
 
   // storage handle
   UniqueBindlessResource m_storageHandle;
-};
 
-/*
-image with a single view
-*/
-class Texture : public Image, public ImageView {
+  friend ImageView;
+};
+} // namespace detail
+
+class ImageView : public std::shared_ptr<const detail::ImageViewObject> {
 public:
-  Texture(Context &ctx, const ImageCreateInfo &imageCreateInfo,
-          const vma::AllocationCreateInfo &allocationCreateInfo,
-          vk::ImageViewCreateFlags flags = {},
-          vk::ImageViewType viewType = vk::ImageViewType::e2D,
-          vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor,
-          vk::ComponentMapping components = {});
+  ImageView() = delete;
 
-  template <typename... Args>
-  void setName(const Device &dev, std::format_string<Args...> fmt,
-               Args &&...args) {
-    if (dev.debugNamesAvaiable()) {
-      std::string name = std::format(fmt, std::forward<Args>(args)...);
-      Image::setName(dev, "{}", name);
-      ImageView::setName(dev, "{} view", name);
-    }
-  }
+  ImageView(Context &ctx, Image image, vk::ImageViewCreateFlags flags,
+            vk::ImageViewType viewType, vk::Format format,
+            vk::ImageUsageFlags usage, vk::ComponentMapping components = {},
+            vk::ImageSubresourceRange subresourceRange = {
+                vk::ImageAspectFlagBits::eColor, 0, vk::RemainingMipLevels, 0,
+                vk::RemainingArrayLayers});
+
+  // create a view that owns image (texture)
+  [[nodiscard]] static ImageView createTexture(
+      Context &ctx, const Image::ImageCreateInfo &imageCreateInfo,
+      const vma::AllocationCreateInfo &allocationCreateInfo =
+          {{}, vma::MemoryUsage::eAuto},
+      vk::ImageViewCreateFlags flags = {},
+      vk::ImageViewType viewType = vk::ImageViewType::e2D,
+      vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor,
+      vk::ComponentMapping components = {});
 };
+
 } // namespace v4dg

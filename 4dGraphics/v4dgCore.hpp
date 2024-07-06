@@ -4,7 +4,6 @@
 #include "cppHelpers.hpp"
 
 #include <array>
-#include <concepts>
 #include <cstdint>
 #include <format>
 #include <functional>
@@ -28,21 +27,34 @@ constexpr size_t max_frames_in_flight = 2;
 template <typename T> using per_frame = std::array<T, max_frames_in_flight>;
 
 template <typename T, std::size_t N>
-[[nodiscard]] constexpr std::array<T, N> make_array_it(std::invocable<std::size_t> auto &&fn) {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::array<T, N> {
-    return {std::forward<decltype(fn)>(fn)(Is)...};
-  }(std::make_index_sequence<N>{});
+[[nodiscard]] constexpr std::array<T, N>
+make_array_it(std::invocable<std::size_t> auto &&fn) {
+  return
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::array<T, N> {
+        return {std::forward<decltype(fn)>(fn)(Is)...};
+      }(std::make_index_sequence<N>{});
+}
+
+template <std::size_t N>
+[[nodiscard]] constexpr decltype(auto)
+make_array_it(std::invocable<std::size_t> auto &&fn) {
+  return make_array_it<decltype(fn(0z)), N>(std::forward<decltype(fn)>(fn));
 }
 
 template <typename T>
-[[nodiscard]] constexpr per_frame<T> make_per_frame_it(std::invocable<std::size_t> auto &&fn) {
+[[nodiscard]] constexpr per_frame<T>
+make_per_frame_it(std::invocable<std::size_t> auto &&fn) {
   return make_array_it<T, max_frames_in_flight>(std::forward<decltype(fn)>(fn));
+}
+
+[[nodiscard]] constexpr decltype(auto)
+make_per_frame_it(std::invocable<std::size_t> auto &&fn) {
+  return make_per_frame_it<decltype(fn(0z))>(std::forward<decltype(fn)>(fn));
 }
 
 template <typename T>
 [[nodiscard]] constexpr per_frame<T> make_per_frame(const auto &...args) {
-  return make_per_frame_it<T>(
-      [&](std::size_t) { return T{args...}; });
+  return make_per_frame_it<T>([&](std::size_t) { return T{args...}; });
 }
 
 class exception : public std::runtime_error {
@@ -54,6 +66,8 @@ public:
     logger.Warning(fmt, std::forward<Args>(args)...);
   }
 };
+
+template <typename T> using handle = std::shared_ptr<const T>;
 } // namespace v4dg
 
 namespace std {

@@ -1,5 +1,6 @@
 #include "GameHandler.hpp"
 
+#include "CommandBuffer.hpp"
 #include "Context.hpp"
 #include "Debug.hpp"
 #include "Device.hpp"
@@ -8,8 +9,10 @@
 #include "VulkanConstructs.hpp"
 #include "cppHelpers.hpp"
 
+#include <mutex>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <SDL2/SDL.h>
@@ -19,26 +22,25 @@
 #include <taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
-#include <exception>
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <memory>
+#include <ranges>
 
-namespace v4dg {
-namespace {
-vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
-                                     SDL_Window *window) {
+using namespace v4dg;
+
+static vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
+                                            SDL_Window *window) {
   VkSurfaceKHR raw_surface;
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE)
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
 
   return {instance, raw_surface};
 }
-} // namespace
 
 ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
-    : pool(nullptr) {
+    : pool(nullptr), color_format(swapchain.format()) {
   auto &queue = *ctx.get_queue(Context::QueueType::Graphics);
 
   std::vector<vk::DescriptorPoolSize> pool_sizes{
@@ -47,7 +49,8 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 
   pool = {
       ctx.vkDevice(),
-      {vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1024, pool_sizes}};
+      {vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1024, pool_sizes},
+  };
 
   ctx.device().setDebugName(pool, "imgui descriptor pool");
 
@@ -67,10 +70,17 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 
   ii.MinImageCount = min_image_count;
   ii.ImageCount = static_cast<uint32_t>(swapchain.images().size());
-  ii.MSAASamples = static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1);
+  ii.MSAASamples =
+      static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1);
 
   ii.UseDynamicRendering = true;
-  ii.ColorAttachmentFormat = static_cast<VkFormat>(swapchain.format());
+
+  ii.PipelineRenderingCreateInfo = vk::PipelineRenderingCreateInfo{
+      0,
+      color_format,
+      vk::Format::eUndefined,
+      vk::Format::eUndefined,
+  };
 
   if (!ImGui_ImplVulkan_LoadFunctions(
           [](const char *name, void *user) {
@@ -78,7 +88,8 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
           },
           &ctx))
     throw exception("Could not load imgui vulkan functions");
-  if (!ImGui_ImplVulkan_Init(&ii, {}))
+
+  if (!ImGui_ImplVulkan_Init(&ii))
     throw exception("Could not init imgui vulkan backend");
 }
 
@@ -100,14 +111,15 @@ MyGameHandler::MyGameHandler()
       }
                     .build(context)),
       imguiVulkanImpl(swapchain, context),
-      texture(context,
-              Image::ImageCreateInfo{
-                  .format = vk::Format::eR16G16B16A16Sfloat,
-                  .extent = {1024, 720, 1},
-                  .usage = vk::ImageUsageFlagBits::eStorage |
-                           vk::ImageUsageFlagBits::eTransferSrc,
-              },
-              {{}, vma::MemoryUsage::eAuto}),
+      texture(ImageView::createTexture(
+          context,
+          Image::ImageCreateInfo{
+              .format = vk::Format::eR16G16B16A16Sfloat,
+              .extent = {1024, 720, 1},
+              .usage = vk::ImageUsageFlagBits::eStorage |
+                       vk::ImageUsageFlagBits::eTransferSrc,
+          },
+          {{}, vma::MemoryUsage::eAuto})),
       descriptor_set_layout(nullptr),
       pipeline_layout(PipelineLayoutInfo()
                           .add_sets(context.bindlessManager().get_layouts())
@@ -116,8 +128,8 @@ MyGameHandler::MyGameHandler()
                           .create(device)),
       pipeline({nullptr, nullptr, nullptr}) {
 
-  texture.setName(device, "mandelbrot texture");
-  
+  texture->setName(device, "mandelbrot texture");
+
   auto shader = load_shader_code("Shaders/Mandelbrot.comp.spv");
   if (!shader) {
     std::visit(
@@ -167,7 +179,7 @@ void MyGameHandler::recreate_swapchain() {
 uint32_t MyGameHandler::wait_for_image() {
   ZoneScoped;
 
-  do {
+  while (true) {
     int w, h;
     SDL_Vulkan_GetDrawableSize(m_window, &w, &h);
     wanted_extent = vk::Extent2D{uint32_t(w), uint32_t(h)};
@@ -187,7 +199,7 @@ uint32_t MyGameHandler::wait_for_image() {
       logger.Debug("Recreating swapchain (out of date)");
       recreate_swapchain();
     }
-  } while (true);
+  }
 }
 
 bool MyGameHandler::handle_events() {
@@ -213,7 +225,7 @@ bool MyGameHandler::handle_events() {
     ImGui_ImplSDL2_ProcessEvent(&event);
   }
 
-  ImGui_ImplSDL2_NewFrame(m_window);
+  ImGui_ImplSDL2_NewFrame();
   ImGui_ImplVulkan_NewFrame();
 
   return true;
@@ -279,26 +291,32 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
   cb->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   cb.barrier({}, {}, {},
-             {{vk::PipelineStageFlagBits2::eBlit,
-               vk::AccessFlagBits2::eNone,
-               vk::PipelineStageFlagBits2::eComputeShader,
-               vk::AccessFlagBits2::eShaderStorageWrite,
-               vk::ImageLayout::eUndefined,
-               vk::ImageLayout::eGeneral,
-               vk::QueueFamilyIgnored,
-               vk::QueueFamilyIgnored,
-               texture.image(),
-               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}},
-              {vk::PipelineStageFlagBits2::eBlit,
-               vk::AccessFlagBits2::eNone,
-               vk::PipelineStageFlagBits2::eBlit,
-               vk::AccessFlagBits2::eTransferWrite,
-               vk::ImageLayout::eUndefined,
-               vk::ImageLayout::eTransferDstOptimal,
-               vk::QueueFamilyIgnored,
-               vk::QueueFamilyIgnored,
-               image,
-               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+             {
+                 {
+                     vk::PipelineStageFlagBits2::eBlit,
+                     vk::AccessFlagBits2::eNone,
+                     vk::PipelineStageFlagBits2::eComputeShader,
+                     vk::AccessFlagBits2::eShaderStorageWrite,
+                     vk::ImageLayout::eUndefined,
+                     vk::ImageLayout::eGeneral,
+                     vk::QueueFamilyIgnored,
+                     vk::QueueFamilyIgnored,
+                     texture->vkImage(),
+                     {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+                 },
+                 {
+                     vk::PipelineStageFlagBits2::eBlit,
+                     vk::AccessFlagBits2::eNone,
+                     vk::PipelineStageFlagBits2::eBlit,
+                     vk::AccessFlagBits2::eTransferWrite,
+                     vk::ImageLayout::eUndefined,
+                     vk::ImageLayout::eTransferDstOptimal,
+                     vk::QueueFamilyIgnored,
+                     vk::QueueFamilyIgnored,
+                     image,
+                     {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+                 },
+             });
 
   // render mandelbrot
   {
@@ -310,49 +328,54 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
     context.bindlessManager().bind(cb, *pipeline_layout,
                                    vk::PipelineBindPoint::eCompute);
 
-    mandelbrot_push_constants.image_idx = texture.storageHandle();
+    mandelbrot_push_constants.image_idx = texture->storageHandle();
 
     cb->pushConstants<MandelbrotPushConstants>(
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
 
     auto div = 8 * (current_pipeline == 0 ? 2 : 1);
-    cb->dispatch(detail::DivCeil(texture.extent().width, div),
-                 detail::DivCeil(texture.extent().height, div), 1);
+    cb->dispatch(detail::DivCeil(texture->image()->extent().width, div),
+                 detail::DivCeil(texture->image()->extent().height, div), 1);
   }
 
   cb.barrier({}, {}, {},
-             {{vk::PipelineStageFlagBits2::eComputeShader,
-               vk::AccessFlagBits2::eShaderStorageWrite,
-               vk::PipelineStageFlagBits2::eTransfer,
-               vk::AccessFlagBits2::eTransferRead,
-               vk::ImageLayout::eGeneral,
-               vk::ImageLayout::eTransferSrcOptimal,
-               vk::QueueFamilyIgnored,
-               vk::QueueFamilyIgnored,
-               texture.image(),
-               {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+             {
+                 {
+                     vk::PipelineStageFlagBits2::eComputeShader,
+                     vk::AccessFlagBits2::eShaderStorageWrite,
+                     vk::PipelineStageFlagBits2::eTransfer,
+                     vk::AccessFlagBits2::eTransferRead,
+                     vk::ImageLayout::eGeneral,
+                     vk::ImageLayout::eTransferSrcOptimal,
+                     vk::QueueFamilyIgnored,
+                     vk::QueueFamilyIgnored,
+                     texture->vkImage(),
+                     {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+                 },
+             });
 
   {
     ZoneScopedN("blit");
 
-    cb->blitImage(texture.image(), vk::ImageLayout::eTransferSrcOptimal, image,
-                  vk::ImageLayout::eTransferDstOptimal,
-                  vk::ImageBlit{
-                      {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
-                      {
-                          vk::Offset3D{0, 0, 0},
-                          vk::Offset3D{int32_t(texture.extent().width),
-                                       int32_t(texture.extent().height), 1},
-                      },
-                      {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
-                      {
-                          vk::Offset3D{0, 0, 0},
-                          vk::Offset3D{int32_t(swapchain.extent().width),
-                                       int32_t(swapchain.extent().height), 1},
-                      },
-                  },
-                  vk::Filter::eLinear);
+    cb->blitImage(
+        texture->vkImage(), vk::ImageLayout::eTransferSrcOptimal, image,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::ImageBlit{
+            {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            {
+                vk::Offset3D{0, 0, 0},
+                vk::Offset3D{int32_t(texture->image()->extent().width),
+                             int32_t(texture->image()->extent().height), 1},
+            },
+            {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            {
+                vk::Offset3D{0, 0, 0},
+                vk::Offset3D{int32_t(swapchain.extent().width),
+                             int32_t(swapchain.extent().height), 1},
+            },
+        },
+        vk::Filter::eLinear);
   }
 
   cb.barrier({}, {}, {},
@@ -391,7 +414,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
   cb.barrier({}, {}, {},
              {{vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                vk::AccessFlagBits2::eColorAttachmentWrite,
-               vk::PipelineStageFlagBits2::eBottomOfPipe,
+               vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                vk::AccessFlagBits2::eNone,
                vk::ImageLayout::eAttachmentOptimal,
                vk::ImageLayout::ePresentSrcKHR,
@@ -400,36 +423,14 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
                image,
                {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
 
-  cb->end();
-}
-
-void MyGameHandler::submit(vk::CommandBuffer cb, std::uint32_t image_idx) {
-  ZoneScoped;
-  auto &queue_g = context.get_queue(Context::QueueType::Graphics);
-  auto &queue = queue_g->queue().queue();
-
-  std::vector<vk::SemaphoreSubmitInfo> waitSSI, signalSSI;
-
-  auto sem_value = queue_g->semaphoreValue();
-  waitSSI.emplace_back(*context.get_frame_ctx().m_image_ready, 0,
-                       vk::PipelineStageFlagBits2::eBlit);
-
-  signalSSI.emplace_back(swapchain.readyToPresent(image_idx), 0,
-                         vk::PipelineStageFlagBits2::eBottomOfPipe);
-  signalSSI.emplace_back(*queue_g->semaphore(), sem_value + 1,
-                         vk::PipelineStageFlagBits2::eBottomOfPipe);
-
-  queue_g->setSemaphoreValue(sem_value + 1);
-
-  std::vector<vk::CommandBufferSubmitInfo> cbs;
-  cbs.emplace_back(cb);
-
-  queue.submit2(vk::SubmitInfo2{{}, waitSSI, cbs, signalSSI});
+  cb.end();
 }
 
 void MyGameHandler::present(uint32_t image_idx) {
   ZoneScoped;
   auto &queue_g = context.get_queue(Context::QueueType::Graphics);
+  std::scoped_lock _{queue_g->queue_mutex()};
+
   auto &queue = queue_g->queue().queue();
 
   try {
@@ -456,7 +457,8 @@ int MyGameHandler::Run() try {
 
   while (!should_close) {
     auto now = std::chrono::high_resolution_clock::now();
-    [[maybe_unused]] auto delta = std::chrono::duration<double>(now - last_frame).count();
+    [[maybe_unused]] auto delta =
+        std::chrono::duration<double>(now - last_frame).count();
     last_frame = now;
 
     {
@@ -464,10 +466,9 @@ int MyGameHandler::Run() try {
       if (!has_focus) // Don't waste CPU time when not focused
         std::this_thread::sleep_for(50ms);
     }
-    
+
     FrameMarkStart(nullptr);
-    auto frame_mark_scope =
-        detail::destroy_helper([] { FrameMarkEnd(nullptr); });
+    detail::destroy_helper frame_mark_scope{[] { FrameMarkEnd(nullptr); }};
 
     {
       ZoneScopedN("advance frame");
@@ -485,18 +486,28 @@ int MyGameHandler::Run() try {
 
       auto gui_task = tf.emplace([&] { gui(); }).name("gui");
 
-      vk::CommandBuffer recorded;
+      std::optional<CommandBuffer> recorded;
 
-      auto record = tf.emplace([&] {
-                        CommandBuffer cb = context.getGraphicsCommandBuffer();
-                        record_gui(cb, swapchain.image(image_idx),
-                                   swapchain.imageView(image_idx));
-                        recorded = *cb;
-                      })
-                        .name("record")
-                        .succeed(gui_task);
+      auto record =
+          tf.emplace([&] {
+              recorded = context.getGraphicsCommandBuffer();
+              recorded->add_wait(context.get_frame_ctx().m_image_ready, 0,
+                                 vk::PipelineStageFlagBits2::eBlit);
 
-      tf.emplace([&] { submit(recorded, image_idx); })
+              record_gui(*recorded, swapchain.image(image_idx),
+                         swapchain.imageView(image_idx));
+
+              recorded->add_signal(
+                  swapchain.readyToPresent(image_idx), 0,
+                  vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+            })
+              .name("record")
+              .succeed(gui_task);
+
+      tf.emplace([&] {
+          context.get_queue(Context::QueueType::Graphics)
+              ->submit(SubmitionInfo::gather(std::move(recorded).value()));
+        })
           .name("submit")
           .succeed(record);
     }
@@ -510,12 +521,14 @@ int MyGameHandler::Run() try {
 } catch (const vk::DeviceLostError &e) {
   logger.FatalError("Device lost: {}", e.what());
 
-  if (device.m_deviceFault) {
+  if (device.stats().has_extension(vk::EXTDeviceFaultExtensionName)) {
     auto [counts, info] = device.device().getFaultInfoEXT();
 
     std::span addressInfos{info.pAddressInfos, counts.addressInfoCount};
     std::span vendorInfos{info.pVendorInfos, counts.vendorInfoCount};
-    std::span<const std::byte> vendorData{static_cast<std::byte*>(info.pVendorBinaryData), counts.vendorBinarySize};
+    std::span<const std::byte> vendorData{
+        static_cast<std::byte *>(info.pVendorBinaryData),
+        counts.vendorBinarySize};
 
     auto make_append_to = [](auto &&it) {
       return [it]<typename... Args>(std::format_string<Args...> fmt,
@@ -578,15 +591,18 @@ int MyGameHandler::Run() try {
       auto append =
           make_append_to(std::ostreambuf_iterator<char>(crash_dump.rdbuf()));
 
-      auto format_uuid = [&](const auto &uuid) {
-        // format uuid like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-        for (int i = 0; i < 16; i++) {
-          append("{:02x}", uuid[i]);
-          if (i == 3 || i == 5 || i == 7 || i == 9)
-            append("-");
-        }
-        append("\n");
-      };
+      auto format_uuid =
+          [&](const vk::ArrayWrapper1D<uint8_t, vk::UuidSize> &uuid) {
+            // format uuid like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+            constexpr static auto dash_locations = {3, 5, 7, 9};
+
+            for (auto [i, v] : std::views::enumerate(uuid)) {
+              append("{:02x}", v);
+              if (std::ranges::contains(dash_locations, i))
+                append("-");
+            }
+            append("\n");
+          };
 
       append("Device name: {}\n", props.deviceName.data());
       append("Device type: {}\n", props.deviceType);
@@ -607,4 +623,3 @@ int MyGameHandler::Run() try {
 
   return 1;
 }
-} // namespace v4dg

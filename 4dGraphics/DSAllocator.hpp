@@ -10,8 +10,8 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace v4dg {
 
@@ -27,7 +27,7 @@ public:
   DSAllocator(DSAllocator &&o) = default;
   DSAllocator &operator=(DSAllocator &&o) = default;
 
-  template<typename A = std::allocator<vk::DescriptorSet>>
+  template <typename A = std::allocator<vk::DescriptorSet>>
   std::vector<vk::DescriptorSet, A>
   allocate(std::span<const vk::DescriptorSetLayout> setLayouts,
            std::span<const uint32_t> descriptorCounts = {},
@@ -36,15 +36,14 @@ public:
     allocate_internal(setLayouts, descriptorCounts, out);
     return out;
   }
-  
-  vk::DescriptorSet
-  allocate(vk::DescriptorSetLayout setLayout,
-           std::optional<uint32_t> descriptorCount = {}) {
+
+  vk::DescriptorSet allocate(vk::DescriptorSetLayout setLayout,
+                             std::optional<uint32_t> descriptorCount = {}) {
     vk::DescriptorSet out{};
     std::span<const uint32_t> descriptorCounts{};
     if (descriptorCount)
       descriptorCounts = {{*descriptorCount}};
-    allocate_internal({{setLayout}}, descriptorCounts, {&out,1});
+    allocate_internal({{setLayout}}, descriptorCounts, {&out, 1});
     return out;
   }
 
@@ -56,8 +55,8 @@ private:
   vk::raii::DescriptorPool m_pool;
 };
 
-struct DSAllocatorWeights{
-  struct DescriptorWieght{
+struct DSAllocatorWeights {
+  struct DescriptorWieght {
     vk::DescriptorType type;
     float weight;
   };
@@ -69,15 +68,14 @@ struct DSAllocatorWeights{
 
   std::vector<std::vector<vk::DescriptorType>> m_mutableTypeLists{};
 
-  vk::raii::DescriptorPool create(const vk::raii::Device &device,
-                                  std::uint32_t maxSets,
-                                  vk::DescriptorPoolCreateFlags flags = {}) const;
+  vk::raii::DescriptorPool
+  create(const vk::raii::Device &device, std::uint32_t maxSets,
+         vk::DescriptorPoolCreateFlags flags = {}) const;
 };
 
 class DSAllocatorPool {
 public:
-  DSAllocatorPool(const vk::raii::Device &device,
-                  DSAllocatorWeights weights);
+  DSAllocatorPool(const vk::raii::Device &device, DSAllocatorWeights weights);
 
   void advance_frame(vk::Bool32 trim = vk::False,
                      vk::DescriptorPoolResetFlags ResetFlags = {});

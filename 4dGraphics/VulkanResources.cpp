@@ -1,21 +1,26 @@
 #include "VulkanResources.hpp"
 
+#include "VulkanConstructs.hpp"
+
+#include <vulkan/vulkan.hpp>
+
 using namespace v4dg;
+using namespace v4dg::detail;
 
-namespace {
-bool hasAllFlags(auto flags, auto mask) { return (flags & mask) == mask; }
+static bool hasAllFlags(auto flags, auto mask) {
+  return (flags & mask) == mask;
+}
 
-} // namespace
-
-ImageView::ImageView(Context &ctx, vk::ImageViewCreateFlags flags,
-                     vk::Image image, vk::ImageViewType viewType,
-                     vk::Format format, vk::ImageUsageFlags usage,
-                     vk::ComponentMapping components,
-                     vk::ImageSubresourceRange subresourceRange)
-    : m_imageView(nullptr)
-    , m_viewType(viewType) {
+ImageViewObject::ImageViewObject(internal_construct_t, Context &ctx,
+                                 Image image, vk::ImageViewCreateFlags flags,
+                                 vk::ImageViewType viewType, vk::Format format,
+                                 vk::ImageUsageFlags usage,
+                                 vk::ComponentMapping components,
+                                 vk::ImageSubresourceRange subresourceRange)
+    : m_image(image), m_imageView(nullptr), m_viewType(viewType) {
   vk::StructureChain<vk::ImageViewCreateInfo, vk::ImageViewUsageCreateInfo>
-      chain{{flags, image, viewType, format, components, subresourceRange},
+      chain{{flags, image->image(), viewType, format, components,
+             subresourceRange},
             {usage}};
 
   if (!usage)
@@ -58,12 +63,27 @@ ImageView::ImageView(Context &ctx, vk::ImageViewCreateFlags flags,
     ctx.vkDevice().updateDescriptorSets(std::span{writes.data(), cnt}, {});
 }
 
-Texture::Texture(Context &ctx, const ImageCreateInfo &imageCreateInfo,
-                 const vma::AllocationCreateInfo &allocationCreateInfo,
-                 vk::ImageViewCreateFlags viewFlags, vk::ImageViewType viewType,
-                 vk::ImageAspectFlags aspectFlags,
-                 vk::ComponentMapping components)
-    : Image(ctx.device(), imageCreateInfo, allocationCreateInfo),
-      ImageView(ctx, viewFlags, image(), viewType, format(),
-                imageCreateInfo.usage, components,
-                {aspectFlags, 0, mipLevels(), 0, arrayLayers()}) {}
+ImageView::ImageView(Context &ctx, Image image, vk::ImageViewCreateFlags flags,
+                     vk::ImageViewType viewType, vk::Format format,
+                     vk::ImageUsageFlags usage, vk::ComponentMapping components,
+                     vk::ImageSubresourceRange subresourceRange)
+    : std::shared_ptr<const ImageViewObject>(std::make_shared<ImageViewObject>(
+          ImageViewObject::internal_construct_t{}, ctx, image, flags, viewType,
+          format, usage, components, subresourceRange)) {}
+
+ImageView ImageView::createTexture(
+    Context &ctx, const Image::ImageCreateInfo &imageCreateInfo,
+    const vma::AllocationCreateInfo &allocationCreateInfo,
+    vk::ImageViewCreateFlags viewFlags, vk::ImageViewType viewType,
+    vk::ImageAspectFlags aspectFlags, vk::ComponentMapping components) {
+  return ImageView{
+      ctx,
+      Image{ctx.device(), imageCreateInfo, allocationCreateInfo},
+      viewFlags,
+      viewType,
+      imageCreateInfo.format,
+      imageCreateInfo.usage,
+      components,
+      {aspectFlags, 0, vk::RemainingMipLevels, 0, vk::RemainingArrayLayers},
+  };
+}

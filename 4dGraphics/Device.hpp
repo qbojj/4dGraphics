@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DynamicStructureChain.hpp"
+#include "Queue.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
@@ -10,65 +12,42 @@
 #include <array>
 #include <cstdint>
 #include <format>
-#include <functional>
 #include <memory>
-#include <mutex>
 #include <new>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
 
 namespace v4dg {
-class Queue {
-public:
-  Queue(vk::raii::Queue queue, uint32_t family, uint32_t index,
-        vk::QueueFlags flags, uint32_t timestampValidBits,
-        vk::Extent3D minImageTransferGranularity)
-      : m_queue(std::move(queue)), m_family(family), m_index(index),
-        m_flags(flags), m_timestampValidBits(timestampValidBits),
-        m_minImageTransferGranularity(minImageTransferGranularity) {}
-
-  const vk::raii::Queue &queue() const { return m_queue; }
-
-  uint32_t family() const { return m_family; }
-  uint32_t index() const { return m_index; }
-  vk::QueueFlags flags() const { return m_flags; }
-  uint32_t timestampValidBits() const { return m_timestampValidBits; }
-  vk::Extent3D minImageTransferGranularity() const {
-    return m_minImageTransferGranularity;
-  }
-
-private:
-  vk::raii::Queue m_queue;
-
-  uint32_t m_family, m_index;
-
-  vk::QueueFlags m_flags;
-  uint32_t m_timestampValidBits;
-  vk::Extent3D m_minImageTransferGranularity;
-};
-
 using extension_storage = vk::ArrayWrapper1D<char, vk::MaxExtensionNameSize>;
-
 class Instance {
 public:
-  explicit Instance(vk::raii::Context context,
-           vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
+  explicit Instance(
+      vk::raii::Context context,
+      vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
 
   // we will be refering to this class as a reference type -> no copying/moving
   Instance(const Instance &) = delete;
   Instance &operator=(const Instance &) = delete;
 
-  const vk::raii::Context &context() const noexcept { return m_context; }
-  const vk::raii::Instance &instance() const noexcept { return m_instance; }
+  [[nodiscard]] const vk::raii::Context &context() const noexcept {
+    return m_context;
+  }
+  [[nodiscard]] const vk::raii::Instance &instance() const noexcept {
+    return m_instance;
+  }
+  [[nodiscard]] auto &vk() const noexcept { return instance(); }
 
-  uint32_t maxApiVer() const noexcept { return m_maxApiVer; }
-  uint32_t apiVer() const noexcept { return m_apiVer; }
+  [[nodiscard]] uint32_t maxApiVer() const noexcept { return m_maxApiVer; }
+  [[nodiscard]] uint32_t apiVer() const noexcept { return m_apiVer; }
 
-  auto extensions() const noexcept { return m_extensions; }
-  auto layers() const noexcept { return m_layers; }
+  [[nodiscard]] auto extensions() const noexcept { return m_extensions; }
+  [[nodiscard]] auto layers() const noexcept { return m_layers; }
 
-  bool debugUtilsEnabled() const noexcept { return m_debugUtilsEnabled; }
+  [[nodiscard]] bool debugUtilsEnabled() const noexcept {
+    return m_debugUtilsEnabled;
+  }
 
 private:
   vk::raii::Context m_context;
@@ -91,6 +70,53 @@ private:
   static vk::DebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo();
 };
 
+struct DeviceStats {
+  DeviceStats() = default;
+
+  // fill with stats of a physical device
+  DeviceStats(const vk::raii::PhysicalDevice &pd,
+              std::span<const extension_storage> layers);
+
+  [[nodiscard]] bool has_extension(std::string_view name) const noexcept;
+
+  // add an extension without any features or properties
+  void add_extension(std::string_view name);
+
+  // add an extension only with features
+  template <vulkan_struct_extends<vk::PhysicalDeviceFeatures2> T>
+  void add_extension(std::string_view name) {
+    add_extension(name);
+    features.add<T>();
+  }
+
+  // add an extension only with properties
+  template <vulkan_struct_extends<vk::PhysicalDeviceProperties2> T>
+  void add_extension(std::string_view name) {
+    add_extension(name);
+    properties.add<T>();
+  }
+
+  // add an extension with features and properties
+  template <vulkan_struct_extends<vk::PhysicalDeviceFeatures2> Tf,
+            vulkan_struct_extends<vk::PhysicalDeviceProperties2> Tp>
+  void add_extension(std::string_view name) {
+    add_extension(name);
+    features.add<Tf>();
+    properties.add<Tp>();
+  }
+
+  std::vector<extension_storage> extensions;
+  DynamicStructureChain<
+      vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
+      vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features>
+      features;
+  DynamicStructureChain<vk::PhysicalDeviceProperties2,
+                        vk::PhysicalDeviceVulkan11Properties,
+                        vk::PhysicalDeviceVulkan12Properties,
+                        vk::PhysicalDeviceVulkan13Properties>
+      properties;
+};
+
 class Device {
 public:
   explicit Device(const Instance &instance, vk::SurfaceKHR surface = {});
@@ -99,20 +125,21 @@ public:
   Device(const Device &) = delete;
   Device &operator=(const Device &) = delete;
 
-  const auto &instance() const noexcept { return m_instance; }
-  const vk::raii::PhysicalDevice &physicalDevice() const noexcept {
+  [[nodiscard]] const auto &instance() const noexcept { return m_instance; }
+  [[nodiscard]] const auto &vkInstance() const noexcept {
+    return instance().instance();
+  }
+  [[nodiscard]] const auto &physicalDevice() const noexcept {
     return m_physicalDevice;
   }
-  const vk::raii::Device &device() const noexcept { return m_device; }
-
-  uint32_t apiVer() const noexcept { return m_apiVer; }
-
-  vma::Allocator allocator() const noexcept { return *m_allocator; }
-  auto extensions() const noexcept { return m_extensions; }
-
-  const vk::PhysicalDeviceFeatures2 *features() const noexcept {
-    return m_features.get();
+  [[nodiscard]] const auto &device() const noexcept { return m_device; }
+  [[nodiscard]] const auto &vk() const noexcept { return device(); }
+  [[nodiscard]] vma::Allocator allocator() const noexcept {
+    return *m_allocator;
   }
+
+  // after device creation features are immutable
+  const DeviceStats &stats() const { return m_stats; }
 
   bool debugNamesAvaiable() const noexcept {
     if constexpr (is_production)
@@ -120,9 +147,8 @@ public:
     return instance().debugUtilsEnabled();
   }
 
-  template<vulkan_handle T>
-  void setDebugNameString(const T &object,
-                          std::string_view name) const {
+  template <vulkan_handle T>
+  void setDebugNameString(const T &object, std::string_view name) const {
     if constexpr (is_production)
       return;
     if (!instance().debugUtilsEnabled())
@@ -178,43 +204,26 @@ public:
 
   const auto &queues() const noexcept { return m_queues; }
 
-public:
-  // VK_EXT_mesh_shader
-  // meshShader + taskShader
-  bool m_meshShader;
-
-  // all 3 extensions are required for ray tracing:
-  // VK_KHR_acceleration_structure, VK_KHR_ray_tracing_pipeline,
-  // VK_KHR_ray_query
-  bool m_rayTracing;
-
-  // VK_EXT_device_fault
-  bool m_deviceFault;
-
 private:
   const Instance &m_instance;
-
   vk::raii::PhysicalDevice m_physicalDevice;
 
-  uint32_t m_apiVer;
-  std::vector<extension_storage> m_extensions;
-  std::shared_ptr<const vk::PhysicalDeviceFeatures2> m_features;
+  DeviceStats m_stats;
 
   vk::raii::Device m_device;
   vma::UniqueAllocator m_allocator;
 
   std::vector<std::vector<Queue>> m_queues;
 
-  bool physicalDeviceSuitable(const vk::raii::PhysicalDevice &,
-                              vk::SurfaceKHR) const;
+  [[nodiscard]] std::optional<float>
+  rankPhysicalDevice(const DeviceStats &, const vk::raii::PhysicalDevice &,
+                     vk::SurfaceKHR) const;
 
-  std::vector<extension_storage>
-  enumerateExtensions(const vk::raii::PhysicalDevice &) const;
-  vk::raii::PhysicalDevice choosePhysicalDevice(vk::SurfaceKHR) const;
-  std::vector<extension_storage> chooseExtensions() const;
-  std::shared_ptr<const vk::PhysicalDeviceFeatures2> chooseFeatures() const;
-  vk::raii::Device initDevice() const;
-  vma::UniqueAllocator initAllocator() const;
-  std::vector<std::vector<Queue>> initQueues() const;
+  [[nodiscard]] std::pair<DeviceStats, vk::raii::PhysicalDevice>
+      choosePhysicalDevice(vk::SurfaceKHR) const;
+  [[nodiscard]] DeviceStats chooseFeatures(const DeviceStats &) const;
+  [[nodiscard]] vk::raii::Device initDevice() const;
+  [[nodiscard]] vma::UniqueAllocator initAllocator() const;
+  [[nodiscard]] std::vector<std::vector<Queue>> initQueues() const;
 };
 } // namespace v4dg

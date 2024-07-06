@@ -15,6 +15,8 @@
 namespace v4dg {
 class ILogReciever {
 public:
+  virtual ~ILogReciever() = default;
+
   enum class LogLevel : std::uint8_t {
     Debug,
     Log,
@@ -35,12 +37,6 @@ private:
 };
 
 std::string to_string(ILogReciever::LogLevel lv);
-
-class NullLogReciever final : public ILogReciever {
-private:
-  void do_log(std::string_view fmt, std::format_args args,
-              std::source_location lc, LogLevel lv) override;
-};
 
 class FileLogReciever : public ILogReciever {
 public:
@@ -85,7 +81,6 @@ private:
   std::vector<std::shared_ptr<ILogReciever>> m_recievers;
 };
 
-extern const std::shared_ptr<NullLogReciever> nullLogReciever;
 extern const std::shared_ptr<CerrLogReciever> cerrLogReciever;
 #ifdef _WIN32
 extern const std::shared_ptr<OutputDebugStringLogReciever>
@@ -98,7 +93,8 @@ namespace std {
 template <>
 struct formatter<v4dg::ILogReciever::LogLevel> : formatter<std::string_view> {
   template <typename FormatContext>
-  auto format(const v4dg::ILogReciever::LogLevel &lv, FormatContext &ctx) const {
+  auto format(const v4dg::ILogReciever::LogLevel &lv,
+              FormatContext &ctx) const {
     return formatter<std::string_view>::format(v4dg::to_string(lv), ctx);
   }
 };

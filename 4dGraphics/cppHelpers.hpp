@@ -6,7 +6,7 @@
 #include <expected>
 #include <fstream>
 #include <functional>
-#include <optional>
+#include <ios>
 #include <string>
 #include <string_view>
 
@@ -54,45 +54,28 @@ private:
   F onExcept_;
 };
 
-enum class get_file_error { file_not_found, file_size_unaligned, io_error };
+enum class get_file_error : std::uint8_t {
+  file_not_found,
+  file_size_unaligned,
+  io_error
+};
 
-// takes case of potential BOM and reads rest of the file into a string
 inline std::expected<std::string, get_file_error>
 GetStreamString(std::istream &file) {
-  if (!file)
-    return std::unexpected(get_file_error::file_not_found);
-
   file.seekg(0, file.end);
   auto length = file.tellg();
   file.seekg(0);
 
-  if (length >= 3) {
-    // try removing UTF-8 BOM (if present)
-    static constexpr unsigned char BOM[] = {0xEF, 0xBB, 0xBF};
-    char buf[3];
-    file.read(buf, 3);
-
-    if (memcmp(buf, BOM, 3) == 0) {
-      // BOM detected
-      length -= 3;
-    } else {
-      // no BOM detected -> revert changes
-      file.seekg(0);
-    }
-  }
-
-  auto exceptions = file.exceptions();
-  file.exceptions({}); // disable exceptions
+  if (!file)
+    return std::unexpected(get_file_error::io_error);
 
   std::string s;
-  s.resize_and_overwrite(length, [&](char *buf, std::size_t len) {
-    file.read(buf, len);
+  s.resize_and_overwrite(length, [&](char *buf, std::size_t len) noexcept {
+    file.read(buf, static_cast<std::streamsize>(len));
     return file.gcount();
   });
 
-  file.exceptions(exceptions); // restore exceptions
-
-  if (file.fail())
+  if (!file || file.gcount() != length)
     return std::unexpected(get_file_error::io_error);
 
   return s;
@@ -102,35 +85,43 @@ template <typename T>
   requires std::is_trivially_copyable_v<T>
 inline std::expected<std::vector<T>, get_file_error>
 GetStreamBinary(std::istream &file) {
-  if (!file)
-    return std::unexpected(get_file_error::file_not_found);
-
   file.seekg(0, file.end);
   auto length = file.tellg();
   file.seekg(0);
+
+  if (!file)
+    return std::unexpected(get_file_error::io_error);
 
   if (length % sizeof(T) != 0)
     return std::unexpected(get_file_error::file_size_unaligned);
 
   std::vector<T> ret(length / sizeof(T));
   file.read(reinterpret_cast<char *>(ret.data()), length);
-  if (file.fail())
+
+  if (!file || file.gcount() != length)
     return std::unexpected(get_file_error::io_error);
 
   return ret;
 }
 
-template <typename P>
-inline auto GetFileString(P &&pth, std::ios_base::openmode mode = {}) {
-  std::ifstream file(std::forward<P>(pth), mode);
+inline auto GetFileString(const auto &pth, std::ios_base::openmode mode = {})
+    -> std::expected<std::string, get_file_error> {
+  std::ifstream file(pth, mode);
+  if (!file)
+    return std::unexpected(get_file_error::file_not_found);
+
   return GetStreamString(file);
 }
 
-template <typename T, typename P>
+template <typename T>
   requires std::is_trivially_copyable_v<T>
-inline auto
-GetFileBinary(P &&pth, std::ios_base::openmode mode = std::ios_base::binary) {
-  std::ifstream file(std::forward<P>(pth), mode);
+inline auto GetFileBinary(const auto &pth,
+                          std::ios_base::openmode mode = std::ios_base::binary)
+    -> std::expected<std::vector<T>, get_file_error> {
+  std::ifstream file(pth, mode);
+  if (!file)
+    return std::unexpected(get_file_error::file_not_found);
+
   return GetStreamBinary<T>(file);
 }
 

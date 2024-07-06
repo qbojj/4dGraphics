@@ -3,7 +3,8 @@
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace v4dg {
+using namespace v4dg;
+
 command_buffer_manager::command_buffer_manager(const vk::raii::Device &dev,
                                                uint32_t family,
                                                vk::CommandPoolCreateFlags flags)
@@ -20,12 +21,11 @@ void command_buffer_manager::reset(vk::CommandPoolResetFlags flags) {
 }
 
 vulkan_raii_view<vk::raii::CommandBuffer>
-command_buffer_manager::get(vk::CommandBufferLevel level,
-                                          category cat) {
-  uint32_t cat_idx = static_cast<uint32_t>(cat);
+command_buffer_manager::get(vk::CommandBufferLevel level, category cat) {
+  auto cat_idx = static_cast<uint32_t>(cat);
   cache_bucket &pool =
-      (level == vk::CommandBufferLevel::ePrimary ? m_primary
-                                                 : m_secondary)[cat_idx];
+      (level == vk::CommandBufferLevel::ePrimary ? m_primary : m_secondary)
+          .at(cat_idx);
 
   size_t cmdBuffCnt = pool.buffers.size();
   size_t used = pool.used;
@@ -42,4 +42,3 @@ command_buffer_manager::get(vk::CommandBufferLevel level,
   return vulkan_raii_view<vk::raii::CommandBuffer>{
       {*m_device, pool.buffers[pool.used++], *m_pool}};
 }
-} // namespace v4dg

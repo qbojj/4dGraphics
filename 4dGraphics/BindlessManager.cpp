@@ -9,8 +9,8 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include <algorithm>
-#include <mutex>
 #include <functional>
+#include <mutex>
 
 using namespace v4dg;
 
@@ -83,7 +83,9 @@ BindlessManager::BindlessManager(const Device &device)
   for (uint32_t i = 0; i < resource_count; i++) {
     auto type = static_cast<BindlessType>(i);
 
-    if (type == BindlessType::eAccelerationStructureKHR && !device.m_rayTracing)
+    if (type == BindlessType::eAccelerationStructureKHR &&
+        !device.stats().has_extension(
+            vk::KHRAccelerationStructureExtensionName))
       continue;
 
     layout_ci.add_binding(
@@ -102,7 +104,9 @@ BindlessManager::BindlessManager(const Device &device)
   std::vector<vk::DescriptorPoolSize> pool_sizes;
   for (uint32_t i = 0; i < resource_count; i++) {
     auto type = static_cast<BindlessType>(i);
-    if (type == BindlessType::eAccelerationStructureKHR && !device.m_rayTracing)
+    if (type == BindlessType::eAccelerationStructureKHR &&
+        !device.stats().has_extension(
+            vk::KHRAccelerationStructureExtensionName))
       continue;
 
     pool_sizes.push_back({BindlessResource::type_to_vk(type), sizes[i]});
@@ -132,31 +136,39 @@ BindlessManager::BindlessManager(const Device &device)
     }
 
     std::vector<uint32_t> queue_fam;
-    for (const auto &q_fam : device.queues() | std::views::filter(std::not_fn(&std::vector<Queue>::empty))) {
+    for (const auto &q_fam :
+         device.queues() |
+             std::views::filter(std::not_fn(&std::vector<Queue>::empty))) {
       if (!q_fam.empty()) {
         Queue q = q_fam.front();
-        if (q.flags() & (vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eGraphics) &&
+        if (q.flags() &
+                (vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eGraphics) &&
             !std::ranges::contains(queue_fam, q.family()))
           queue_fam.push_back(q.family());
       }
     }
-    Buffer version_buf{*m_device,
-                       whole_size,
-                       vk::BufferUsageFlagBits2KHR::eUniformBuffer |
-                           vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress,
-                       {vma::AllocationCreateFlagBits::eHostAccessRandom |
-                            vma::AllocationCreateFlagBits::eMapped,
-                        vma::MemoryUsage::eAuto,
-                        vk::MemoryPropertyFlagBits::eHostCoherent},
-                       {},
-                       queue_fam};
 
-    version_buf.setName(*m_device, "bindless version buffer");
+    Buffer version_buf{
+        *m_device,
+        whole_size,
+        vk::BufferUsageFlagBits2KHR::eUniformBuffer |
+            vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress,
+        {
+            vma::AllocationCreateFlagBits::eHostAccessRandom |
+                vma::AllocationCreateFlagBits::eMapped,
+            vma::MemoryUsage::eAuto,
+            vk::MemoryPropertyFlagBits::eHostCoherent,
+        },
+        {},
+        queue_fam,
+    };
+
+    version_buf->setName(*m_device, "bindless version buffer");
 
     VersionBufferInfo info{};
 
     auto ai =
-        version_buf.allocator().getAllocationInfo(version_buf.allocation());
+        version_buf->allocator().getAllocationInfo(version_buf->allocation());
     std::byte *data = static_cast<std::byte *>(ai.pMappedData);
 
     size_t offset = 0;
@@ -171,7 +183,7 @@ BindlessManager::BindlessManager(const Device &device)
         continue;
 
       info.buffers_header->versionBuffers[i] =
-          version_buf.deviceAddress() + offset;
+          version_buf->deviceAddress() + offset;
       info.versionBuffers[i] = reinterpret_cast<uint8_t *>(data + offset);
 
       std::fill_n(info.versionBuffers[i], sizes[i], 0xffu);
@@ -181,7 +193,7 @@ BindlessManager::BindlessManager(const Device &device)
 
     m_versionBuffer = std::pair{std::move(version_buf), info};
 
-    vk::DescriptorBufferInfo buf_info{m_versionBuffer->first, 0,
+    vk::DescriptorBufferInfo buf_info{*m_versionBuffer->first, 0,
                                       sizeof(VersionBufferHeader)};
     m_device->device().updateDescriptorSets(
         {vk::WriteDescriptorSet{m_set,
@@ -231,7 +243,8 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
     case BindlessType::eAccelerationStructureKHR:
       max_count = std::min({accel.maxDescriptorSetAccelerationStructures,
                             accel.maxPerStageDescriptorAccelerationStructures});
-      if (!device.m_rayTracing)
+      if (!device.stats().has_extension(
+              vk::KHRAccelerationStructureExtensionName))
         max_count = 0;
       break;
     default:

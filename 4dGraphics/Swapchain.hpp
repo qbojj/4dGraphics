@@ -6,9 +6,9 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <vector>
-#include <optional>
 #include <functional>
+#include <optional>
+#include <vector>
 
 namespace v4dg {
 
@@ -28,8 +28,10 @@ struct SwapchainBuilder {
   vk::Extent2D extent = {0, 0};
   vk::Extent2D fallback_extent = {1280, 720};
 
-  vk::SurfaceTransformFlagBitsKHR pre_transform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
-  vk::CompositeAlphaFlagBitsKHR composite_alpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  vk::SurfaceTransformFlagBitsKHR pre_transform =
+      vk::SurfaceTransformFlagBitsKHR::eIdentity;
+  vk::CompositeAlphaFlagBitsKHR composite_alpha =
+      vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
   vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
                                    vk::ImageUsageFlagBits::eTransferDst;
@@ -49,18 +51,26 @@ public:
   const vk::Image &image(size_t idx) const { return m_images[idx]; }
 
   const auto &imageViews() const { return m_imageViews; }
-  const vk::ImageView &imageView(size_t idx) const { return *m_imageViews[idx]; }
+  const vk::ImageView &imageView(size_t idx) const {
+    return *m_imageViews[idx];
+  }
 
   const auto &readyToPresents() const { return m_readyToPresent; }
-  const vk::Semaphore &readyToPresent(size_t idx) const { return *m_readyToPresent[idx]; }
-  
+  const vk::Semaphore &readyToPresent(size_t idx) const {
+    return *m_readyToPresent[idx];
+  }
+
   vk::Format format() const { return m_format; }
   vk::ColorSpaceKHR colorSpace() const { return m_colorSpace; }
   vk::PresentModeKHR presentMode() const { return m_presentMode; }
   vk::Extent2D extent() const { return m_extent; }
 
-  vk::SurfaceTransformFlagBitsKHR preTransform() const { return m_preTransform; }
-  vk::CompositeAlphaFlagBitsKHR compositeAlpha() const { return m_compositeAlpha; }
+  vk::SurfaceTransformFlagBitsKHR preTransform() const {
+    return m_preTransform;
+  }
+  vk::CompositeAlphaFlagBitsKHR compositeAlpha() const {
+    return m_compositeAlpha;
+  }
 
   vk::ImageUsageFlags getImageUsage() const { return m_imageUsage; }
 

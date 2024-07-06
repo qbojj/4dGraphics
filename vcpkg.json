@@ -15,8 +15,7 @@
       "name": "sdl2",
       "features": [
         "vulkan",
-        "wayland",
-        "x11"
+        "wayland"
       ]
     },
     "stb",

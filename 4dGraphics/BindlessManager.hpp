@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Device.hpp"
-#include "v4dgCore.hpp"
 #include "VulkanConstructs.hpp"
+#include "v4dgCore.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -11,9 +11,9 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <ranges>
 #include <utility>
-#include <optional>
 
 namespace v4dg {
 enum class BindlessType : uint8_t {
@@ -127,9 +127,8 @@ public:
   void free(BindlessResource res);
 
   vk::WriteDescriptorSet write_for(BindlessResource res) const;
-  vk::WriteDescriptorSet
-  write_for(BindlessResource res,
-            vk::DescriptorImageInfo &image_info) const {
+  vk::WriteDescriptorSet write_for(BindlessResource res,
+                                   vk::DescriptorImageInfo &image_info) const {
     assert(res.type() == BindlessType::eSampledImage ||
            res.type() == BindlessType::eStorageImage ||
            res.type() == BindlessType::eSampler);
@@ -172,12 +171,12 @@ private:
   };
 
   const Device *m_device;
-  
+
   // all resources reside in the same descriptor set
   vk::raii::DescriptorSetLayout m_layout;
   vk::raii::DescriptorPool m_pool;
 
-  std::optional<std::pair<Buffer,VersionBufferInfo>> m_versionBuffer;
+  std::optional<std::pair<Buffer, VersionBufferInfo>> m_versionBuffer;
   vk::DescriptorSet m_set;
 
   std::array<BindlessHeap, resource_count> m_heaps;

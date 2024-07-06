@@ -1,0 +1,20 @@
+{
+  "name": "C++ Devenv with latest toolchain",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "mounts": [
+    "source=build-cache,target=/root/.cache,type=volume"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "clangd.clangd",
+        "xaver.clang-format"
+      ]
+    }
+  }
+}

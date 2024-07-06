@@ -1,8 +1,8 @@
 {
-    "version": 3,
+    "version": 6,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 21,
+        "minor": 28,
         "patch": 0
     },
     "configurePresets": [
@@ -12,11 +12,9 @@
             "description": "Configure with vcpkg toolchain and generate Ninja project files for all configurations",
             "binaryDir": "${sourceDir}/builds/${presetName}",
             "generator": "Ninja Multi-Config",
-            "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-                }
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "environment": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },
         {
@@ -24,7 +22,10 @@
             "displayName": "Ninja Multi-Config + system packages",
             "description": "Configure with system packages and generate Ninja project files for all configurations",
             "binaryDir": "${sourceDir}/builds/${presetName}",
-            "generator": "Ninja Multi-Config"
+            "generator": "Ninja Multi-Config",
+            "environment": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
         }
     ],
     "buildPresets": [

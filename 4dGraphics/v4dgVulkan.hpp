@@ -1,24 +1,19 @@
 #pragma once
 
+#include "vulkanConcepts.hpp"
+
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-#include <concepts>
+#include <cstddef>
 #include <format>
-#include <memory_resource>
-#include <stack>
 #include <functional>
+#include <memory_resource>
+#include <utility>
+#include <vector>
 
 namespace v4dg {
-template <class T, class U>
-concept vulkan_struct_extends = !!vk::StructExtends<T, U>::value;
-
-template <class T>
-concept vulkan_handle = requires() {
-  T::objectType;
-  typename T::CType;
-};
 
 template <typename T, typename U>
   requires vulkan_struct_extends<T, U>
@@ -46,31 +41,27 @@ template <typename T, typename U>
   return nullptr;
 }
 
-[[nodiscard]] vk::BufferUsageFlags2KHR getBufferUsage(const vk::BufferCreateInfo &bci);
-
-template <typename T>
-concept vulkan_raii_handle =
-    requires(T t) {
-      typename T::CType;
-      typename T::CppType;
-      t.release();
-    };
+[[nodiscard]] vk::BufferUsageFlags2KHR
+getBufferUsage(const vk::BufferCreateInfo &bci);
 
 template <vulkan_raii_handle T> class vulkan_raii_view {
 public:
-  explicit vulkan_raii_view(nullptr_t) noexcept : t(nullptr) {}
+  explicit vulkan_raii_view(std::nullptr_t) noexcept : t(nullptr) {}
   explicit vulkan_raii_view(T t) noexcept : t(std::move(t)) {}
   ~vulkan_raii_view() { (void)t.release(); }
 
   vulkan_raii_view(const vulkan_raii_view &) = delete;
   vulkan_raii_view(vulkan_raii_view &&o) = default;
-
-  vulkan_raii_view &operator=(vulkan_raii_view o) noexcept {
-    std::swap(t, o.t);
+  vulkan_raii_view &operator=(const vulkan_raii_view &) = delete;
+  vulkan_raii_view &operator=(vulkan_raii_view &&o) noexcept {
+    if (this != &o) {
+      (void)t.release();
+      t = std::move(o.t);
+    }
     return *this;
   }
 
-  operator const T&() const noexcept { return t; }
+  operator const T &() const noexcept { return t; }
 
   const typename T::CppType operator*() const noexcept { return *t; }
   const T *operator->() const noexcept { return &t; }
@@ -89,31 +80,43 @@ private:
 
   void *do_allocate(std::size_t bytes, std::size_t alignment) override;
   void do_deallocate(void *p, std::size_t, std::size_t) override;
-  bool do_is_equal(const std::pmr::memory_resource &) const noexcept override;
+  [[nodiscard]] bool
+  do_is_equal(const std::pmr::memory_resource &) const noexcept override;
 };
 
-using DestructionItem = std::move_only_function<void()>;
+struct DestructionItem {
+  DestructionItem(std::invocable<> auto &&func)
+      : item(std::in_place_type_t<fun_t>{},
+             std::forward<decltype(func)>(func)) {}
+
+  template <typename T = void>
+  DestructionItem(std::shared_ptr<T> ptr)
+      : item(std::in_place_type_t<ptr_t>{},
+             std::static_pointer_cast<const void>(std::move(ptr))) {}
+
+  DestructionItem() = default;
+  DestructionItem(const DestructionItem &) = delete;
+  DestructionItem &operator=(const DestructionItem &) = delete;
+  DestructionItem(DestructionItem &&) noexcept = default;
+  DestructionItem &operator=(DestructionItem &&) noexcept;
+  ~DestructionItem();
+
+  using fun_t = std::move_only_function<void() noexcept>;
+  using ptr_t = std::shared_ptr<const void>;
+  std::variant<std::monostate, fun_t, ptr_t> item;
+};
 
 class DestructionStack {
 public:
-  ~DestructionStack() { flush(); }
-
-  DestructionStack() = default;
-  DestructionStack(const DestructionStack &) = delete;
-  DestructionStack &operator=(const DestructionStack &) = delete;
-  DestructionStack(DestructionStack &&) = default;
-  DestructionStack &operator=(DestructionStack &&) = default;
-
-  void push(DestructionItem &&func) { m_stack.push(std::move(func)); }
-
-  void flush() {
-    while (!m_stack.empty()) {
-      m_stack.top()();
-      m_stack.pop();
-    }
+  void push(auto &&...args) {
+    m_stack.emplace_back(std::forward<decltype(args)>(args)...);
   }
+  void flush() noexcept { m_stack.clear(); }
+
+  void append(DestructionStack &&o);
+
 private:
-  std::stack<DestructionItem> m_stack;
+  std::vector<DestructionItem> m_stack;
 };
 } // namespace v4dg
 
@@ -121,9 +124,8 @@ namespace std {
 template <typename T>
   requires requires(const T &t) { ::vk::to_string(t); }
 struct formatter<T> : formatter<std::string_view> {
-  template <typename FormatContext>
-  auto format(const T &t, FormatContext &ctx) const {
-    return formatter<std::string_view>::format(::vk::to_string(t), ctx);
+  auto format(const T &t, auto &ctx) const {
+    return formatter<std::string_view>::format(vk::to_string(t), ctx);
   }
 };
 

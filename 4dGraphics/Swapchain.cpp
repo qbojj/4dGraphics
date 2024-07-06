@@ -107,12 +107,12 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
   if (surfaceCapabilities.maxImageCount != 0)
     imageCount = std::min(imageCount, surfaceCapabilities.maxImageCount);
 
-  return Swapchain(
-      ctx, vk::SwapchainCreateInfoKHR(
-               {},
-               surface, imageCount, format, vk::ColorSpaceKHR::eSrgbNonlinear,
-               extent, 1, imageUsage, vk::SharingMode::eExclusive, 0, nullptr,
-               preTransform, compositeAlpha, presentMode, true, oldSwapchain));
+  return Swapchain(ctx,
+                   vk::SwapchainCreateInfoKHR(
+                       {}, surface, imageCount, format,
+                       vk::ColorSpaceKHR::eSrgbNonlinear, extent, 1, imageUsage,
+                       vk::SharingMode::eExclusive, 0, nullptr, preTransform,
+                       compositeAlpha, presentMode, true, oldSwapchain));
 }
 
 Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
@@ -123,15 +123,14 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
       m_images(m_swapchain.getImages()) {
   m_imageViews.reserve(m_images.size());
   for (auto &image : m_images)
-    m_imageViews.push_back(
-        {ctx.vkDevice(),
-         {{},
-          image,
-          vk::ImageViewType::e2D,
-          m_format,
-          {},
-          {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
-  
+    m_imageViews.push_back({ctx.vkDevice(),
+                            {{},
+                             image,
+                             vk::ImageViewType::e2D,
+                             m_format,
+                             {},
+                             {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+
   m_readyToPresent.reserve(m_images.size());
   for (size_t i = 0; i < m_images.size(); ++i) {
     m_readyToPresent.push_back(ctx.vkDevice().createSemaphore({}));
@@ -140,7 +139,7 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
 
 DestructionItem Swapchain::move_out() {
   return [views = std::move(m_imageViews), swp = std::move(m_swapchain),
-          readyToPresent = std::move(m_readyToPresent)] {};
+          readyToPresent = std::move(m_readyToPresent)] noexcept {};
 }
 
 SwapchainBuilder Swapchain::recreate_builder() const {

@@ -1,5 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.21)
-include(../CMake/CommonMacros.cmake)
+﻿include(../CMake/CommonMacros.cmake)
 project(4dGraphics)
 
 find_package(argparse CONFIG REQUIRED)
@@ -15,15 +14,32 @@ find_package(Tracy CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
+# create a vulkan-hpp cpp20 module target
+add_library(vulkan-hpp-module INTERFACE)#)
+# target_sources(vulkan-hpp-module PUBLIC
+#  FILE_SET CXX_MODULES
+#  BASE_DIRS ${Vulkan_INCLUDE_DIR}/vulkan
+#  FILES ${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm
+#)
+target_compile_features(vulkan-hpp-module INTERFACE cxx_std_23)
+target_link_libraries(vulkan-hpp-module INTERFACE Vulkan::Headers)
+target_compile_definitions(vulkan-hpp-module
+INTERFACE
+  VK_ENABLE_BETA_EXTENSIONS=1
+  VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+  VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
+)
+
 file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 file(GLOB HEADERS CONFIGURE_DEPENDS *.hpp *.h)
 
 add_executable(4dGraphics WIN32)
 target_sources(
   4dGraphics
-  PRIVATE ${SOURCES}
+  PRIVATE  ${SOURCES}
   PUBLIC FILE_SET HEADERS BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
          ${HEADERS})
+target_compile_features(4dGraphics PRIVATE cxx_std_23)
 
 target_precompile_headers(
   4dGraphics
@@ -150,15 +166,15 @@ target_include_directories(4dGraphics PUBLIC ${PROJECT_SOURCE_DIR}
 
 target_compile_definitions(
   4dGraphics
-  PUBLIC VK_ENABLE_BETA_EXTENSIONS=1
-         VK_NO_PROTOTYPES=1
-         VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
-         GLM_FORCE_SILENT_WARNINGS
+  PUBLIC GLM_FORCE_SILENT_WARNINGS
          GLM_FORCE_DEPTH_ZERO_TO_ONE
          GLM_FORCE_SWIZZLE
          GLM_FORCE_RADIANS
          GLM_FORCE_CTOR_INIT
          GLM_ENABLE_EXPERIMENTAL
+         VK_ENABLE_BETA_EXTENSIONS=1
+         VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+         VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
   PRIVATE WIN32_LEAN_AND_MEAN TRACY_VK_USE_SYMBOL_TABLE=1)
 
 setup_common(4dGraphics "4dGraphics")

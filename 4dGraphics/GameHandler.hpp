@@ -1,30 +1,41 @@
 #pragma once
-#include "GameCore.hpp"
-#include "cppHelpers.hpp"
+
+#include "BindlessManager.hpp"
 #include "Context.hpp"
+#include "GameCore.hpp"
 #include "PipelineBuilder.hpp"
 #include "VulkanConstructs.hpp"
-#include "BindlessManager.hpp"
 #include "VulkanResources.hpp"
+#include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 namespace v4dg {
 class ImGui_VulkanImpl {
 public:
   ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx);
+  ImGui_VulkanImpl(const ImGui_VulkanImpl &) = delete;
+  ImGui_VulkanImpl &operator=(const ImGui_VulkanImpl &) = delete;
+  ImGui_VulkanImpl(ImGui_VulkanImpl &&) = delete;
+  ImGui_VulkanImpl &operator=(ImGui_VulkanImpl &&) = delete;
   ~ImGui_VulkanImpl();
+
 private:
   vk::raii::DescriptorPool pool;
+  vk::Format color_format;
 };
 
 class MyGameHandler final : public GameEngine {
 public:
   MyGameHandler();
+  MyGameHandler(const MyGameHandler &) = delete;
+  MyGameHandler &operator=(const MyGameHandler &) = delete;
+  MyGameHandler(MyGameHandler &&) = delete;
+  MyGameHandler &operator=(MyGameHandler &&) = delete;
   ~MyGameHandler();
 
   int Run();
@@ -38,7 +49,7 @@ private:
   Swapchain swapchain;
   ImGui_VulkanImpl imguiVulkanImpl;
 
-  Texture texture;
+  ImageView texture;
 
   bool should_close{false};
   bool has_focus{true};
@@ -47,7 +58,7 @@ private:
 
   vk::raii::DescriptorSetLayout descriptor_set_layout;
   vk::raii::PipelineLayout pipeline_layout;
-  std::array<vk::raii::Pipeline,3> pipeline;
+  std::array<vk::raii::Pipeline, 3> pipeline;
   int current_pipeline{2};
 
   struct MandelbrotPushConstants {
@@ -61,8 +72,7 @@ private:
   bool handle_events();
 
   void gui();
-  void record_gui(CommandBuffer &cb, vk::Image,vk::ImageView);
-  void submit(vk::CommandBuffer cmd, std::uint32_t image_idx);
+  void record_gui(CommandBuffer &cb, vk::Image, vk::ImageView);
   void present(std::uint32_t image_idx);
 };
 } // namespace v4dg

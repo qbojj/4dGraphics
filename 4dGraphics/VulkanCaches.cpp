@@ -35,15 +35,11 @@ std::shared_ptr<const Sampler> SamplerInfo::create(Context &ctx) const {
   auto res = std::make_shared<Sampler>(
       vk::raii::Sampler{ctx.vkDevice(), chain.get<>()},
       ctx.bindlessManager().allocate(BindlessType::eSampler));
-  
-  vk::DescriptorImageInfo dii{
-      *res->sampler
-  };
+
+  vk::DescriptorImageInfo dii{*res->sampler};
 
   ctx.vkDevice().updateDescriptorSets(
-    ctx.bindlessManager().write_for(*res->handle, dii),
-    {}
-  );
+      ctx.bindlessManager().write_for(*res->handle, dii), {});
 
   return res;
 }
