@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Queue.hpp"
+#include "Context.hpp"
 #include "VulkanConstructs.hpp"
 #include "VulkanResources.hpp"
+#include "CommandBuffer.hpp"
 
 #include <functional>
 #include <vulkan/vulkan.hpp>
@@ -50,9 +51,6 @@ the future a work-graph)).
 */
 
 namespace v4dg {
-
-class Context;
-
 class TransferManager {
 private:
   struct QueueItem;
@@ -123,8 +121,16 @@ public:
     ResourceTransferHandle transfer_handle;
   };
 
+  // function that uploads the data to the staging buffer
+  // 1st arg is the buffer to upload to (staging or final if mappable)
+  using buffer_upload_fn = std::move_only_function<void(Buffer)>;
+
   TransferManager() = delete;
   TransferManager(Context &ctx);
+
+  Buffer allocateBuffer(std::size_t size, const BufferTransferInfo &ti);
+  BufferFuture uploadBuffer(Buffer buffer, buffer_upload_fn upload_fn,
+                            const BufferTransferInfo &ti);
 
   // creates a gpu local buffer and copies the data from the staging buffer
   template <typename T = std::byte>
@@ -133,6 +139,10 @@ public:
                             const BufferTransferInfo &ti) {
     return uploadBuffer(std::as_bytes(data), ti);
   }
+
+  template<>
+  BufferFuture uploadBuffer<std::byte>(std::span<const std::byte> data,
+                            const BufferTransferInfo &ti);
 
   // load a texture for that will be used only as a sampled image
   TextureFuture uploadTexture(const std::filesystem::path &path,

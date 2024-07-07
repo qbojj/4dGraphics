@@ -11,6 +11,7 @@
 #include <exception>
 #include <ktx.h>
 #include <ktxvulkan.h>
+#include <tracy/Tracy.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include <cstdint>
@@ -85,15 +86,13 @@ TransferManager::TransferManager(Context &ctx)
                                "async transfer semaphore");
 }
 
-template <>
-auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
-                                              const BufferTransferInfo &ti)
-    -> BufferFuture {
+Buffer TransferManager::allocateBuffer(std::size_t size,
+                                       const BufferTransferInfo &ti) {
   auto &&dev = m_ctx->device();
 
   Buffer buffer{
       dev,
-      data.size_bytes(),
+      size,
       ti.usage | vk::BufferUsageFlagBits2KHR::eTransferDst,
       vma::AllocationCreateInfo{
           vma::AllocationCreateFlagBits::eHostAccessSequentialWrite |
@@ -105,48 +104,69 @@ auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
   if (!ti.name.empty())
     buffer->setName(dev, "{}", ti.name);
 
+  return buffer;
+}
+
+auto TransferManager::uploadBuffer(Buffer buffer, buffer_upload_fn fn,
+                                   const BufferTransferInfo &ti)
+    -> BufferFuture {
+  auto &&dev = m_ctx->device();
+
   auto flags =
       dev.allocator().getAllocationMemoryProperties(buffer->allocation());
 
-  // check if we need a staging buffer
   if (flags & vk::MemoryPropertyFlagBits::eHostVisible) {
     // direct init
-    std::ranges::copy(data, buffer->map<std::byte>().get());
+    fn(buffer);
 
     // direct init is done (no need to transfer)
     return {.buffer = buffer, .transfer_handle = {}};
-  } else {
-    auto transfer = [buffer, staging = stagingBuffer(data),
-                     family = ti.target_family](
-                        CommandBuffer &cmd) -> memory_transfer_info {
-      cmd.add_resource(buffer);
-      cmd.add_resource(staging);
-
-      cmd->copyBuffer(staging->vk(), buffer->vk(),
-                      vk::BufferCopy{0, 0, buffer->size()});
-
-      return {
-          buffer->size(),
-          vk::BufferMemoryBarrier2{
-              vk::PipelineStageFlagBits2::eTransfer,
-              vk::AccessFlagBits2::eTransferWrite,
-              {},
-              {},
-              {},
-              family,
-              buffer->vk(),
-              0,
-              buffer->size(),
-          },
-      };
-    };
-
-    // transfer staging buffer to our real buffer
-    return {
-        .buffer = buffer,
-        .transfer_handle = enqueueTransfer(ti.priority, std::move(transfer)),
-    };
   }
+
+  auto transfer = [this, fn = std::move(fn), buffer, family = ti.target_family](
+                      CommandBuffer &cmd) mutable -> memory_transfer_info {
+    auto staging = stagingBuffer(buffer->size());
+    fn(staging);
+
+    cmd.add_resource(buffer);
+    cmd.add_resource(staging);
+
+    cmd->copyBuffer(staging->vk(), buffer->vk(),
+                    vk::BufferCopy{0, 0, buffer->size()});
+
+    return {
+        buffer->size(),
+        vk::BufferMemoryBarrier2{
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite,
+            {},
+            {},
+            {},
+            family,
+            buffer->vk(),
+            0,
+            buffer->size(),
+        },
+    };
+  };
+
+  // transfer staging buffer to our real buffer
+  return {
+      .buffer = buffer,
+      .transfer_handle = enqueueTransfer(ti.priority, std::move(transfer)),
+  };
+}
+
+template <>
+auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
+                                              const BufferTransferInfo &ti)
+    -> BufferFuture {
+  return uploadBuffer(
+      allocateBuffer(data.size(), ti),
+      [d = data | std::ranges::to<std::vector>()](Buffer b) {
+        std::ranges::copy(d, b->map<std::byte>().get());
+      },
+      ti);
 }
 
 auto TransferManager::uploadTexture(const std::filesystem::path &path,
@@ -373,8 +393,8 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
 
 auto TransferManager::uploadTextureHelper(
     ImageView tex, PriorityClass priority, vk::ImageLayout target_layout,
-    std::uint32_t target_family, uploadTextureHelper_fn prepare_transfer_data)
-    -> TextureFuture {
+    std::uint32_t target_family,
+    uploadTextureHelper_fn prepare_transfer_data) -> TextureFuture {
   return {
       .texture = tex,
       .transfer_handle = enqueueTransfer(
@@ -472,9 +492,8 @@ auto TransferManager::getQueueItemList(bool done, PriorityClass priority)
   }
 }
 
-auto TransferManager::enqueueTransfer(PriorityClass priority,
-                                      transfer_fn transfer)
-    -> ResourceTransferHandle {
+auto TransferManager::enqueueTransfer(
+    PriorityClass priority, transfer_fn transfer) -> ResourceTransferHandle {
   std::scoped_lock _(queue_mut);
 
   auto &queue = getQueueItemList(false, priority);
@@ -538,6 +557,8 @@ All of which I deem unrecoverable so any broken postconditions are irrelevant
 */
 void TransferManager::acquireResources(
     std::span<const ResourceTransferHandle> resources, CommandBuffer &cb) {
+  ZoneScoped;
+
   std::scoped_lock _(queue_mut);
 
   auto label_scope_{
@@ -633,6 +654,7 @@ void TransferManager::acquireResources(
 
 void TransferManager::doOutstandingTransfers(std::size_t max_transfer_size,
                                              std::size_t max_transfer_count) {
+  ZoneScoped;
   std::scoped_lock _(queue_mut);
 
   auto &&queues = {std::ref(queue_high), std::ref(queue_normal),

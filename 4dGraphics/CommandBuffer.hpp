@@ -92,7 +92,7 @@ private:
 
   bool ended{false};
 
-  friend class SubmitionInfo;
+  friend struct SubmitionInfo;
 };
 
 // vk::SubmitInfo2 + destruction queue

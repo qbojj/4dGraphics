@@ -207,7 +207,7 @@ public:
     };
   }
 
-  BindlessManager &bindlessManager() { return m_bindless_manager; }
+  BindlessManager &bindlessManager() noexcept { return m_bindless_manager; }
 
 private:
   const Instance &m_instance;

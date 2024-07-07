@@ -7,6 +7,7 @@
 #include "VulkanConstructs.hpp"
 #include "VulkanResources.hpp"
 #include "cppHelpers.hpp"
+#include "TransferManager.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -46,6 +47,8 @@ private:
   vk::raii::SurfaceKHR surface;
   Device device;
   Context context;
+  TransferManager transfer_manager;
+
   Swapchain swapchain;
   ImGui_VulkanImpl imguiVulkanImpl;
 

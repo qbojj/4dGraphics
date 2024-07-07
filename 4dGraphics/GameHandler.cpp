@@ -5,6 +5,7 @@
 #include "Debug.hpp"
 #include "Device.hpp"
 #include "Swapchain.hpp"
+#include "TransferManager.hpp"
 #include "VulkanCaches.hpp"
 #include "VulkanConstructs.hpp"
 #include "cppHelpers.hpp"
@@ -32,7 +33,7 @@ using namespace v4dg;
 
 static vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
                                             SDL_Window *window) {
-  VkSurfaceKHR raw_surface;
+  VkSurfaceKHR raw_surface{};
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE)
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
 
@@ -101,6 +102,7 @@ MyGameHandler::MyGameHandler()
           SDL_Vulkan_GetVkGetInstanceProcAddr()))),
       surface(sdl_get_surface(instance.instance(), m_window)),
       device(instance, *surface), context(device),
+      transfer_manager(context),
       swapchain(SwapchainBuilder{
           .surface = *surface,
           .preferred_format = vk::Format::eR8G8B8A8Unorm,
@@ -510,6 +512,12 @@ int MyGameHandler::Run() try {
         })
           .name("submit")
           .succeed(record);
+      
+      tf.emplace([&]{
+        transfer_manager.doOutstandingTransfers();
+      })
+        .name("async transfer")
+        .succeed(record);
     }
 
     context.executor().run(tf).wait();
