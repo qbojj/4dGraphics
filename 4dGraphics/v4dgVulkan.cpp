@@ -2,13 +2,14 @@
 
 #include "cppHelpers.hpp"
 
-#include <iterator>
 #include <vulkan/vulkan.hpp>
 
+#include <cstddef>
 #include <cstdint>
-#include <exception>
+#include <iterator>
 #include <memory_resource>
-#include <typeinfo>
+#include <utility>
+#include <variant>
 
 using namespace v4dg;
 void *vulkan_memory_resource::do_allocate(std::size_t bytes,
@@ -18,14 +19,16 @@ void *vulkan_memory_resource::do_allocate(std::size_t bytes,
       static_cast<VkSystemAllocationScope>(vk::SystemAllocationScope::eObject));
 }
 
-void vulkan_memory_resource::do_deallocate(void *p, std::size_t, std::size_t) {
+void vulkan_memory_resource::do_deallocate(void *p, std::size_t /*__bytes*/,
+                                           std::size_t /*__alignment*/) {
   m_allocator.pfnFree(m_allocator.pUserData, p);
 }
 
 bool vulkan_memory_resource::do_is_equal(
     const std::pmr::memory_resource &other) const noexcept {
-  if (typeid(*this) != typeid(other))
+  if (typeid(*this) != typeid(other)) {
     return false;
+  }
 
   const auto &o_alloc =
       dynamic_cast<const vulkan_memory_resource &>(other).m_allocator;
@@ -35,7 +38,7 @@ bool vulkan_memory_resource::do_is_equal(
 }
 
 vk::BufferUsageFlags2KHR v4dg::getBufferUsage(const vk::BufferCreateInfo &bci) {
-  if (auto *usage =
+  if (const auto *usage =
           getVkStructureFromChain<vk::BufferUsageFlags2CreateInfoKHR>(&bci)) {
     return usage->usage;
   }
@@ -45,8 +48,9 @@ vk::BufferUsageFlags2KHR v4dg::getBufferUsage(const vk::BufferCreateInfo &bci) {
 DestructionItem::~DestructionItem() {
   std::visit(detail::overload_set{[](std::monostate) {},
                                   [](fun_t &f) {
-                                    if (f)
+                                    if (f) {
                                       f();
+                                    }
                                   },
                                   [](ptr_t &p) { p.reset(); }},
              item);

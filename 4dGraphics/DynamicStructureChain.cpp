@@ -1,14 +1,14 @@
 #include "DynamicStructureChain.hpp"
 
-#include <vulkan/vulkan.hpp>
-
-#include <cstdint>
-
 using namespace v4dg;
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,
+// cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 detail::DynamicStructureChainBase::DynamicStructureChainBase(
-    const DynamicStructureChainBase &o) {
-  dynamic_data = o.dynamic_data;
+    const DynamicStructureChainBase &o)
+    : dynamic_data(o.dynamic_data) {
+
   fixup(o.dynamic_data.data());
 }
 
@@ -68,3 +68,6 @@ void detail::swap(DynamicStructureChainBase &a,
   a.fixup(pa);
   b.fixup(pb);
 }
+
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,
+// cppcoreguidelines-pro-bounds-pointer-arithmetic)

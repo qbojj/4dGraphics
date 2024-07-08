@@ -2,21 +2,21 @@
 
 #include "DynamicStructureChain.hpp"
 #include "Queue.hpp"
+#include "cppHelpers.hpp"
 #include "v4dgCore.hpp"
-#include "v4dgVulkan.hpp"
+#include "vulkanConcepts.hpp"
 
-#include <taskflow/taskflow.hpp>
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <array>
 #include <cstdint>
 #include <format>
-#include <memory>
-#include <new>
 #include <optional>
 #include <span>
-#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace v4dg {
@@ -63,8 +63,8 @@ private:
   vk::raii::Instance m_instance;
   vk::raii::DebugUtilsMessengerEXT m_debugMessenger;
 
-  std::vector<extension_storage> chooseLayers() const;
-  std::vector<extension_storage> chooseExtensions() const;
+  [[nodiscard]] std::vector<extension_storage> chooseLayers() const;
+  [[nodiscard]] std::vector<extension_storage> chooseExtensions() const;
   vk::raii::Instance initInstance(const vk::AllocationCallbacks *) const;
 
   static vk::DebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo();
@@ -139,30 +139,34 @@ public:
   }
 
   // after device creation features are immutable
-  const DeviceStats &stats() const { return m_stats; }
+  [[nodiscard]] const DeviceStats &stats() const { return m_stats; }
 
-  bool debugNamesAvaiable() const noexcept {
-    if constexpr (is_production)
+  [[nodiscard]] bool debugNamesAvaiable() const noexcept {
+    if constexpr (is_production) {
       return false;
+    }
     return instance().debugUtilsEnabled();
   }
 
   template <vulkan_handle T>
-  void setDebugNameString(const T &object, std::string_view name) const {
-    if constexpr (is_production)
+  void setDebugNameString(const T &object, detail::zstring_view name) const {
+    if constexpr (is_production) {
       return;
-    if (!instance().debugUtilsEnabled())
+    }
+    if (!instance().debugUtilsEnabled()) {
       return;
+    }
 
     using CType = T::CType;
 
     CType handle = {};
-    if constexpr (requires(CType t1) { t1 = object; })
+    if constexpr (requires(CType t1) { t1 = object; }) {
       handle = object;
-    else if constexpr (requires(CType t1) { t1 = *object; })
+    } else if constexpr (requires(CType t1) { t1 = *object; }) {
       handle = *object;
-    else
+    } else {
       static_assert(false, "Cannot get handle from object");
+    }
 
     m_device.setDebugUtilsObjectNameEXT({
         T::objectType,
@@ -174,35 +178,41 @@ public:
   template <typename... Args>
   void setDebugName(const vulkan_handle auto &object,
                     std::format_string<Args...> name, Args &&...args) const {
-    if constexpr (is_production)
+    if constexpr (is_production) {
       return;
-    if (!instance().debugUtilsEnabled())
+    }
+    if (!instance().debugUtilsEnabled()) {
       return;
+    }
 
     setDebugNameString(object, std::format(name, std::forward<Args>(args)...));
   }
 
   void beginDebugLabel(const vk::raii::CommandBuffer &commandBuffer,
-                       std::string_view name,
+                       detail::zstring_view name,
                        const std::array<float, 4> color = {
-                           0.f, 0.f, 0.f, 1.f}) const noexcept {
-    if constexpr (is_production)
+                           0.F, 0.F, 0.F, 1.F}) const noexcept {
+    if constexpr (is_production) {
       return;
-    if (!instance().debugUtilsEnabled())
+    }
+    if (!instance().debugUtilsEnabled()) {
       return;
+    }
     commandBuffer.beginDebugUtilsLabelEXT({name.data(), color});
   }
 
   void
   endDebugLabel(const vk::raii::CommandBuffer &commandBuffer) const noexcept {
-    if constexpr (is_production)
+    if constexpr (is_production) {
       return;
-    if (!instance().debugUtilsEnabled())
+    }
+    if (!instance().debugUtilsEnabled()) {
       return;
+    }
     commandBuffer.endDebugUtilsLabelEXT();
   }
 
-  const auto &queues() const noexcept { return m_queues; }
+  [[nodiscard]] const auto &queues() const noexcept { return m_queues; }
 
 private:
   const Instance &m_instance;
@@ -215,9 +225,9 @@ private:
 
   std::vector<std::vector<Queue>> m_queues;
 
-  [[nodiscard]] std::optional<float>
+  [[nodiscard]] static std::optional<float>
   rankPhysicalDevice(const DeviceStats &, const vk::raii::PhysicalDevice &,
-                     vk::SurfaceKHR) const;
+                     vk::SurfaceKHR);
 
   [[nodiscard]] std::pair<DeviceStats, vk::raii::PhysicalDevice>
       choosePhysicalDevice(vk::SurfaceKHR) const;

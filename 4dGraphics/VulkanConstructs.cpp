@@ -1,24 +1,32 @@
 #include "VulkanConstructs.hpp"
 
 #include "Device.hpp"
+#include "v4dgVulkan.hpp"
 
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
+
+#include <cstdint>
+#include <memory>
+#include <utility>
 
 using namespace v4dg;
 using namespace v4dg::detail;
 
-BufferObject::BufferObject(internal_construct_t, const Device &device,
+BufferObject::BufferObject(internal_construct_t /*unused*/,
+                           const Device &device,
                            std::pair<vma::Allocation, vk::raii::Buffer> p,
                            vk::DeviceSize size, bool hasDeviceAddress)
     : GpuAllocation(device.allocator(), p.first), m_buffer(std::move(p.second)),
       m_size(size) {
-  if (hasDeviceAddress)
+  if (hasDeviceAddress) {
     m_deviceAddress = device.device().getBufferAddress({buffer()});
+  }
 }
 
 BufferObject::BufferObject(
-    internal_construct_t, const Device &device,
+    internal_construct_t /*unused*/, const Device &device,
     const vk::BufferCreateInfo &bufferCreateInfo,
     const vma::AllocationCreateInfo &allocationCreateInfo)
     : BufferObject(
@@ -36,7 +44,7 @@ BufferObject::BufferObject(
               vk::BufferUsageFlagBits2KHR::eShaderDeviceAddress)) {}
 
 BufferObject::BufferObject(
-    internal_construct_t, const Device &device, vk::DeviceSize size,
+    internal_construct_t /*unused*/, const Device &device, vk::DeviceSize size,
     vk::BufferUsageFlags2KHR usage,
     const vma::AllocationCreateInfo &allocationCreateInfo,
     vk::BufferCreateFlags flags,
@@ -58,7 +66,7 @@ BufferObject::BufferObject(
               .get<>(),
           allocationCreateInfo) {}
 
-ImageObject::ImageObject(internal_construct_t, const Device &device,
+ImageObject::ImageObject(internal_construct_t /*unused*/, const Device &device,
                          std::pair<vma::Allocation, vk::raii::Image> image,
                          vk::ImageType imageType, vk::Format format,
                          vk::Extent3D extent, std::uint32_t mipLevels,
@@ -69,7 +77,7 @@ ImageObject::ImageObject(internal_construct_t, const Device &device,
       m_format(format), m_extent(extent), m_mipLevels(mipLevels),
       m_arrayLayers(arrayLayers), m_samples(samples) {}
 
-ImageObject::ImageObject(internal_construct_t, const Device &device,
+ImageObject::ImageObject(internal_construct_t /*unused*/, const Device &device,
                          const ImageCreateInfo &imageCreateInfo,
                          const vma::AllocationCreateInfo &allocationCreateInfo)
     : ImageObject(
@@ -95,17 +103,19 @@ ImageObject::ImageObject(internal_construct_t, const Device &device,
                     {},
                     {}};
 
-            if (imageCreateInfo.formats)
+            if (imageCreateInfo.formats) {
               ici.get<vk::ImageFormatListCreateInfo>().setViewFormats(
                   *imageCreateInfo.formats);
-            else
+            } else {
               ici.unlink<vk::ImageFormatListCreateInfo>();
+            }
 
-            if (imageCreateInfo.stencilUsage)
+            if (imageCreateInfo.stencilUsage) {
               ici.get<vk::ImageStencilUsageCreateInfo>().setStencilUsage(
                   *imageCreateInfo.stencilUsage);
-            else
+            } else {
               ici.unlink<vk::ImageStencilUsageCreateInfo>();
+            }
 
             auto [image, allocation] = device.allocator().createImage(
                 ici.get<vk::ImageCreateInfo>(), allocationCreateInfo);

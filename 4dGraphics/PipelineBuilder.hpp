@@ -1,18 +1,21 @@
 #pragma once
 
 #include "Context.hpp"
-#include "Device.hpp"
 #include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <future>
 #include <optional>
+#include <span>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace v4dg {
@@ -21,7 +24,7 @@ enum class load_shader_error {
   bad_magic_number,
 };
 
-constexpr inline std::string_view to_string(load_shader_error e) {
+constexpr std::string_view to_string(load_shader_error e) {
   switch (e) {
   case load_shader_error::bad_magic_number:
     return "bad_magic_number";
@@ -42,7 +45,7 @@ public:
                   vk::ArrayProxyNoTemporaries<const uint32_t> shader_data,
                   std::string entry = "main");
   ShaderStageData(const ShaderStageData &);
-  ShaderStageData(ShaderStageData &&);
+  ShaderStageData(ShaderStageData &&) noexcept;
   ShaderStageData &operator=(ShaderStageData);
 
   template <typename T>
@@ -51,13 +54,10 @@ public:
         specialization_data.end(),
         detail::AlignUpOffset(specialization_data.size(), alignof(T)), {});
 
-    specialization_entries.push_back({
-        id,
-        static_cast<std::uint32_t>(specialization_data.size()),
-        sizeof(T),
-    });
+    specialization_entries.emplace_back(
+        id, static_cast<std::uint32_t>(specialization_data.size()), sizeof(T));
 
-    auto *ptr = reinterpret_cast<const std::byte *>(&data);
+    const auto *ptr = reinterpret_cast<const std::byte *>(&data);
     specialization_data.insert(specialization_data.end(), ptr, ptr + sizeof(T));
 
     specialization_info.setMapEntries(specialization_entries)
@@ -92,25 +92,25 @@ public:
     return *this;
   }
 
-  const vk::PipelineShaderStageCreateInfo &get() const {
+  [[nodiscard]] const vk::PipelineShaderStageCreateInfo &get() const {
     return info_chain.get<vk::PipelineShaderStageCreateInfo>();
   }
 
 private:
   std::string entry{"main"};
 
-  std::vector<vk::SpecializationMapEntry> specialization_entries{};
-  std::vector<std::byte> specialization_data{};
+  std::vector<vk::SpecializationMapEntry> specialization_entries;
+  std::vector<std::byte> specialization_data;
 
-  std::string debug_name{};
+  std::string debug_name;
 
   vk::StructureChain<vk::PipelineShaderStageCreateInfo,
                      vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT,
                      vk::PipelineRobustnessCreateInfoEXT,
                      vk::ShaderModuleCreateInfo,
                      vk::DebugUtilsObjectNameInfoEXT>
-      info_chain{};
-  vk::SpecializationInfo specialization_info{};
+      info_chain;
+  vk::SpecializationInfo specialization_info;
 
   void fixup();
 
@@ -172,7 +172,7 @@ public:
   }
   GraphicsPipelineBuilder &add_null_attachment() {
     color_formats.push_back(vk::Format::eUndefined);
-    color_blend_attachments.push_back({});
+    color_blend_attachments.emplace_back();
     return *this;
   }
   GraphicsPipelineBuilder &add_dynamic_state(vk::DynamicState state) {
@@ -184,7 +184,7 @@ public:
                            std::span<const ShaderStageData> shaders);
 
   vk::PipelineLayout layout;
-  vk::PipelineCreateFlags flags{};
+  vk::PipelineCreateFlags flags;
 
   vk::PrimitiveTopology topology{vk::PrimitiveTopology::eTriangleList};
   bool primitive_restart{false};

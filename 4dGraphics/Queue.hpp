@@ -1,13 +1,10 @@
 #pragma once
 
-#include <mutex>
-#include <taskflow/taskflow.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <cstdint>
-#include <memory>
-#include <thread>
+#include <utility>
 
 namespace v4dg {
 class Queue {

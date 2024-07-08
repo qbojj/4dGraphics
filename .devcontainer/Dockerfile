@@ -13,7 +13,10 @@ RUN --mount=type=cache,target=/var/cache/pacman/pkg \
 
 # install the toolchain and vcpkg dependencies
 RUN --mount=type=cache,target=/var/cache/pacman/pkg \
-    pacman -Syu --noconfirm base-devel git cmake-git llvm-git clang-git gcc curl zip unzip tar ninja ccache
+    pacman -Syu --noconfirm \
+    base-devel gcc llvm-git clang-git \
+    git git-lfs cmake ninja ccache \
+    curl zip unzip tar
 
 # install vcpkg package dependencies
 RUN --mount=type=cache,target=/var/cache/pacman/pkg \

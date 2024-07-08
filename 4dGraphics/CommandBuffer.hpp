@@ -2,17 +2,20 @@
 
 #include "Constants.hpp"
 #include "DSAllocator.hpp"
-#include "Debug.hpp"
-#include "Device.hpp"
 #include "cppHelpers.hpp"
-#include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <mutex>
-#include <string_view>
+#include <optional>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace v4dg {
 class Context;
@@ -22,14 +25,14 @@ public:
   CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&, Context &,
                 std::uint32_t, std::unique_lock<std::mutex>);
 
-  void beginDebugLabel(std::string_view name,
+  void beginDebugLabel(detail::zstring_view name,
                        glm::vec4 color = constants::vBlack) noexcept;
   void endDebugLabel() noexcept;
-  void insertDebugLabel(std::string_view name,
+  void insertDebugLabel(detail::zstring_view name,
                         glm::vec4 color = constants::vBlack) noexcept;
 
   [[nodiscard]] auto
-  debugLabelScope(std::string_view name,
+  debugLabelScope(detail::zstring_view name,
                   glm::vec4 color = constants::vBlack) noexcept {
     beginDebugLabel(name, color);
     return detail::destroy_helper([this] { endDebugLabel(); });
@@ -98,7 +101,7 @@ private:
 // vk::SubmitInfo2 + destruction queue
 struct SubmitionInfo {
   static SubmitionInfo gather(std::span<CommandBuffer>);
-  static SubmitionInfo gather(CommandBuffer &&cb) { return gather({&cb, 1}); }
+  static SubmitionInfo gather(CommandBuffer cb) { return gather({&cb, 1}); }
 
   std::vector<vk::SemaphoreSubmitInfo> waits;
   std::vector<vk::CommandBufferSubmitInfo> command_buffers;

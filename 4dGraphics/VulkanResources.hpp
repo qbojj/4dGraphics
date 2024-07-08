@@ -5,10 +5,12 @@
 #include "Device.hpp"
 #include "VulkanConstructs.hpp"
 
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <type_traits>
+#include <format>
+#include <memory>
 
 namespace v4dg {
 class ImageView;
@@ -57,7 +59,7 @@ public:
     return m_storageHandle.get();
   }
 
-  ImageViewObject(internal_construct_t, Context &ctx, Image image,
+  ImageViewObject(internal_construct_t, Context &ctx, const Image &image,
                   vk::ImageViewCreateFlags flags, vk::ImageViewType viewType,
                   vk::Format format, vk::ImageUsageFlags usage,
                   vk::ComponentMapping components,
@@ -84,7 +86,7 @@ class ImageView : public std::shared_ptr<const detail::ImageViewObject> {
 public:
   ImageView() = delete;
 
-  ImageView(Context &ctx, Image image, vk::ImageViewCreateFlags flags,
+  ImageView(Context &ctx, const Image &image, vk::ImageViewCreateFlags flags,
             vk::ImageViewType viewType, vk::Format format,
             vk::ImageUsageFlags usage, vk::ComponentMapping components = {},
             vk::ImageSubresourceRange subresourceRange = {

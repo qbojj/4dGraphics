@@ -1,2 +1,4 @@
 ---
-Checks: 'cppcoreguidelines-*,bugprone-*,modernize-*,-modernize-use-trailing-return-type'
+Checks: 'cppcoreguidelines-*,bugprone-*,modernize-*,
+         readability-*,portability-*,performance-*,misc-*,
+         -modernize-use-trailing-return-type,-misc-include-cleaner'

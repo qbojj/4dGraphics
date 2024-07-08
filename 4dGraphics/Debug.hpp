@@ -7,12 +7,12 @@
 #include <exception>
 #include <format>
 #include <iostream>
-#include <iterator>
-#include <limits>
 #include <memory>
-#include <mutex>
 #include <source_location>
+#include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace v4dg {
 class Logger {
@@ -120,18 +120,21 @@ public:
     GenericLogV(LogLevel::PrintAlways, fmt, args, lc);
   }
 
+  // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
   template <class... Args>
   void GenericLog(LogLevel lv, format_string_with_location<Args...> fmt,
                   Args &&...args) noexcept {
     GenericLogV(lv, fmt.fmt.get(), std::make_format_args(args...), fmt.lc);
   }
+  // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
   void GenericLogV(
       LogLevel lv, std::string_view fmt, std::format_args args,
       std::source_location lc = std::source_location::current()) noexcept {
     try {
-      if (lv >= getLogLevel() && m_logReciever)
+      if (lv >= getLogLevel() && m_logReciever) {
         m_logReciever->log(fmt, args, lc, lv);
+      }
     } catch (const std::exception &e) {
       std::cerr << "Exception caught in log reciever: " << e.what() << '\n';
     } catch (...) {
@@ -139,7 +142,7 @@ public:
     }
   }
 
-  LogLevel getLogLevel() const noexcept {
+  [[nodiscard]] LogLevel getLogLevel() const noexcept {
     return m_logLevel.load(std::memory_order::relaxed);
   }
   void setLogLevel(LogLevel lv) noexcept {
@@ -148,7 +151,7 @@ public:
 
   // it is not safe to call this function when multiple threads are logging
   void setLogReciever(std::shared_ptr<ILogReciever> reciever) {
-    m_logReciever = reciever;
+    m_logReciever = std::move(reciever);
   }
 
 private:

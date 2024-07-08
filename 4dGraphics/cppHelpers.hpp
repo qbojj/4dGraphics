@@ -2,13 +2,18 @@
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <expected>
 #include <fstream>
 #include <functional>
 #include <ios>
+#include <istream>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace v4dg::detail {
 
@@ -45,8 +50,9 @@ public:
       : count_(std::uncaught_exceptions()), onExcept_(onExcept) {}
 
   ~exception_guard() {
-    if (std::uncaught_exceptions() > count_)
+    if (std::uncaught_exceptions() > count_) {
       std::invoke(onExcept_);
+    }
   }
 
 private:
@@ -62,12 +68,13 @@ enum class get_file_error : std::uint8_t {
 
 inline std::expected<std::string, get_file_error>
 GetStreamString(std::istream &file) {
-  file.seekg(0, file.end);
+  file.seekg(0, std::istream::end);
   auto length = file.tellg();
   file.seekg(0);
 
-  if (!file)
+  if (!file) {
     return std::unexpected(get_file_error::io_error);
+  }
 
   std::string s;
   s.resize_and_overwrite(length, [&](char *buf, std::size_t len) noexcept {
@@ -75,8 +82,9 @@ GetStreamString(std::istream &file) {
     return file.gcount();
   });
 
-  if (!file || file.gcount() != length)
+  if (!file || file.gcount() != length) {
     return std::unexpected(get_file_error::io_error);
+  }
 
   return s;
 }
@@ -85,21 +93,24 @@ template <typename T>
   requires std::is_trivially_copyable_v<T>
 inline std::expected<std::vector<T>, get_file_error>
 GetStreamBinary(std::istream &file) {
-  file.seekg(0, file.end);
+  file.seekg(0, std::istream::end);
   auto length = file.tellg();
   file.seekg(0);
 
-  if (!file)
+  if (!file) {
     return std::unexpected(get_file_error::io_error);
+  }
 
-  if (length % sizeof(T) != 0)
+  if (length % sizeof(T) != 0) {
     return std::unexpected(get_file_error::file_size_unaligned);
+  }
 
   std::vector<T> ret(length / sizeof(T));
   file.read(reinterpret_cast<char *>(ret.data()), length);
 
-  if (!file || file.gcount() != length)
+  if (!file || file.gcount() != length) {
     return std::unexpected(get_file_error::io_error);
+  }
 
   return ret;
 }
@@ -107,8 +118,9 @@ GetStreamBinary(std::istream &file) {
 inline auto GetFileString(const auto &pth, std::ios_base::openmode mode = {})
     -> std::expected<std::string, get_file_error> {
   std::ifstream file(pth, mode);
-  if (!file)
+  if (!file) {
     return std::unexpected(get_file_error::file_not_found);
+  }
 
   return GetStreamString(file);
 }
@@ -119,40 +131,153 @@ inline auto GetFileBinary(const auto &pth,
                           std::ios_base::openmode mode = std::ios_base::binary)
     -> std::expected<std::vector<T>, get_file_error> {
   std::ifstream file(pth, mode);
-  if (!file)
+  if (!file) {
     return std::unexpected(get_file_error::file_not_found);
+  }
 
   return GetStreamBinary<T>(file);
 }
 
 template <std::unsigned_integral T, std::integral V>
-constexpr inline T AlignUp(T val, V alignment) {
+constexpr T AlignUp(T val, V alignment) {
   return (val + static_cast<T>(alignment) - 1) &
          ~(static_cast<T>(alignment) - 1);
 }
 
 template <std::unsigned_integral T, std::integral V>
-constexpr inline T AlignUpOffset(T val, V alignment) {
+constexpr T AlignUpOffset(T val, V alignment) {
   return AlignUp(val, alignment) - val;
 }
 
 template <std::unsigned_integral T, std::integral V>
-constexpr inline T DivCeil(T val, V alignment) {
+constexpr T DivCeil(T val, V alignment) {
   return (val + static_cast<T>(alignment) - 1) / static_cast<T>(alignment);
 }
 
 template <std::unsigned_integral T, std::integral V>
-constexpr inline T AlignDown(T val, V alignment) {
+constexpr T AlignDown(T val, V alignment) {
   return val & ~(static_cast<T>(alignment) - 1);
 }
 
 template <typename... Ts> struct overload_set : Ts... {
   using Ts::operator()...;
 };
+
+template <typename CharT, typename Traits = std::char_traits<CharT>>
+class basic_zstring_view : std::basic_string_view<CharT, Traits> {
+  using parent = std::basic_string_view<CharT, Traits>;
+
+public:
+  using typename parent::const_iterator;
+  using typename parent::const_pointer;
+  using typename parent::const_reference;
+  using typename parent::const_reverse_iterator;
+  using typename parent::difference_type;
+  using typename parent::iterator;
+  using typename parent::pointer;
+  using typename parent::reference;
+  using typename parent::reverse_iterator;
+  using typename parent::size_type;
+  using typename parent::traits_type;
+  using typename parent::value_type;
+
+  constexpr basic_zstring_view() noexcept = default;
+  constexpr basic_zstring_view(const CharT *s) : parent(s) {}
+  constexpr basic_zstring_view(std::nullptr_t) = delete;
+
+  basic_zstring_view(const std::basic_string<CharT, Traits> &s) : parent(s) {}
+
+  using parent::begin;
+  using parent::cbegin;
+  using parent::cend;
+  using parent::crbegin;
+  using parent::crend;
+  using parent::end;
+  using parent::rbegin;
+  using parent::rend;
+
+  using parent::operator[];
+  using parent::at;
+  using parent::back;
+  using parent::data;
+  using parent::front;
+
+  using parent::empty;
+  using parent::length;
+  using parent::max_size;
+  using parent::size;
+
+  using parent::remove_prefix;
+  // no remove_suffix as it would remove null terminator
+  constexpr void swap(basic_zstring_view &s) noexcept {
+    parent::swap(static_cast<parent &>(s));
+  }
+
+  using parent::copy;
+
+  constexpr basic_zstring_view substr(size_type pos = 0) {
+    return basic_zstring_view{parent::substr(pos)};
+  }
+
+  constexpr parent substr(size_type pos, size_type count) {
+    return parent::substr(pos, count);
+  }
+
+  using parent::compare;
+
+  using parent::contains;
+  using parent::ends_with;
+  using parent::find;
+  using parent::find_first_not_of;
+  using parent::find_first_of;
+  using parent::find_last_not_of;
+  using parent::find_last_of;
+  using parent::rfind;
+  using parent::starts_with;
+
+  using parent::npos;
+
+  constexpr auto
+  operator<=>(const basic_zstring_view &) const noexcept = default;
+
+  // can be decayed to string_view
+  constexpr operator parent() const noexcept { return *this; }
+
+private:
+  // unsafe
+  explicit basic_zstring_view(parent p) : parent(p) {}
+};
+
+using zstring_view = basic_zstring_view<char>;
+using wzstring_view = basic_zstring_view<wchar_t>;
+using zu8string_view = basic_zstring_view<char8_t>;
+using zu16string_view = basic_zstring_view<char16_t>;
+using zu32string_view = basic_zstring_view<char32_t>;
+
+namespace views {
+template <typename T>
+inline constexpr auto static_casted = std::views::transform(
+    [](auto &&x) -> T { return static_cast<T>(std::forward<decltype(x)>(x)); });
+
+template <typename T>
+inline constexpr auto reinterpret_casted =
+    std::views::transform([](auto &&x) -> T {
+      return reinterpret_cast<T>(std::forward<decltype(x)>(x));
+    });
+
+template <typename T>
+inline constexpr auto const_casted = std::views::transform(
+    [](auto &&x) -> T { return const_cast<T>(std::forward<decltype(x)>(x)); });
+
+template <typename T>
+inline constexpr auto dynamic_casted = std::views::transform([](auto &&x) -> T {
+  return dynamic_cast<T>(std::forward<decltype(x)>(x));
+});
+} // namespace views
 } // namespace v4dg::detail
 
 namespace v4dg {
-constexpr inline std::string_view to_string(const detail::get_file_error &e) {
+constexpr std::string_view to_string(const detail::get_file_error &e) {
   switch (e) {
   case detail::get_file_error::file_not_found:
     return "file not found";

@@ -4,46 +4,89 @@
 #include "v4dgCore.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL_error.h>
+#include <SDL_stdinc.h>
+#include <SDL_video.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 
 #include <cstring>
-#include <exception>
 #include <stdexcept>
+#include <utility>
 
-namespace v4dg {
+using namespace v4dg;
 namespace {
 [[noreturn]] void sdl_error_to_exception() {
   throw exception("STL error: {}", SDL_GetError());
 }
 } // namespace
 
-SDL_GlobalContext::~SDL_GlobalContext() { SDL_Quit(); }
+ImGuiRAIIContext::ImGuiRAIIContext(ImGuiRAIIContext &&o) noexcept
+    : context(std::exchange(o.context, nullptr)) {}
 
-SDL_Context::SDL_Context(Uint32 subsystems) : subsystems(subsystems) {
-  if (SDL_InitSubSystem(subsystems))
-    sdl_error_to_exception();
+ImGuiRAIIContext &ImGuiRAIIContext::operator=(ImGuiRAIIContext &&o) noexcept {
+  if (this == &o) {
+    return *this;
+  }
+  ImGui::DestroyContext(context);
+  context = std::exchange(o.context, nullptr);
+  return *this;
 }
-
-SDL_Context::~SDL_Context() { SDL_QuitSubSystem(subsystems); }
-
 ImGuiRAIIContext::ImGuiRAIIContext(ImFontAtlas *font)
     : context(ImGui::CreateContext(font)) {
-  if (!context)
+  if (context == nullptr) {
     throw exception("Cannot initialize ImGui");
-  if (!IMGUI_CHECKVERSION())
+  }
+  if (!IMGUI_CHECKVERSION()) {
     throw exception("Imgui runtime version not equal to what version "
                     "program was compiled with");
+  }
   ImGui::SetCurrentContext(context);
 }
 
 ImGuiRAIIContext::~ImGuiRAIIContext() { ImGui::DestroyContext(context); }
 
-Window::Window(int width, int height, const char *title) : window(nullptr) {
-  window = SDL_CreateWindow(title, 0, 0, width, height,
-                            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-  if (!window)
+SDL_GlobalContext::~SDL_GlobalContext() { SDL_Quit(); }
+
+SDL_Context::SDL_Context(Uint32 subsystems) : subsystems(subsystems) {
+  if (SDL_InitSubSystem(subsystems) != 0) {
     sdl_error_to_exception();
+  }
+}
+
+SDL_Context::SDL_Context(SDL_Context &&o) noexcept
+    : subsystems(std::exchange(o.subsystems, 0)) {}
+
+SDL_Context &SDL_Context::operator=(SDL_Context &&o) noexcept {
+  if (this == &o) {
+    return *this;
+  }
+  SDL_QuitSubSystem(subsystems);
+  subsystems = std::exchange(o.subsystems, 0);
+  return *this;
+}
+
+SDL_Context::~SDL_Context() { SDL_QuitSubSystem(subsystems); }
+
+Window::Window(int width, int height, const char *title)
+    : window(SDL_CreateWindow(title, 0, 0, width, height,
+                              SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE)) {
+
+  if (window == nullptr) {
+    sdl_error_to_exception();
+  }
+}
+
+Window::Window(Window &&o) noexcept
+    : window(std::exchange(o.window, nullptr)) {}
+Window &Window::operator=(Window &&o) noexcept {
+  if (this == &o) {
+    return *this;
+  }
+  sdlCtx = std::exchange(o.sdlCtx, SDL_Context{0});
+  SDL_DestroyWindow(window);
+  window = std::exchange(o.window, nullptr);
+  return *this;
 }
 
 Window::~Window() { SDL_DestroyWindow(window); }
@@ -51,8 +94,9 @@ Window::~Window() { SDL_DestroyWindow(window); }
 ImGui_SDLImpl::ImGui_SDLImpl(const Window &window) {
   auto &io = ImGui::GetIO();
 
-  if (!io.Fonts->AddFontDefault() || !io.Fonts->Build())
+  if ((io.Fonts->AddFontDefault() == nullptr) || !io.Fonts->Build()) {
     throw std::runtime_error("Could not initialize imgui font");
+  }
 
   ImGui_ImplSDL2_InitForVulkan(window);
 }
@@ -60,9 +104,9 @@ ImGui_SDLImpl::ImGui_SDLImpl(const Window &window) {
 ImGui_SDLImpl::~ImGui_SDLImpl() { ImGui_ImplSDL2_Shutdown(); }
 
 GameEngine::GameEngine(Window window)
-    : m_window(std::move(window)), m_ImGuiCtx(), m_ImGuiSdlImpl(m_window) {}
+    : m_window(std::move(window)), m_ImGuiSdlImpl(m_window) {}
 
-GameEngine::~GameEngine() {}
+GameEngine::~GameEngine() = default;
 
 /*
 void GameEngine::EngineLoop(void* wData)
@@ -201,5 +245,3 @@ DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 DebugLevel::FatalError, "Unknown Exception caught\n" ); }
 }
 */
-
-} // namespace v4dg

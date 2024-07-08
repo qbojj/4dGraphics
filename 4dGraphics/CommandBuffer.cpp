@@ -1,23 +1,26 @@
 #include "CommandBuffer.hpp"
 
-#include "CommandBufferManager.hpp"
 #include "Context.hpp"
+#include "cppHelpers.hpp"
+#include "v4dgCore.hpp"
+#include "v4dgVulkan.hpp"
 
-#include <bits/ranges_algo.h>
-#include <mutex>
-#include <optional>
-#include <regex>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include <algorithm>
-#include <numeric>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <mutex>
+#include <optional>
 #include <ranges>
+#include <span>
+#include <stdexcept>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 using namespace v4dg;
 
@@ -29,60 +32,71 @@ CommandBuffer::CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&other,
       m_ds_allocator(context.get_frame_ctx().m_ds_allocator),
       m_lock(std::move(lock)), m_queue_family_index(family_index) {}
 
-void CommandBuffer::beginDebugLabel(std::string_view name,
+void CommandBuffer::beginDebugLabel(detail::zstring_view name,
                                     glm::vec4 color) noexcept {
-  if (!m_context->device().debugNamesAvaiable())
+  if (!m_context->device().debugNamesAvaiable()) {
     return;
+  }
   (*this)->beginDebugUtilsLabelEXT(
       {name.data(), {color.r, color.g, color.b, color.a}});
 }
 
 void CommandBuffer::endDebugLabel() noexcept {
-  if (!m_context->device().debugNamesAvaiable())
+  if (!m_context->device().debugNamesAvaiable()) {
     return;
+  }
   (*this)->endDebugUtilsLabelEXT();
 }
 
-void CommandBuffer::insertDebugLabel(std::string_view name,
+void CommandBuffer::insertDebugLabel(detail::zstring_view name,
                                      glm::vec4 color) noexcept {
-  if (!m_context->device().debugNamesAvaiable())
+  if (!m_context->device().debugNamesAvaiable()) {
     return;
+  }
+
   (*this)->insertDebugUtilsLabelEXT(
       {name.data(), {color.r, color.g, color.b, color.a}});
 }
 
 CommandBuffer &SubmitGroup::bind_command_buffer(std::size_t index,
                                                 CommandBuffer cb) {
-  if (index >= m_command_buffer_wrappers.size())
+  if (index >= m_command_buffer_wrappers.size()) {
     throw std::out_of_range("CommandBuffer index out of range");
-  if (m_command_buffer_wrappers.at(index).has_value())
-    throw exception("CommandBuffer already bound");
+  }
 
-  m_command_buffer_wrappers.at(index).emplace(std::move(cb));
-  return *m_command_buffer_wrappers[index];
+  auto &opt_cb = m_command_buffer_wrappers.at(index);
+  if (opt_cb.has_value()) {
+    throw exception("CommandBuffer already bound");
+  }
+
+  return opt_cb.emplace(std::move(cb));
 }
 
 SubmitionInfo SubmitGroup::gather_submitInfo() && {
   if (not std::ranges::all_of(m_command_buffer_wrappers,
-                              &std::optional<CommandBuffer>::has_value))
+                              &std::optional<CommandBuffer>::has_value)) {
     throw exception("CommandBuffer declared in SubmitGroup is not bound");
+  }
 
-  auto v = m_command_buffer_wrappers | std::views::as_rvalue |
-           std::views::transform([](auto o) { return std::move(o).value(); }) |
-           std::ranges::to<std::vector>();
+  auto all_cbs =
+      m_command_buffer_wrappers | std::views::as_rvalue |
+      std::views::transform([](auto o_cb) { return std::move(o_cb).value(); }) |
+      std::ranges::to<std::vector>();
 
-  return SubmitionInfo::gather(v);
+  return SubmitionInfo::gather(all_cbs);
 }
 
 SubmitionInfo SubmitionInfo::gather(std::span<CommandBuffer> cbs) {
   SubmitionInfo res;
 
   for (CommandBuffer &cb : cbs) {
-    if (*cb == vk::CommandBuffer{})
+    if (*cb == vk::CommandBuffer{}) {
       assert(false && "CommandBuffer was moved out");
+    }
 
-    if (!cb.ended)
+    if (!cb.ended) {
       assert(false && "CommandBuffer not was not ended");
+    }
 
     res.waits.insert(res.waits.end(), cb.m_waits.begin(), cb.m_waits.end());
     res.command_buffers.emplace_back(*cb);
@@ -93,12 +107,14 @@ SubmitionInfo SubmitionInfo::gather(std::span<CommandBuffer> cbs) {
 
   // we can deduplicate the entries in the wait and signal lists
   auto deduplicate = [](bool is_wait, auto &list) {
-    auto proj = [](auto const &a) {
-      return std::tuple{a.semaphore, a.deviceIndex, a.pNext};
+    auto proj = [](auto const &sem_info) {
+      return std::tuple{sem_info.semaphore, sem_info.deviceIndex,
+                        sem_info.pNext};
     };
 
-    auto ok_to_merge = [&](auto const &a, auto const &b) {
-      return proj(a) == proj(b) && a.pNext == nullptr && b.pNext == nullptr;
+    auto ok_to_merge = [&](auto const &lhs, auto const &rhs) {
+      return proj(lhs) == proj(rhs) && lhs.pNext == nullptr &&
+             rhs.pNext == nullptr;
     };
 
     auto reduce_semaphores = [&](auto &&chunk) {

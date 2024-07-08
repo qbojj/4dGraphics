@@ -1,7 +1,11 @@
 #include "CommandBufferManager.hpp"
+#include "v4dgVulkan.hpp"
 
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan_raii.hpp>
+
+#include <cstddef>
+#include <cstdint>
 
 using namespace v4dg;
 
@@ -13,11 +17,13 @@ command_buffer_manager::command_buffer_manager(const vk::raii::Device &dev,
 void command_buffer_manager::reset(vk::CommandPoolResetFlags flags) {
   m_pool.reset(flags);
 
-  for (cache_bucket &bucket : m_primary)
+  for (cache_bucket &bucket : m_primary) {
     bucket.used = 0;
+  }
 
-  for (cache_bucket &bucket : m_secondary)
+  for (cache_bucket &bucket : m_secondary) {
     bucket.used = 0;
+  }
 }
 
 vulkan_raii_view<vk::raii::CommandBuffer>
@@ -27,8 +33,8 @@ command_buffer_manager::get(vk::CommandBufferLevel level, category cat) {
       (level == vk::CommandBufferLevel::ePrimary ? m_primary : m_secondary)
           .at(cat_idx);
 
-  size_t cmdBuffCnt = pool.buffers.size();
-  size_t used = pool.used;
+  size_t const cmdBuffCnt = pool.buffers.size();
+  size_t const used = pool.used;
   if (used == cmdBuffCnt) {
     ZoneScopedN("CommandBufferManager::get::allocate");
     pool.buffers.reserve(cmdBuffCnt + block_count);

@@ -150,7 +150,6 @@ target_precompile_headers(
 target_link_libraries(
   4dGraphics
   PUBLIC imgui::imgui
-         $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
          Taskflow::Taskflow
          glm::glm

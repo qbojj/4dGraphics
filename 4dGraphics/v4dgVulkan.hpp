@@ -3,18 +3,22 @@
 #include "vulkanConcepts.hpp"
 
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
+#include <concepts>
 #include <cstddef>
 #include <format>
 #include <functional>
+#include <memory>
 #include <memory_resource>
+#include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace v4dg {
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 template <typename T, typename U>
   requires vulkan_struct_extends<T, U>
 [[nodiscard]] T *getVkStructureFromChain(U *pNextChain) {
@@ -40,6 +44,7 @@ template <typename T, typename U>
   }
   return nullptr;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 [[nodiscard]] vk::BufferUsageFlags2KHR
 getBufferUsage(const vk::BufferCreateInfo &bci);
@@ -63,7 +68,7 @@ public:
 
   operator const T &() const noexcept { return t; }
 
-  const typename T::CppType operator*() const noexcept { return *t; }
+  typename T::CppType operator*() const noexcept { return *t; }
   const T *operator->() const noexcept { return &t; }
 
 private:
@@ -79,9 +84,10 @@ private:
   vk::AllocationCallbacks m_allocator;
 
   void *do_allocate(std::size_t bytes, std::size_t alignment) override;
-  void do_deallocate(void *p, std::size_t, std::size_t) override;
-  [[nodiscard]] bool
-  do_is_equal(const std::pmr::memory_resource &) const noexcept override;
+  void do_deallocate(void *p, std::size_t /*__bytes*/,
+                     std::size_t /*__alignment*/) override;
+  [[nodiscard]] bool do_is_equal(
+      const std::pmr::memory_resource & /*__other*/) const noexcept override;
 };
 
 struct DestructionItem {
@@ -118,14 +124,18 @@ public:
 private:
   std::vector<DestructionItem> m_stack;
 };
+
+namespace detail {
+template <typename T>
+concept vulkan_formattable = requires(const T &t) { ::vk::to_string(t); };
+} // namespace detail
 } // namespace v4dg
 
 namespace std {
-template <typename T>
-  requires requires(const T &t) { ::vk::to_string(t); }
+template <v4dg::detail::vulkan_formattable T>
 struct formatter<T> : formatter<std::string_view> {
   auto format(const T &t, auto &ctx) const {
-    return formatter<std::string_view>::format(vk::to_string(t), ctx);
+    return formatter<std::string_view>::format(::vk::to_string(t), ctx);
   }
 };
 

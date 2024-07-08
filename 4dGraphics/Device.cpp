@@ -1,21 +1,33 @@
 #include "Device.hpp"
 
 #include "Debug.hpp"
-#include "v4dgVulkan.hpp"
-
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_extension_inspection.hpp>
-#include <vulkan/vulkan_raii.hpp>
+#include "Queue.hpp"
+#include "v4dgCore.hpp"
+#include "vulkanConcepts.hpp"
 
 #include <SDL2/SDL_vulkan.h>
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <exception>
+#include <format>
 #include <functional>
+#include <iterator>
+#include <limits>
 #include <map>
-#include <memory>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
-#include <vulkan/vulkan_structs.hpp>
+#include <string_view>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace v4dg {
 namespace {
@@ -26,62 +38,71 @@ debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
                     void * /*pUserData*/) noexcept {
 
   try {
-    std::string message =
-        std::format("\n"
-                    "{}: {}:\n"
-                    "\tmessageIDName   = <{}>\n"
-                    "\tmessageIdNumber = {:x}\n"
-                    "\tmessage         = <{}>\n",
-                    severity, types, pCallbackData->pMessageIdName,
-                    static_cast<uint32_t>(pCallbackData->messageIdNumber),
-                    pCallbackData->pMessage);
-
+    std::string message;
     auto format_append = [&]<typename... Ts>(std::format_string<Ts...> fmt,
                                              Ts &&...args) {
       std::format_to(std::back_inserter(message), fmt,
                      std::forward<Ts>(args)...);
     };
 
+    format_append("\n"
+                  "{}: {}:\n"
+                  "\tmessageIDName   = <{}>\n"
+                  "\tmessageIdNumber = {:x}\n"
+                  "\tmessage         = <{}>\n",
+                  severity, types, pCallbackData->pMessageIdName,
+                  static_cast<std::uint32_t>(pCallbackData->messageIdNumber),
+                  pCallbackData->pMessage);
+
     if (0 < pCallbackData->queueLabelCount) {
       message.append("\tQueue Labels:\n");
 
-      for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
-        format_append("\t\tlabelName = <{}>\n",
-                      pCallbackData->pQueueLabels[i].pLabelName);
+      auto labels = std::span{pCallbackData->pQueueLabels,
+                              pCallbackData->queueLabelCount};
+
+      for (const auto &label : labels) {
+        format_append("\t\tlabelName = <{}>\n", label.pLabelName);
+      }
     }
+
     if (0 < pCallbackData->cmdBufLabelCount) {
       message.append("\tCommandBuffer Labels:\n");
 
-      for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
-        format_append("\t\tlabelName = <{}>\n",
-                      pCallbackData->pCmdBufLabels[i].pLabelName);
+      auto labels = std::span{pCallbackData->pCmdBufLabels,
+                              pCallbackData->cmdBufLabelCount};
+
+      for (const auto &label : labels) {
+        format_append("\t\tlabelName = <{}>\n", label.pLabelName);
+      }
     }
 
-    for (uint32_t i = 0; i < pCallbackData->objectCount; i++) {
-      format_append(
-          "\tObject {}\n"
-          "\t\tobjectType   = {}\n"
-          "\t\tobjectHandle = {:x}\n",
-          i, static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType),
-          pCallbackData->pObjects[i].objectHandle);
+    auto objects =
+        std::span{pCallbackData->pObjects, pCallbackData->objectCount};
 
-      if (pCallbackData->pObjects[i].pObjectName)
-        format_append("\t\tobjectName   = <{}>\n",
-                      pCallbackData->pObjects[i].pObjectName);
+    for (auto &&[i, object] : objects | std::views::enumerate) {
+      format_append("\tObject {}\n"
+                    "\t\tobjectType   = {}\n"
+                    "\t\tobjectHandle = {:x}\n",
+                    i, object.objectType, object.objectHandle);
+
+      if (object.pObjectName != nullptr) {
+        format_append("\t\tobjectName   = <{}>\n", object.pObjectName);
+      }
     }
 
     message.pop_back(); // remove trailing newline
 
-    Logger::LogLevel level;
+    Logger::LogLevel level = Logger::LogLevel::Debug;
 
-    if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+    if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eError) {
       level = Logger::LogLevel::Error;
-    else if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
+    } else if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning) {
       level = Logger::LogLevel::Warning;
-    else if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
+    } else if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo) {
       level = Logger::LogLevel::Log;
-    else
+    } else {
       level = Logger::LogLevel::Debug;
+    }
 
     logger.GenericLog(level, "{}", message);
   } catch (const std::exception &e) {
@@ -100,11 +121,11 @@ debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity);
   auto types = static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes);
 
-  return static_cast<VkBool32>(debugMessageFuncCpp(
-      severity, types,
+  const auto *callback_data =
       reinterpret_cast<const vk::DebugUtilsMessengerCallbackDataEXT *>(
-          pCallbackData),
-      pUserData));
+          pCallbackData);
+
+  return debugMessageFuncCpp(severity, types, callback_data, pUserData);
 }
 
 using std::ranges::contains;
@@ -125,8 +146,9 @@ constexpr void unique_add(auto &dst, const auto &ext) {
 }
 
 constexpr void unique_add_if_present(auto &dst, auto &src, const auto &ext) {
-  if (contains(src, ext))
+  if (contains(src, ext)) {
     unique_add(dst, ext);
+  }
 }
 
 std::vector<const char *> to_c_vector(auto &strings) {
@@ -147,27 +169,27 @@ constexpr std::array wanted_instance_exts{
     vk::KHRPortabilityEnumerationExtensionName,
 };
 
-using DeviceStats_ext_adder = void (DeviceStats::*)(std::string_view);
+using DeviceStats_ext_adder = void (DeviceStats:: *)(std::string_view);
 using DeviceStats_ext_mapping =
     std::pair<const std::string_view, DeviceStats_ext_adder>;
 
-constexpr static DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
+constexpr DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
   return {name, &DeviceStats::add_extension};
 }
 
 template <vulkan_struct_extends<vk::PhysicalDeviceFeatures2> Tf>
-constexpr static DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
+constexpr DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
   return {name, &DeviceStats::add_extension<Tf>};
 }
 
 template <vulkan_struct_extends<vk::PhysicalDeviceProperties2> Tp>
-constexpr static DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
+constexpr DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
   return {name, &DeviceStats::add_extension<Tp>};
 }
 
 template <vulkan_struct_extends<vk::PhysicalDeviceFeatures2> Tf,
           vulkan_struct_extends<vk::PhysicalDeviceProperties2> Tp>
-constexpr static DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
+constexpr DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
   return {name, &DeviceStats::add_extension<Tf, Tp>};
 }
 
@@ -298,12 +320,15 @@ std::vector<extension_storage> Instance::chooseLayers() const {
       "VK_LAYER_KHRONOS_memory_decompression",
   };
 
-  if (!is_production)
-    requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
+  if (!is_production) {
+    requestedLayers.emplace_back("VK_LAYER_KHRONOS_validation");
+  }
 
-  for (const auto &layer_p : m_context.enumerateInstanceLayerProperties())
-    if (contains(requestedLayers, std::string_view{layer_p.layerName}))
+  for (const auto &layer_p : m_context.enumerateInstanceLayerProperties()) {
+    if (contains(requestedLayers, std::string_view{layer_p.layerName})) {
       unique_add(layers, layer_p.layerName);
+    }
+  }
 
   return layers;
 }
@@ -311,44 +336,53 @@ std::vector<extension_storage> Instance::chooseLayers() const {
 std::vector<extension_storage> Instance::chooseExtensions() const {
   std::vector<extension_storage> extensions;
 
-  std::vector<std::string_view> requiredInstanceExts, wantedInstanceExts;
+  std::vector<std::string_view> requiredInstanceExts;
+  std::vector<std::string_view> wantedInstanceExts;
 
-  for (const auto &ext : required_instance_exts)
+  for (const auto &ext : required_instance_exts) {
     unique_add(requiredInstanceExts, ext);
+  }
 
-  for (const auto &ext : wanted_instance_exts)
+  for (const auto &ext : wanted_instance_exts) {
     unique_add(wantedInstanceExts, ext);
+  }
 
-  uint32_t window_ext_count;
+  uint32_t window_ext_count = 0;
   SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count, nullptr);
   std::vector<const char *> window_exts(window_ext_count);
   SDL_Vulkan_GetInstanceExtensions(nullptr, &window_ext_count,
                                    window_exts.data());
 
   logger.Debug("Required window extensions:");
-  for (const auto &ext : window_exts)
+  for (const auto &ext : window_exts) {
     logger.Debug("\t{}", std::string_view{ext});
+  }
 
-  for (const auto &ext : window_exts)
+  for (const auto &ext : window_exts) {
     unique_add(requiredInstanceExts, ext);
+  }
 
   std::vector<extension_storage> avaiable_exts;
 
-  for (const auto &ext : m_context.enumerateInstanceExtensionProperties())
+  for (const auto &ext : m_context.enumerateInstanceExtensionProperties()) {
     unique_add(avaiable_exts, ext.extensionName);
+  }
 
-  for (const auto &layer : m_layers)
+  for (const auto &layer : m_layers) {
     for (const auto &ext :
-         m_context.enumerateInstanceExtensionProperties(std::string{layer}))
+         m_context.enumerateInstanceExtensionProperties(std::string{layer})) {
       unique_add(avaiable_exts, ext.extensionName);
+    }
+  }
 
   for (const auto &ext : wantedInstanceExts | transform_to_ext_storage) {
     unique_add_if_present(extensions, avaiable_exts, ext);
   }
 
   for (const auto &ext : requiredInstanceExts | transform_to_ext_storage) {
-    if (!contains(avaiable_exts, ext))
+    if (!contains(avaiable_exts, ext)) {
       throw exception("Required instance extension {} not supported", ext);
+    }
     unique_add(extensions, ext);
   }
 
@@ -357,20 +391,24 @@ std::vector<extension_storage> Instance::chooseExtensions() const {
 
 vk::raii::Instance
 Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
-  if (vk::apiVersionVariant(m_context.enumerateInstanceVersion()) != 0)
+  if (vk::apiVersionVariant(m_context.enumerateInstanceVersion()) != 0) {
     throw exception("Non-variant Vulkan API required (variant {})",
                     m_context.enumerateInstanceVersion());
+  }
 
-  if (m_apiVer < vk::ApiVersion13)
+  if (m_apiVer < vk::ApiVersion13) {
     throw exception("Vulkan 1.3 or higher is required");
+  }
 
-  vk::ApplicationInfo ai{nullptr, 0, "4dGraphics",
-                         vk::makeApiVersion(0, 0, 0, 1), vk::ApiVersion13};
+  vk::ApplicationInfo const ai{nullptr, 0, "4dGraphics",
+                               vk::makeApiVersion(0, 0, 0, 1),
+                               vk::ApiVersion13};
 
   vk::InstanceCreateFlags flags{};
   if (contains(m_extensions,
-               make_ext_storage(vk::KHRPortabilityEnumerationExtensionName)))
+               make_ext_storage(vk::KHRPortabilityEnumerationExtensionName))) {
     flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+  }
 
   auto layers_c = to_c_vector(m_layers);
   auto instance_exts_c = to_c_vector(m_extensions);
@@ -379,19 +417,22 @@ Instance::initInstance(const vk::AllocationCallbacks *allocator) const {
                      vk::DebugUtilsMessengerCreateInfoEXT>
       ici{{flags, &ai, layers_c, instance_exts_c}, debugMessengerCreateInfo()};
 
-  if (!debugUtilsEnabled())
+  if (!debugUtilsEnabled()) {
     ici.unlink<vk::DebugUtilsMessengerCreateInfoEXT>();
+  }
 
   logger.Log("Creating Vulkan instance with {} layers and {} extensions",
              m_layers.size(), m_extensions.size());
 
   logger.Log("Layers:");
-  for (const auto &layer : m_layers)
+  for (const auto &layer : m_layers) {
     logger.Log("\t{}", std::string_view{layer});
+  }
 
   logger.Log("Extensions:");
-  for (const auto &ext : m_extensions)
+  for (const auto &ext : m_extensions) {
     logger.Log("\t{}", std::string_view{ext});
+  }
 
   return m_context.createInstance(ici.get<>(), allocator);
 }
@@ -419,24 +460,29 @@ DeviceStats::DeviceStats(const vk::raii::PhysicalDevice &pd,
                          std::span<const extension_storage> layers) {
   std::vector<extension_storage> exts;
 
-  for (const auto &ext : pd.enumerateDeviceExtensionProperties())
+  for (const auto &ext : pd.enumerateDeviceExtensionProperties()) {
     unique_add(exts, ext.extensionName);
+  }
 
-  for (const auto &lay_exts : layers)
+  for (const auto &lay_exts : layers) {
     for (const auto &ext :
-         pd.enumerateDeviceExtensionProperties(std::string{lay_exts}))
+         pd.enumerateDeviceExtensionProperties(std::string{lay_exts})) {
       unique_add(exts, ext.extensionName);
+    }
+  }
 
   // fill everything (filters out unknown extensions)
-  for (std::string_view e : exts)
-    if (device_ext_spec.contains(e))
+  for (std::string_view const e : exts) {
+    if (device_ext_spec.contains(e)) {
       std::invoke(device_ext_spec.at(e), *this, e);
+    }
+  }
 
   extensions.shrink_to_fit();
   features.shrink_to_fit();
   properties.shrink_to_fit();
 
-  auto &disp = *pd.getDispatcher();
+  const auto &disp = *pd.getDispatcher();
   (*pd).getProperties2(properties.get<>(), disp);
   (*pd).getFeatures2(features.get<>(), disp);
 }
@@ -455,8 +501,8 @@ Device::Device(const Instance &instance, vk::SurfaceKHR surface)
 std::optional<float>
 Device::rankPhysicalDevice(const DeviceStats &stats,
                            const vk::raii::PhysicalDevice &pd,
-                           vk::SurfaceKHR surface) const {
-  auto &props =
+                           vk::SurfaceKHR surface) {
+  const auto &props =
       stats.properties.get<vk::PhysicalDeviceProperties2>()->properties;
   logger.Debug("Checking physical device {}", props.deviceName);
 
@@ -470,9 +516,11 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
 
   if (!std::ranges::all_of(required_device_exts, has_ext)) {
     std::string missing_exts;
-    for (const auto &ext : required_device_exts)
-      if (!has_ext(ext))
+    for (const auto &ext : required_device_exts) {
+      if (!has_ext(ext)) {
         missing_exts += std::format("\n\t{}", ext);
+      }
+    }
 
     logger.Debug("Physical device {} does not support required extensions: {}",
                  props.deviceName, missing_exts);
@@ -493,7 +541,7 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
   }
 
   auto queue_families = std::views::iota(
-      std::uint32_t{0u}, static_cast<std::uint32_t>(families.size()));
+      std::uint32_t{0U}, static_cast<std::uint32_t>(families.size()));
 
   auto family_supports_present = [&](std::uint32_t family) -> bool {
     return pd.getSurfaceSupportKHR(family, surface);
@@ -517,17 +565,19 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
   };
 
   auto type = props.deviceType;
-  auto type_it = std::ranges::find(prefered, type);
+  const auto *type_it = std::ranges::find(prefered, type);
 
-  if (type_it != prefered.end())
-    rank += 1000.f / (1 + std::distance(prefered.begin(), type_it));
+  if (type_it != prefered.end()) {
+    rank += 1000.F / (1 + std::distance(prefered.begin(), type_it));
+  }
 
-  rank += props.limits.maxImageDimension2D / 4096.f;
+  rank += props.limits.maxImageDimension2D / 4096.F;
 
 #ifdef VK_KHR_portability_subset
   // prefere non-portability subset devices
-  if (stats.has_extension(vk::KHRPortabilitySubsetExtensionName))
+  if (stats.has_extension(vk::KHRPortabilitySubsetExtensionName)) {
     rank -= 100000;
+  }
 #endif
 
   logger.Debug("Physical device {} has rank {}", props.deviceName, rank);
@@ -547,7 +597,7 @@ Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
       std::views::transform([&](const vk::raii::PhysicalDevice &pd) -> pd_info {
         DeviceStats stats{pd, instance().layers()};
         auto rank = rankPhysicalDevice(stats, pd, surface);
-        return pd_info{pd, std::move(stats), rank};
+        return pd_info{.pd = pd, .stats = std::move(stats), .rank = rank};
       });
 
   std::vector<pd_info> phys_devices{phys_devices_view.begin(),
@@ -556,14 +606,16 @@ Device::choosePhysicalDevice(vk::SurfaceKHR surface) const {
   std::ranges::sort(phys_devices, std::greater{}, &pd_info::rank);
 
   std::string devices_str;
-  for (const auto &pd : phys_devices)
+  for (const auto &pd : phys_devices) {
     devices_str += std::format(
         "\n\t{}: {}", pd.stats.properties.get<>()->properties.deviceName,
         pd.rank.value_or(std::numeric_limits<float>::quiet_NaN()));
+  }
   logger.Debug("Physical device rankings: {}", devices_str);
 
-  if (phys_devices.empty())
+  if (phys_devices.empty()) {
     throw exception("No suitable physical devices found");
+  }
 
   pd_info &best = phys_devices.front();
   logger.Log("Choosing physical device {}",
@@ -575,27 +627,33 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
   DeviceStats enabled;
 
   for (std::string_view e : required_device_exts) {
-    if (!device_ext_spec.contains(e))
+    if (!device_ext_spec.contains(e)) {
       throw exception("No feature mapping for extension {}", e);
+    }
 
-    if (enabled.has_extension(e))
+    if (enabled.has_extension(e)) {
       continue;
+    }
 
-    if (!avaiable.has_extension(e))
+    if (!avaiable.has_extension(e)) {
       throw exception("Required device extension {} not supported", e);
+    }
 
     enabled.add_extension(e);
   }
 
   for (std::string_view e : wanted_device_exts) {
-    if (!device_ext_spec.contains(e))
+    if (!device_ext_spec.contains(e)) {
       throw exception("No feature mapping for extension {}", e);
+    }
 
-    if (enabled.has_extension(e))
+    if (enabled.has_extension(e)) {
       continue;
+    }
 
-    if (!avaiable.has_extension(e))
+    if (!avaiable.has_extension(e)) {
       continue;
+    }
 
     std::invoke(device_ext_spec.at(e), enabled, e);
   }
@@ -607,21 +665,21 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
   // remove all features (they are only added if needed)
   enabled.features = {};
 
-  auto &disp = *m_physicalDevice.getDispatcher();
+  const auto &disp = *m_physicalDevice.getDispatcher();
   (*m_physicalDevice).getProperties2(enabled.properties.get<>(), disp);
 
   // choose features to enable
 
-  auto &avaiable_f = avaiable.features;
+  const auto &avaiable_f = avaiable.features;
   auto &enabled_f = enabled.features;
 
-  [[maybe_unused]] auto *a_features2 =
+  [[maybe_unused]] const auto *a_features2 =
       avaiable_f.get<vk::PhysicalDeviceFeatures2>();
   [[maybe_unused]] auto &e_features2 =
       enabled_f.get_or_add<vk::PhysicalDeviceFeatures2>();
 
   assert(a_features2);
-  [[maybe_unused]] auto &a_features = a_features2->features;
+  [[maybe_unused]] const auto &a_features = a_features2->features;
   [[maybe_unused]] auto &e_features = e_features2.features;
 
   e_features2.features.setShaderFloat64(vk::True)
@@ -654,7 +712,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
       .setShaderImageGatherExtended(vk::True)
       .setShaderInt16(vk::True);
 
-  [[maybe_unused]] auto *a_features11 =
+  [[maybe_unused]] const auto *a_features11 =
       avaiable_f.get<vk::PhysicalDeviceVulkan11Features>();
   [[maybe_unused]] auto &e_features11 =
       enabled_f.get_or_add<vk::PhysicalDeviceVulkan11Features>();
@@ -671,7 +729,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
       .setShaderDrawParameters(vk::True)
       .setStorageBuffer16BitAccess(vk::True);
 
-  [[maybe_unused]] auto *a_features12 =
+  [[maybe_unused]] const auto *a_features12 =
       avaiable_f.get<vk::PhysicalDeviceVulkan12Features>();
   [[maybe_unused]] auto &e_features12 =
       enabled_f.get_or_add<vk::PhysicalDeviceVulkan12Features>();
@@ -725,7 +783,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
       .setShaderFloat16(vk::True)
       .setStorageBuffer8BitAccess(vk::True);
 
-  [[maybe_unused]] auto *a_features13 =
+  [[maybe_unused]] const auto *a_features13 =
       avaiable_f.get<vk::PhysicalDeviceVulkan13Features>();
   [[maybe_unused]] auto &e_features13 =
       enabled_f.get_or_add<vk::PhysicalDeviceVulkan13Features>();
@@ -757,7 +815,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
       .setShaderIntegerDotProduct(vk::True)
       .setMaintenance4(vk::True);
 
-  [[maybe_unused]] auto *a_maintenance5 =
+  [[maybe_unused]] const auto *a_maintenance5 =
       avaiable_f.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>();
   [[maybe_unused]] auto &e_maintenance5 =
       enabled_f.get_or_add<vk::PhysicalDeviceMaintenance5FeaturesKHR>();
@@ -765,68 +823,76 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
   e_maintenance5.setMaintenance5(vk::True);
 
   // optional extensions
-  [[maybe_unused]] auto *a_memory_priority =
+  [[maybe_unused]] const auto *a_memory_priority =
       avaiable_f.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 
-  if (a_memory_priority)
+  if (a_memory_priority != nullptr) {
     enabled_f.assign(*a_memory_priority);
+  }
 
-  [[maybe_unused]] auto *a_fault =
+  [[maybe_unused]] const auto *a_fault =
       avaiable_f.get<vk::PhysicalDeviceFaultFeaturesEXT>();
 
-  if (a_fault)
+  if (a_fault != nullptr) {
     enabled_f.assign(*a_fault);
+  }
 
 #ifdef VK_KHR_portability_subset
-  [[maybe_unused]] auto *a_portability_subset =
+  [[maybe_unused]] const auto *a_portability_subset =
       avaiable_f.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
 
   // should enable all features that are needed by the app
   //  so will fix this when someone needs to run on a portability subset device
-  if (a_portability_subset)
+  if (a_portability_subset != nullptr) {
     throw exception("Portability subset not implemented");
+  }
 #endif
 
-  [[maybe_unused]] auto *a_acceleration_structure =
+  [[maybe_unused]] const auto *a_acceleration_structure =
       avaiable_f.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
 
-  if (a_acceleration_structure)
+  if (a_acceleration_structure != nullptr) {
     enabled_f.assign(*a_acceleration_structure);
+  }
 
-  [[maybe_unused]] auto *a_ray_query =
+  [[maybe_unused]] const auto *a_ray_query =
       avaiable_f.get<vk::PhysicalDeviceRayQueryFeaturesKHR>();
 
-  if (a_ray_query)
+  if (a_ray_query != nullptr) {
     enabled_f.assign(*a_ray_query);
+  }
 
-  [[maybe_unused]] auto *a_ray_tracing_pipeline =
+  [[maybe_unused]] const auto *a_ray_tracing_pipeline =
       avaiable_f.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
 
-  if (a_ray_tracing_pipeline)
+  if (a_ray_tracing_pipeline != nullptr) {
     enabled_f.assign(*a_ray_tracing_pipeline);
+  }
 
-  [[maybe_unused]] auto *a_ray_tracing_maintenance1 =
+  [[maybe_unused]] const auto *a_ray_tracing_maintenance1 =
       avaiable_f.get<vk::PhysicalDeviceRayTracingMaintenance1FeaturesKHR>();
 
-  if (a_ray_tracing_maintenance1)
+  if (a_ray_tracing_maintenance1 != nullptr) {
     enabled_f.assign(*a_ray_tracing_maintenance1);
+  }
 
   enabled.features.shrink_to_fit();
   return enabled;
 }
 
 vk::raii::Device Device::initDevice() const {
-  float prio = 0.5f;
+  float prio = 0.5F;
   auto rg = m_physicalDevice.getQueueFamilyProperties() |
-            std::views::transform([&, family = 0u](auto) mutable {
+            std::views::transform([&, family = 0U](auto) mutable {
               return vk::DeviceQueueCreateInfo{{}, family++, 1, &prio};
             });
 
   std::vector<vk::DeviceQueueCreateInfo> qcis{rg.begin(), rg.end()};
 
   std::string exts_str;
-  for (const auto &ext : stats().extensions)
+  for (const auto &ext : stats().extensions) {
     exts_str += std::format("\n\t{}", ext);
+  }
   logger.Log("Creating Vulkan device with extensions: {}", exts_str);
 
   auto extensions_c = to_c_vector(stats().extensions);
@@ -836,32 +902,45 @@ vk::raii::Device Device::initDevice() const {
 
 vma::UniqueAllocator Device::initAllocator() const {
   vma::AllocatorCreateFlags flags{};
-  if (stats().has_extension(vk::EXTMemoryBudgetExtensionName))
+  if (stats().has_extension(vk::EXTMemoryBudgetExtensionName)) {
     flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
+  }
 
-  if (auto *phdcmf =
-          stats().features.get<vk::PhysicalDeviceCoherentMemoryFeaturesAMD>())
-    if (phdcmf->deviceCoherentMemory)
+  if (const auto *phdcmf =
+          stats().features.get<vk::PhysicalDeviceCoherentMemoryFeaturesAMD>()) {
+    if (phdcmf->deviceCoherentMemory != 0u) {
       flags |= vma::AllocatorCreateFlagBits::eAmdDeviceCoherentMemory;
+    }
+  }
 
-  if (auto *pdbdaf =
-          stats().features.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>())
-    if (pdbdaf->bufferDeviceAddress)
+  if (const auto *pdbdaf =
+          stats()
+              .features.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>()) {
+    if (pdbdaf->bufferDeviceAddress != 0u) {
       flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
+    }
+  }
 
-  if (auto *pdv12f = stats().features.get<vk::PhysicalDeviceVulkan12Features>())
-    if (pdv12f->bufferDeviceAddress)
+  if (const auto *pdv12f =
+          stats().features.get<vk::PhysicalDeviceVulkan12Features>()) {
+    if (pdv12f->bufferDeviceAddress != 0u) {
       flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
+    }
+  }
 
-  if (auto *pdmpf =
-          stats().features.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>())
-    if (pdmpf->memoryPriority)
+  if (const auto *pdmpf =
+          stats().features.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()) {
+    if (pdmpf->memoryPriority != 0u) {
       flags |= vma::AllocatorCreateFlagBits::eExtMemoryPriority;
+    }
+  }
 
-  if (auto *m5pf =
-          stats().features.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>())
-    if (m5pf->maintenance5)
+  if (const auto *m5pf =
+          stats().features.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>()) {
+    if (m5pf->maintenance5 != 0u) {
       flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance5;
+    }
+  }
 
   vma::AllocatorCreateInfo aci{};
 
@@ -872,7 +951,7 @@ vma::UniqueAllocator Device::initAllocator() const {
   aci.vulkanApiVersion = std::min(
       instance().apiVer(), stats().properties.get<>()->properties.apiVersion);
 
-  vma::VulkanFunctions functions = vma::functionsFromDispatcher(
+  vma::VulkanFunctions const functions = vma::functionsFromDispatcher(
       vkInstance().getDispatcher(), device().getDispatcher());
 
   aci.pVulkanFunctions = &functions;
@@ -886,21 +965,23 @@ std::vector<std::vector<Queue>> Device::initQueues() const {
   auto props = m_physicalDevice.getQueueFamilyProperties();
 
   for (const auto &[family_, qfp] : props | std::views::enumerate) {
-    uint32_t family = family_;
+    uint32_t const family = family_;
     auto flags = qfp.queueFlags;
 
     // graphics and compute queues can also do transfer operations
     //  but are not required to have a transfer flag
-    if (flags & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
+    if (flags & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute)) {
       flags |= vk::QueueFlagBits::eTransfer;
+    }
 
     std::vector<Queue> family_queues;
-    family_queues.emplace_back(vk::raii::Queue{device(), family, 0u}, family,
-                               0u, flags, qfp.timestampValidBits,
+    family_queues.emplace_back(vk::raii::Queue{device(), family, 0U}, family,
+                               0U, flags, qfp.timestampValidBits,
                                qfp.minImageTransferGranularity);
 
-    for (auto &q : family_queues)
+    for (auto &q : family_queues) {
       setDebugName(q.queue(), "queue fam-{} idx-{}", q.family(), q.index());
+    }
 
     queues.push_back(std::move(family_queues));
   }

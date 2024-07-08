@@ -7,19 +7,27 @@
 #include "VulkanResources.hpp"
 #include "cppHelpers.hpp"
 
-#include <algorithm>
-#include <exception>
 #include <ktx.h>
 #include <ktxvulkan.h>
 #include <tracy/Tracy.hpp>
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <exception>
 #include <filesystem>
+#include <functional>
+#include <list>
+#include <mutex>
 #include <ranges>
+#include <span>
+#include <utility>
+#include <variant>
 #include <vector>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 using namespace v4dg;
 
@@ -33,8 +41,9 @@ public:
   }
   UniqueKtxTexture &operator=(const UniqueKtxTexture &) = delete;
   UniqueKtxTexture &operator=(UniqueKtxTexture &&other) noexcept {
-    if (tex)
+    if (tex != nullptr) {
       ktxTexture_Destroy(tex);
+    }
     tex = other.tex;
     other.tex = nullptr;
     return *this;
@@ -43,8 +52,9 @@ public:
   explicit UniqueKtxTexture(ktxTexture *tex) : tex(tex) {}
 
   ~UniqueKtxTexture() {
-    if (tex)
+    if (tex != nullptr) {
       ktxTexture_Destroy(tex);
+    }
   }
 
   [[nodiscard]] ktxTexture *get() const { return tex; }
@@ -57,22 +67,25 @@ private:
 } // namespace
 
 TransferManager::ResourceTransferHandle::~ResourceTransferHandle() {
-  if (m_queue_item)
+  if (m_queue_item) {
     m_manager->cancelTransfer(*m_queue_item);
+  }
 }
 
 bool TransferManager::ResourceTransferHandle::isDone() const noexcept {
-  if (!m_queue_item)
+  if (!m_queue_item) {
     return true;
+  }
 
-  std::scoped_lock _(m_manager->queue_mut);
+  std::scoped_lock const _(m_manager->queue_mut);
   return (*m_queue_item)->done;
 }
 
 void TransferManager::ResourceTransferHandle::updatePriority(
     PriorityClass priority) {
-  if (m_queue_item)
+  if (m_queue_item) {
     m_manager->updatePriority(*this, priority);
+  }
 }
 
 TransferManager::TransferManager(Context &ctx)
@@ -101,13 +114,14 @@ Buffer TransferManager::allocateBuffer(std::size_t size,
       },
   };
 
-  if (!ti.name.empty())
+  if (!ti.name.empty()) {
     buffer->setName(dev, "{}", ti.name);
+  }
 
   return buffer;
 }
 
-auto TransferManager::uploadBuffer(Buffer buffer, buffer_upload_fn fn,
+auto TransferManager::uploadBuffer(const Buffer &buffer, buffer_upload_fn fn,
                                    const BufferTransferInfo &ti)
     -> BufferFuture {
   auto &&dev = m_ctx->device();
@@ -135,18 +149,19 @@ auto TransferManager::uploadBuffer(Buffer buffer, buffer_upload_fn fn,
                     vk::BufferCopy{0, 0, buffer->size()});
 
     return {
-        buffer->size(),
-        vk::BufferMemoryBarrier2{
-            vk::PipelineStageFlagBits2::eTransfer,
-            vk::AccessFlagBits2::eTransferWrite,
-            {},
-            {},
-            {},
-            family,
-            buffer->vk(),
-            0,
-            buffer->size(),
-        },
+        .transfer_size = buffer->size(),
+        .barrier =
+            vk::BufferMemoryBarrier2{
+                vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite,
+                {},
+                {},
+                {},
+                family,
+                buffer->vk(),
+                0,
+                buffer->size(),
+            },
     };
   };
 
@@ -163,7 +178,7 @@ auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
     -> BufferFuture {
   return uploadBuffer(
       allocateBuffer(data.size(), ti),
-      [d = data | std::ranges::to<std::vector>()](Buffer b) {
+      [d = data | std::ranges::to<std::vector>()](const Buffer &b) {
         std::ranges::copy(d, b->map<std::byte>().get());
       },
       ti);
@@ -174,8 +189,9 @@ auto TransferManager::uploadTexture(const std::filesystem::path &path,
     -> TextureFuture {
   auto ext = path.extension();
 
-  if (ext == ".ktx" || ext == ".ktx2")
+  if (ext == ".ktx" || ext == ".ktx2") {
     return uploadTextureKtx(path, ti);
+  }
 
   throw exception("unsupported texture format: {}", ext.string());
 }
@@ -190,8 +206,9 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
   };
 
   auto check_error = [error](ktx_error_code_e code, std::string_view op_msg) {
-    if (code != KTX_SUCCESS)
+    if (code != KTX_SUCCESS) {
       error("while {}: {}", op_msg, std::string_view{ktxErrorString(code)});
+    }
   };
 
   UniqueKtxTexture texture;
@@ -205,52 +222,59 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
     texture = UniqueKtxTexture{tex};
   }
 
-  if (texture->classId != ktxTexture2_c)
+  if (texture->classId != ktxTexture2_c) {
     error("only ktx2 is supported");
+  }
 
-  if (texture->generateMipmaps)
+  if (texture->generateMipmaps) {
     error("mipmaps generation is not supported");
+  }
 
   if (ktxTexture_NeedsTranscoding(texture)) {
     ktx_transcode_fmt_e tf = KTX_TTF_NOSELECTION;
 
-    auto *features2 =
+    const auto *features2 =
         m_ctx->device().stats().features.get<vk::PhysicalDeviceFeatures2>();
-    auto *features = features2 ? &features2->features : nullptr;
+    const auto *features =
+        (features2 != nullptr) ? &features2->features : nullptr;
 
-    bool astc_ldr_avaiable = features && features->textureCompressionASTC_LDR;
-    bool etc2_avaiable = features && features->textureCompressionETC2;
-    bool bc_avaiable = features && features->textureCompressionBC;
+    bool const astc_ldr_avaiable =
+        (features != nullptr) && (features->textureCompressionASTC_LDR != 0u);
+    bool const etc2_avaiable =
+        (features != nullptr) && (features->textureCompressionETC2 != 0u);
+    bool const bc_avaiable =
+        (features != nullptr) && (features->textureCompressionBC != 0u);
 
     // TODO: different preferred formats for UASTC and ETC1S
     // TODO: add quality modifier to enable BC1-3 / lower quality uncompressed
     // formats
 
-    if (astc_ldr_avaiable)
+    if (astc_ldr_avaiable) {
       tf = KTX_TTF_ASTC_4x4_RGBA;
-    else if (bc_avaiable)
+    } else if (bc_avaiable) {
       tf = KTX_TTF_BC7_RGBA;
-    else if (etc2_avaiable)
+    } else if (etc2_avaiable) {
       tf = KTX_TTF_ETC;
-    else
+    } else {
       tf = KTX_TTF_RGBA32;
+    }
 
     check_error(ktxTexture2_TranscodeBasis(
                     reinterpret_cast<ktxTexture2 *>(texture.get()), tf, 0),
                 "transcoding");
   }
 
-  bool is_cube = texture->isCubemap;
-  bool is_array = texture->isArray;
+  bool const is_cube = texture->isCubemap;
+  bool const is_array = texture->isArray;
 
   assert(is_cube ? texture->numFaces == 6 : texture->numFaces == 1);
 
-  std::uint32_t layers = texture->numFaces * texture->numLayers;
-  std::uint32_t levels = texture->numLevels;
+  std::uint32_t const layers = texture->numFaces * texture->numLayers;
+  std::uint32_t const levels = texture->numLevels;
 
-  vk::ImageCreateFlags flags = is_cube
-                                   ? vk::ImageCreateFlagBits::eCubeCompatible
-                                   : vk::ImageCreateFlags{};
+  vk::ImageCreateFlags const flags =
+      is_cube ? vk::ImageCreateFlagBits::eCubeCompatible
+              : vk::ImageCreateFlags{};
 
   vk::ImageType imageType{};
   vk::ImageViewType viewType{};
@@ -261,16 +285,18 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
     break;
   case 2:
     imageType = vk::ImageType::e2D;
-    if (is_cube)
+    if (is_cube) {
       viewType =
           is_array ? vk::ImageViewType::eCubeArray : vk::ImageViewType::eCube;
-    else
+    } else {
       viewType =
           is_array ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
+    }
     break;
   case 3:
-    if (is_array)
+    if (is_array) {
       error("requested 3D array texture: not supported");
+    }
 
     imageType = vk::ImageType::e3D;
     viewType = vk::ImageViewType::e3D;
@@ -279,8 +305,8 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
     error("unsupported texture dimension: {}", texture->numDimensions);
   }
 
-  vk::Extent3D extent{texture->baseWidth, texture->baseHeight,
-                      texture->baseDepth};
+  vk::Extent3D const extent{texture->baseWidth, texture->baseHeight,
+                            texture->baseDepth};
 
   auto format = static_cast<vk::Format>(ktxTexture_GetVkFormat(texture));
 
@@ -312,7 +338,7 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
       },
       vma::AllocationCreateInfo{}
           .setUsage(vma::MemoryUsage::eAuto)
-          .setPriority(0.0f),
+          .setPriority(0.0F),
       vk::ImageViewCreateFlags{}, viewType);
 
   std::string name =
@@ -328,7 +354,8 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
         std::vector<vk::BufferImageCopy> regions;
         regions.reserve(texture->numLevels);
 
-        std::size_t textureSize = ktxTexture_GetDataSizeUncompressed(texture);
+        std::size_t const textureSize =
+            ktxTexture_GetDataSizeUncompressed(texture);
         Buffer staging = stagingBuffer(textureSize);
 
         if (texture->pData) {
@@ -387,12 +414,14 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
         check_error(ktxTexture_IterateLevels(texture, callback, &ii),
                     "iterating");
 
-        return {textureSize, std::move(staging), std::move(regions)};
+        return {.dataSize = textureSize,
+                .staging = std::move(staging),
+                .copyRegions = std::move(regions)};
       });
 }
 
 auto TransferManager::uploadTextureHelper(
-    ImageView tex, PriorityClass priority, vk::ImageLayout target_layout,
+    const ImageView &tex, PriorityClass priority, vk::ImageLayout target_layout,
     std::uint32_t target_family,
     uploadTextureHelper_fn prepare_transfer_data) -> TextureFuture {
   return {
@@ -402,7 +431,7 @@ auto TransferManager::uploadTextureHelper(
           [tex, prepare_transfer_data = std::move(prepare_transfer_data),
            target_layout,
            target_family](CommandBuffer &cmd) mutable -> memory_transfer_info {
-            uploadTextureHelper_data data = prepare_transfer_data();
+            uploadTextureHelper_data const data = prepare_transfer_data();
 
             cmd.add_resource(data.staging);
             cmd.add_resource(tex);
@@ -432,25 +461,26 @@ auto TransferManager::uploadTextureHelper(
                                    data.copyRegions);
 
             return {
-                data.dataSize,
-                vk::ImageMemoryBarrier2{
-                    vk::PipelineStageFlagBits2::eTransfer,
-                    vk::AccessFlagBits2::eTransferWrite,
-                    {},
-                    {},
-                    vk::ImageLayout::eTransferDstOptimal,
-                    target_layout,
-                    {},
-                    target_family,
-                    tex->vkImage(),
-                    vk::ImageSubresourceRange{
-                        vk::ImageAspectFlagBits::eColor,
-                        0,
-                        vk::RemainingMipLevels,
-                        0,
-                        vk::RemainingArrayLayers,
+                .transfer_size = data.dataSize,
+                .barrier =
+                    vk::ImageMemoryBarrier2{
+                        vk::PipelineStageFlagBits2::eTransfer,
+                        vk::AccessFlagBits2::eTransferWrite,
+                        {},
+                        {},
+                        vk::ImageLayout::eTransferDstOptimal,
+                        target_layout,
+                        {},
+                        target_family,
+                        tex->vkImage(),
+                        vk::ImageSubresourceRange{
+                            vk::ImageAspectFlagBits::eColor,
+                            0,
+                            vk::RemainingMipLevels,
+                            0,
+                            vk::RemainingArrayLayers,
+                        },
                     },
-                },
             };
           }),
   };
@@ -476,8 +506,9 @@ Buffer TransferManager::stagingBuffer(std::span<const std::byte> data) {
 
 auto TransferManager::getQueueItemList(bool done, PriorityClass priority)
     -> std::list<QueueItem> & {
-  if (done)
+  if (done) {
     return list_done;
+  }
 
   switch (priority) {
     using enum PriorityClass;
@@ -494,7 +525,7 @@ auto TransferManager::getQueueItemList(bool done, PriorityClass priority)
 
 auto TransferManager::enqueueTransfer(
     PriorityClass priority, transfer_fn transfer) -> ResourceTransferHandle {
-  std::scoped_lock _(queue_mut);
+  std::scoped_lock const _(queue_mut);
 
   auto &queue = getQueueItemList(false, priority);
 
@@ -504,7 +535,7 @@ auto TransferManager::enqueueTransfer(
 
 void TransferManager::cancelTransfer(
     std::list<QueueItem>::iterator queue_item) {
-  std::scoped_lock _(queue_mut);
+  std::scoped_lock const _(queue_mut);
 
   // the erasure destroys the function object so all resources are released
   getQueueItemList(queue_item->done, queue_item->priority).erase(queue_item);
@@ -512,15 +543,17 @@ void TransferManager::cancelTransfer(
 
 void TransferManager::updatePriority(ResourceTransferHandle &rth,
                                      PriorityClass priority) {
-  if (!rth.m_queue_item)
+  if (!rth.m_queue_item) {
     return;
+  }
 
   auto it = *rth.m_queue_item;
 
-  std::scoped_lock _(queue_mut);
+  std::scoped_lock const _(queue_mut);
 
-  if (priority == it->priority || it->done)
+  if (priority == it->priority || it->done) {
     return;
+  }
 
   auto &src_queue = getQueueItemList(it->done, it->priority);
   auto &dst_queue = getQueueItemList(it->done, priority);
@@ -559,7 +592,7 @@ void TransferManager::acquireResources(
     std::span<const ResourceTransferHandle> resources, CommandBuffer &cb) {
   ZoneScoped;
 
-  std::scoped_lock _(queue_mut);
+  std::scoped_lock const _(queue_mut);
 
   auto label_scope_{
       cb.debugLabelScope("async transfer - acquire", constants::vDarkYellow)};
@@ -568,9 +601,10 @@ void TransferManager::acquireResources(
   std::vector<vk::BufferMemoryBarrier2> buf_barriers;
   std::vector<vk::ImageMemoryBarrier2> img_barriers;
 
-  for (auto &rth : resources) {
-    if (!rth.m_queue_item)
+  for (const auto &rth : resources) {
+    if (!rth.m_queue_item) {
       continue;
+    }
 
     auto it = *rth.m_queue_item;
 
@@ -604,8 +638,9 @@ void TransferManager::acquireResources(
       getQueueItemList(false, it->priority).erase(it);
     } else {
       // done by async transfer
-      if (it->exception)
+      if (it->exception) {
         std::rethrow_exception(it->exception);
+      }
 
       std::visit(
           detail::overload_set{
@@ -633,8 +668,9 @@ void TransferManager::acquireResources(
   // cb.queueFamily()
   for (auto &barrier : buf_barriers) {
     if (barrier.dstQueueFamilyIndex != cb.queueFamily() &&
-        barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+        barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex) {
       throw exception("buffer barrier with different queue family");
+    }
 
     barrier.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
         .setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
@@ -642,8 +678,9 @@ void TransferManager::acquireResources(
 
   for (auto &barrier : img_barriers) {
     if (barrier.dstQueueFamilyIndex != cb.queueFamily() &&
-        barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+        barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex) {
       throw exception("image barrier with different queue family");
+    }
 
     barrier.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
         .setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
@@ -655,13 +692,14 @@ void TransferManager::acquireResources(
 void TransferManager::doOutstandingTransfers(std::size_t max_transfer_size,
                                              std::size_t max_transfer_count) {
   ZoneScoped;
-  std::scoped_lock _(queue_mut);
+  std::scoped_lock const _(queue_mut);
 
   auto &&queues = {std::ref(queue_high), std::ref(queue_normal),
                    std::ref(queue_low)};
 
-  if (std::ranges::all_of(queues, &std::list<QueueItem>::empty))
+  if (std::ranges::all_of(queues, &std::list<QueueItem>::empty)) {
     return;
+  }
 
   std::size_t transfer_size = 0;
   std::size_t transfer_count = 0;
@@ -670,11 +708,13 @@ void TransferManager::doOutstandingTransfers(std::size_t max_transfer_size,
   //  otherwise we use a general queue
 
   auto &pqi = [&] -> PerQueueFamily & {
-    if (auto &atr_pqi = m_ctx->get_queue(Context::QueueType::AsyncTransfer))
+    if (auto &atr_pqi = m_ctx->get_queue(Context::QueueType::AsyncTransfer)) {
       return *atr_pqi;
+    }
 
-    if (auto &g_pqi = m_ctx->get_queue(Context::QueueType::Graphics))
+    if (auto &g_pqi = m_ctx->get_queue(Context::QueueType::Graphics)) {
       return *g_pqi;
+    }
 
     throw exception(
         "neither asyc transfer queue nor graphics queue is available");

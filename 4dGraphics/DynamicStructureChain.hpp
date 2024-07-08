@@ -5,9 +5,10 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <cstdint>
+#include <cassert>
+#include <concepts>
+#include <cstddef>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -53,13 +54,14 @@ template <vulkan_struct T, vulkan_struct_extends<T>... Tstatic>
 class DynamicStructureChain {
 public:
   DynamicStructureChain() noexcept { link(); }
-  DynamicStructureChain(const DynamicStructureChain &o) {
-    static_chain = o.static_chain;
-    dynamic = o.dynamic;
+  DynamicStructureChain(const DynamicStructureChain &o)
+      : static_chain(o.static_chain), dynamic(o.dynamic) {
+
     link();
   }
-  DynamicStructureChain(DynamicStructureChain &&o) noexcept {
-    static_chain = o.static_chain;
+  DynamicStructureChain(DynamicStructureChain &&o) noexcept
+      : static_chain(o.static_chain) {
+
     dynamic = std::exchange(o.dynamic, {});
     link();
     o.link_dynamic();
@@ -82,18 +84,20 @@ public:
 
   template <vulkan_struct_chainable<T> Tg = T>
   [[nodiscard]] Tg *get() noexcept {
-    if constexpr (any_of<Tg, T, Tstatic...>)
+    if constexpr (any_of<Tg, T, Tstatic...>) {
       return &std::get<Tg>(static_chain);
-    else
+    } else {
       return getVkStructureFromChain<Tg>(get());
+    }
   }
 
   template <vulkan_struct_chainable<T> Tg = T>
   [[nodiscard]] const Tg *get() const noexcept {
-    if constexpr (any_of<Tg, T, Tstatic...>)
+    if constexpr (any_of<Tg, T, Tstatic...>) {
       return &std::get<Tg>(static_chain);
-    else
+    } else {
       return getVkStructureFromChain<Tg>(get());
+    }
   }
 
   template <vulkan_struct_chainable<T> Tg> Tg &add() {
@@ -103,8 +107,9 @@ public:
 
   template <vulkan_struct_chainable<T> Tg>
   [[nodiscard]] Tg &get_or_add() noexcept {
-    if (Tg *ptr = get<Tg>())
+    if (Tg *ptr = get<Tg>()) {
       return *ptr;
+    }
     return add<Tg>();
   }
 

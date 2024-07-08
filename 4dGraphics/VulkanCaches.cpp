@@ -1,19 +1,17 @@
 #include "VulkanCaches.hpp"
 
+#include "BindlessManager.hpp"
 #include "Context.hpp"
-#include "Debug.hpp"
-#include "v4dgVulkan.hpp"
+#include "Device.hpp"
 
-#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
-#include <concepts>
+#include <cstddef>
 #include <cstdint>
-#include <format>
-#include <ranges>
-#include <stdexcept>
+#include <memory>
+#include <span>
 
-namespace fs = std::filesystem;
 namespace v4dg {
 SamplerInfo::SamplerInfo(vk::SamplerCreateFlags flags) noexcept {
   sci.flags = flags;
@@ -80,8 +78,8 @@ DescriptorSetLayoutInfo &DescriptorSetLayoutInfo::add_binding(
     vk::DescriptorBindingFlags flags) {
   bindSamplers.emplace_back(immutableSamplers.begin(), immutableSamplers.end());
   bindFlags.emplace_back(flags);
-  bindings.push_back(
-      {binding, type, count, stages, bindSamplers.back().data()});
+  bindings.emplace_back(binding, type, count, stages,
+                        bindSamplers.back().data());
 
   return *this;
 }

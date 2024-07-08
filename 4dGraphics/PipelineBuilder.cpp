@@ -1,31 +1,41 @@
 #include "PipelineBuilder.hpp"
 
+#include "Context.hpp"
 #include "cppHelpers.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <expected>
+#include <filesystem>
 #include <optional>
-#include <ranges>
+#include <span>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace v4dg {
 namespace {
 bool fix_spirv_endianess(std::span<uint32_t> code) {
-  if (code.empty())
+  if (code.empty()) {
     return false;
+  }
 
   static constexpr uint32_t magic = 0x07230203;
   static constexpr uint32_t rev_magic = std::byteswap(magic);
 
-  if (code[0] == magic) // file is already in correct endianess
+  if (code[0] == magic) { // file is already in correct endianess
     return true;
+  }
 
   if (code[0] == rev_magic) // file is in wrong endianess
   {
-    for (auto &word : code)
+    for (auto &word : code) {
       word = std::byteswap(word);
+    }
     return true;
   }
 
@@ -43,8 +53,9 @@ load_shader_code(const std::filesystem::path &path) {
 
   return static_cast<res_t>(detail::GetFileBinary<uint32_t>(path))
       .and_then([](auto &&code) -> res_t {
-        if (!fix_spirv_endianess(code))
+        if (!fix_spirv_endianess(code)) {
           return std::unexpected(load_shader_error::bad_magic_number);
+        }
         return code;
       });
 }
@@ -85,12 +96,12 @@ ShaderStageData::ShaderStageData(const ShaderStageData &o)
   fixup();
 }
 
-ShaderStageData::ShaderStageData(ShaderStageData &&o)
+ShaderStageData::ShaderStageData(ShaderStageData &&o) noexcept
     : entry(std::move(o.entry)),
       specialization_entries(std::move(o.specialization_entries)),
       specialization_data(std::move(o.specialization_data)),
       info_chain(std::move(o.info_chain)),
-      specialization_info(std::move(o.specialization_info)) {
+      specialization_info(o.specialization_info) {
   fixup();
 }
 
@@ -114,16 +125,17 @@ GraphicsPipelineBuilder::build(Context &ctx,
   std::vector<vk::PipelineShaderStageCreateInfo> psscis;
   psscis.reserve(shader_stages.size());
 
-  for (const auto &stage_data : shader_stages)
+  for (const auto &stage_data : shader_stages) {
     psscis.push_back(stage_data.get());
+  }
 
-  vk::PipelineVertexInputStateCreateInfo vertex_input_state;
-  vk::PipelineInputAssemblyStateCreateInfo input_assembly_state{
+  vk::PipelineVertexInputStateCreateInfo const vertex_input_state;
+  vk::PipelineInputAssemblyStateCreateInfo const input_assembly_state{
       {},
       topology,
-      primitive_restart,
+      static_cast<vk::Bool32>(primitive_restart),
   };
-  vk::PipelineViewportStateCreateInfo viewport_state{
+  vk::PipelineViewportStateCreateInfo const viewport_state{
       {}, viewports, nullptr, viewports, nullptr,
   };
   vk::PipelineMultisampleStateCreateInfo multisample_state_my =
@@ -134,7 +146,7 @@ GraphicsPipelineBuilder::build(Context &ctx,
       color_blend_state;
   color_blend_state_my.setAttachments(color_blend_attachments);
 
-  vk::PipelineDynamicStateCreateInfo dynamic_state{{}, dynamic_states};
+  vk::PipelineDynamicStateCreateInfo const dynamic_state{{}, dynamic_states};
 
   vk::StructureChain<vk::GraphicsPipelineCreateInfo,
                      vk::PipelineRenderingCreateInfo>

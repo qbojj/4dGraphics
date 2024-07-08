@@ -2,13 +2,19 @@
 
 #include "Context.hpp"
 #include "v4dgCore.hpp"
+#include "v4dgVulkan.hpp"
 
-#include <functional>
+#include <vulkan/vulkan.hpp>
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <ranges>
+#include <utility>
 
 namespace v4dg {
 Swapchain SwapchainBuilder::build(Context &ctx) const {
-  auto &pd = ctx.vkPhysicalDevice();
+  const auto &pd = ctx.vkPhysicalDevice();
 
   auto surfaceCapabilities = pd.getSurfaceCapabilitiesKHR(surface);
   auto surfaceFormats =
@@ -20,8 +26,9 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
 
   auto presentModes = pd.getSurfacePresentModesKHR(surface);
 
-  if (std::ranges::empty(surfaceFormats))
+  if (std::ranges::empty(surfaceFormats)) {
     throw exception("No SRGB surface formats available");
+  }
 
   vk::Extent2D extent = this->extent;
 
@@ -40,8 +47,9 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
       std::clamp(extent.height, surfaceCapabilities.minImageExtent.height,
                  surfaceCapabilities.maxImageExtent.height);
 
-  if (extent.width == 0 || extent.height == 0)
+  if (extent.width == 0 || extent.height == 0) {
     throw exception("Invalid swapchain extent");
+  }
 
   vk::Format format;
 
@@ -56,19 +64,20 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
     if (required_format) {
       if (std::ranges::contains(surfaceFormats, *required_format)) {
         format = *required_format;
-      } else
+      } else {
         throw exception("Required surface format {} not supported",
                         *required_format);
+      }
     } else {
       if (std::ranges::contains(surfaceFormats, preferred_format)) {
         format = preferred_format;
       } else {
-        if (std::ranges::contains(surfaceFormats, vk::Format::eB8G8R8A8Unorm))
+        if (std::ranges::contains(surfaceFormats, vk::Format::eB8G8R8A8Unorm)) {
           format = vk::Format::eB8G8R8A8Unorm;
-        else if (std::ranges::contains(surfaceFormats,
-                                       vk::Format::eR8G8B8A8Unorm))
+        } else if (std::ranges::contains(surfaceFormats,
+                                         vk::Format::eR8G8B8A8Unorm)) {
           format = vk::Format::eR8G8B8A8Unorm;
-        else {
+        } else {
           // every implementation I know of supports either BGRA8 or RGBA8
           //  so this should never happen
           format = *surfaceFormats.begin();
@@ -82,9 +91,10 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
   if (required_present_mode) {
     if (std::ranges::contains(presentModes, *required_present_mode)) {
       presentMode = *required_present_mode;
-    } else
+    } else {
       throw exception("Required present mode {} not supported",
                       *required_present_mode);
+    }
   } else {
     if (std::ranges::contains(presentModes, preferred_present_mode)) {
       presentMode = preferred_present_mode;
@@ -96,23 +106,26 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
   vk::SurfaceTransformFlagBitsKHR preTransform = pre_transform;
   vk::CompositeAlphaFlagBitsKHR compositeAlpha = composite_alpha;
 
-  if (!(surfaceCapabilities.supportedTransforms & preTransform))
+  if (!(surfaceCapabilities.supportedTransforms & preTransform)) {
     preTransform = surfaceCapabilities.currentTransform;
+  }
 
-  if (!(surfaceCapabilities.supportedCompositeAlpha & compositeAlpha))
+  if (!(surfaceCapabilities.supportedCompositeAlpha & compositeAlpha)) {
     compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  }
 
   uint32_t imageCount =
       std::max(image_count, surfaceCapabilities.minImageCount);
-  if (surfaceCapabilities.maxImageCount != 0)
+  if (surfaceCapabilities.maxImageCount != 0) {
     imageCount = std::min(imageCount, surfaceCapabilities.maxImageCount);
+  }
 
   return Swapchain(ctx,
                    vk::SwapchainCreateInfoKHR(
                        {}, surface, imageCount, format,
                        vk::ColorSpaceKHR::eSrgbNonlinear, extent, 1, imageUsage,
                        vk::SharingMode::eExclusive, 0, nullptr, preTransform,
-                       compositeAlpha, presentMode, true, oldSwapchain));
+                       compositeAlpha, presentMode, 1u, oldSwapchain));
 }
 
 Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
@@ -122,7 +135,7 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
       m_imageUsage(ci.imageUsage), m_swapchain(ctx.vkDevice(), ci),
       m_images(m_swapchain.getImages()) {
   m_imageViews.reserve(m_images.size());
-  for (auto &image : m_images)
+  for (auto &image : m_images) {
     m_imageViews.push_back({ctx.vkDevice(),
                             {{},
                              image,
@@ -130,6 +143,7 @@ Swapchain::Swapchain(Context &ctx, const vk::SwapchainCreateInfoKHR &ci)
                              m_format,
                              {},
                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}});
+  }
 
   m_readyToPresent.reserve(m_images.size());
   for (size_t i = 0; i < m_images.size(); ++i) {

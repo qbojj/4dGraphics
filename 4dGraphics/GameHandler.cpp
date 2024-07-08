@@ -4,38 +4,57 @@
 #include "Context.hpp"
 #include "Debug.hpp"
 #include "Device.hpp"
+#include "GameCore.hpp"
+#include "PipelineBuilder.hpp"
 #include "Swapchain.hpp"
 #include "TransferManager.hpp"
 #include "VulkanCaches.hpp"
 #include "VulkanConstructs.hpp"
+#include "VulkanResources.hpp"
 #include "cppHelpers.hpp"
 
-#include <mutex>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_raii.hpp>
-
-#include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <SDL_error.h>
+#include <SDL_events.h>
+#include <SDL_stdinc.h>
+#include <SDL_video.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 #include <taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <imgui.h>
+#include <ios>
+#include <iterator>
+#include <limits>
+#include <mutex>
+#include <optional>
 #include <ranges>
+#include <span>
+#include <thread>
+#include <utility>
+#include <variant>
+#include <vector>
 
 using namespace v4dg;
 
 static vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
                                             SDL_Window *window) {
   VkSurfaceKHR raw_surface{};
-  if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE)
+  if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE) {
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
+  }
 
   return {instance, raw_surface};
 }
@@ -55,7 +74,7 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 
   ctx.device().setDebugName(pool, "imgui descriptor pool");
 
-  uint32_t min_image_count =
+  uint32_t const min_image_count =
       swapchain.presentMode() == vk::PresentModeKHR::eMailbox ? 3 : 2;
 
   ImGui_ImplVulkan_InitInfo ii{};
@@ -87,22 +106,22 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
           [](const char *name, void *user) {
             return static_cast<Context *>(user)->vkInstance().getProcAddr(name);
           },
-          &ctx))
+          &ctx)) {
     throw exception("Could not load imgui vulkan functions");
+  }
 
-  if (!ImGui_ImplVulkan_Init(&ii))
+  if (!ImGui_ImplVulkan_Init(&ii)) {
     throw exception("Could not init imgui vulkan backend");
+  }
 }
 
 ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 
 MyGameHandler::MyGameHandler()
-    : GameEngine(),
-      instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+    : instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
           SDL_Vulkan_GetVkGetInstanceProcAddr()))),
       surface(sdl_get_surface(instance.instance(), m_window)),
-      device(instance, *surface), context(device),
-      transfer_manager(context),
+      device(instance, *surface), context(device), transfer_manager(context),
       swapchain(SwapchainBuilder{
           .surface = *surface,
           .preferred_format = vk::Format::eR8G8B8A8Unorm,
@@ -125,7 +144,7 @@ MyGameHandler::MyGameHandler()
       descriptor_set_layout(nullptr),
       pipeline_layout(PipelineLayoutInfo()
                           .add_sets(context.bindlessManager().get_layouts())
-                          .add_push({vk::ShaderStageFlagBits::eCompute, 0u,
+                          .add_push({vk::ShaderStageFlagBits::eCompute, 0U,
                                      sizeof(MandelbrotPushConstants)})
                           .create(device)),
       pipeline({nullptr, nullptr, nullptr}) {
@@ -144,11 +163,12 @@ MyGameHandler::MyGameHandler()
   for (int variant = 0; variant < 3; variant++) {
     ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, *shader);
 
-    if (instance.debugUtilsEnabled())
+    if (instance.debugUtilsEnabled()) {
       shader_data.set_debug_name("Shaders/Mandelbrot.comp.spv");
+    }
 
     shader_data.add_specialization(0, variant);
-    vk::ComputePipelineCreateInfo pci{
+    vk::ComputePipelineCreateInfo const pci{
         {},
         shader_data.get(),
         *pipeline_layout,
@@ -182,7 +202,8 @@ uint32_t MyGameHandler::wait_for_image() {
   ZoneScoped;
 
   while (true) {
-    int w, h;
+    int w = 0;
+    int h = 0;
     SDL_Vulkan_GetDrawableSize(m_window, &w, &h);
     wanted_extent = vk::Extent2D{uint32_t(w), uint32_t(h)};
 
@@ -207,7 +228,7 @@ uint32_t MyGameHandler::wait_for_image() {
 bool MyGameHandler::handle_events() {
   ZoneScoped;
   SDL_Event event;
-  while (SDL_PollEvent(&event)) {
+  while (SDL_PollEvent(&event) != 0) {
     switch (event.type) {
     case SDL_QUIT:
       should_close = true;
@@ -323,7 +344,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
   // render mandelbrot
   {
     ZoneScopedN("mandelbrot");
-    auto labal = cb.debugLabelScope("mandelbrot", {0.0f, 1.0f, 0.0f, 1.0f});
+    auto labal = cb.debugLabelScope("mandelbrot", {0.0F, 1.0F, 0.0F, 1.0F});
     cb->bindPipeline(vk::PipelineBindPoint::eCompute,
                      *pipeline[current_pipeline]);
 
@@ -394,7 +415,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
   {
     ZoneScopedN("imgui");
-    auto label = cb.debugLabelScope("imgui", {0.0f, 1.0f, 1.0f, 1.0f});
+    auto label = cb.debugLabelScope("imgui", {0.0F, 1.0F, 1.0F, 1.0F});
 
     vk::RenderingAttachmentInfo rai{};
     rai.setImageView(view)
@@ -431,12 +452,12 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 void MyGameHandler::present(uint32_t image_idx) {
   ZoneScoped;
   auto &queue_g = context.get_queue(Context::QueueType::Graphics);
-  std::scoped_lock _{queue_g->queue_mutex()};
+  std::scoped_lock const _{queue_g->queue_mutex()};
 
-  auto &queue = queue_g->queue().queue();
+  const auto &queue = queue_g->queue().queue();
 
   try {
-    vk::Result res = queue.presentKHR({
+    vk::Result const res = queue.presentKHR({
         swapchain.readyToPresent(image_idx),
         *swapchain.swapchain(),
         image_idx,
@@ -465,8 +486,9 @@ int MyGameHandler::Run() try {
 
     {
       using namespace std::chrono_literals;
-      if (!has_focus) // Don't waste CPU time when not focused
+      if (!has_focus) { // Don't waste CPU time when not focused
         std::this_thread::sleep_for(50ms);
+      }
     }
 
     FrameMarkStart(nullptr);
@@ -478,8 +500,9 @@ int MyGameHandler::Run() try {
     }
 
     uint32_t image_idx = wait_for_image();
-    if (!handle_events())
+    if (!handle_events()) {
       break;
+    }
 
     tf::Taskflow tf;
 
@@ -512,12 +535,10 @@ int MyGameHandler::Run() try {
         })
           .name("submit")
           .succeed(record);
-      
-      tf.emplace([&]{
-        transfer_manager.doOutstandingTransfers();
-      })
-        .name("async transfer")
-        .succeed(record);
+
+      tf.emplace([&] { transfer_manager.doOutstandingTransfers(); })
+          .name("async transfer")
+          .succeed(record);
     }
 
     context.executor().run(tf).wait();
@@ -578,7 +599,7 @@ int MyGameHandler::Run() try {
         append("\n");
       }
 
-      if (vendorData.size() > 0) {
+      if (!vendorData.empty()) {
         auto dump_path =
             cwd / std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin",
                               date, props.deviceName.data(), props.deviceID);
@@ -606,8 +627,9 @@ int MyGameHandler::Run() try {
 
             for (auto [i, v] : std::views::enumerate(uuid)) {
               append("{:02x}", v);
-              if (std::ranges::contains(dash_locations, i))
+              if (std::ranges::contains(dash_locations, i)) {
                 append("-");
+              }
             }
             append("\n");
           };

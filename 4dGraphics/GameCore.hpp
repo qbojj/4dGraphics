@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cppHelpers.hpp"
-
 #include <SDL2/SDL.h>
+#include <SDL_stdinc.h>
+#include <SDL_video.h>
 #include <imgui.h>
 
-#include <string>
+#include <cstddef>
 #include <utility>
 
 struct GLFWwindow;
@@ -15,17 +15,13 @@ struct ImFontAtlas;
 namespace v4dg {
 class ImGuiRAIIContext {
 public:
-  explicit ImGuiRAIIContext(ImGuiRAIIContext &&o)
-      : context(std::exchange(o.context, nullptr)) {}
   explicit ImGuiRAIIContext(ImFontAtlas *font = nullptr);
+  ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
+  ImGuiRAIIContext &operator=(const ImGuiRAIIContext &) = delete;
+  ImGuiRAIIContext(ImGuiRAIIContext &&) noexcept;
+  ImGuiRAIIContext &operator=(ImGuiRAIIContext &&) noexcept;
   ~ImGuiRAIIContext();
 
-  ImGuiRAIIContext(const ImGuiRAIIContext &) = delete;
-
-  ImGuiRAIIContext &operator=(ImGuiRAIIContext o) {
-    std::swap(context, o.context);
-    return *this;
-  }
   operator ::ImGuiContext *() const { return context; }
 
 private:
@@ -35,6 +31,11 @@ private:
 // calls SDL_Quit() on destruction
 class SDL_GlobalContext {
 public:
+  explicit SDL_GlobalContext() = default;
+  SDL_GlobalContext(const SDL_GlobalContext &) = delete;
+  SDL_GlobalContext &operator=(const SDL_GlobalContext &) = delete;
+  SDL_GlobalContext(SDL_GlobalContext &&) = delete;
+  SDL_GlobalContext &operator=(SDL_GlobalContext &&) = delete;
   ~SDL_GlobalContext();
 };
 
@@ -42,15 +43,13 @@ class SDL_Context {
 public:
   SDL_Context() = delete;
   explicit SDL_Context(Uint32 subsystems);
-  ~SDL_Context();
 
   SDL_Context(const SDL_Context &) = delete;
-  SDL_Context(SDL_Context &&o) : subsystems(std::exchange(o.subsystems, {})) {}
+  SDL_Context(SDL_Context &&o) noexcept;
 
-  SDL_Context &operator=(SDL_Context o) {
-    std::swap(subsystems, o.subsystems);
-    return *this;
-  }
+  SDL_Context &operator=(const SDL_Context &) = delete;
+  SDL_Context &operator=(SDL_Context &&o) noexcept;
+  ~SDL_Context();
 
 private:
   Uint32 subsystems;
@@ -66,13 +65,10 @@ public:
   Window(int width, int height, const char *title);
 
   Window(const Window &) = delete;
-  Window(Window &&o) : window(o.release()) {}
+  Window &operator=(const Window &) = delete;
+  Window(Window &&o) noexcept;
+  Window &operator=(Window &&) noexcept;
   ~Window();
-
-  Window &operator=(Window o) {
-    std::swap(window, o.window);
-    return *this;
-  }
 
   operator native_type() const { return window; }
 
@@ -99,6 +95,11 @@ class GameEngine {
 public:
   explicit GameEngine(Window window = {1024, 768, "4dGraphics"});
   virtual ~GameEngine();
+
+  GameEngine(const GameEngine &) = delete;
+  GameEngine &operator=(const GameEngine &) = delete;
+  GameEngine(GameEngine &&) = delete;
+  GameEngine &operator=(GameEngine &&) = delete;
 
   Window m_window;
   ImGuiRAIIContext m_ImGuiCtx;

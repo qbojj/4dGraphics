@@ -1,12 +1,12 @@
 #pragma once
 
-#include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <functional>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -16,7 +16,7 @@ class Context;
 class Swapchain;
 
 struct SwapchainBuilder {
-  vk::SurfaceKHR surface = {};
+  vk::SurfaceKHR surface;
 
   vk::Format preferred_format = vk::Format::eB8G8R8A8Unorm;
   std::optional<vk::Format> required_format = {};
@@ -45,38 +45,44 @@ struct SwapchainBuilder {
 
 class Swapchain {
 public:
-  const vk::raii::SwapchainKHR &swapchain() const { return m_swapchain; }
+  [[nodiscard]] const vk::raii::SwapchainKHR &swapchain() const {
+    return m_swapchain;
+  }
 
-  const auto &images() const { return m_images; }
-  const vk::Image &image(size_t idx) const { return m_images[idx]; }
+  [[nodiscard]] const auto &images() const { return m_images; }
+  [[nodiscard]] const vk::Image &image(size_t idx) const {
+    return m_images[idx];
+  }
 
-  const auto &imageViews() const { return m_imageViews; }
-  const vk::ImageView &imageView(size_t idx) const {
+  [[nodiscard]] const auto &imageViews() const { return m_imageViews; }
+  [[nodiscard]] const vk::ImageView &imageView(size_t idx) const {
     return *m_imageViews[idx];
   }
 
-  const auto &readyToPresents() const { return m_readyToPresent; }
-  const vk::Semaphore &readyToPresent(size_t idx) const {
+  [[nodiscard]] const auto &readyToPresents() const { return m_readyToPresent; }
+  [[nodiscard]] const vk::Semaphore &readyToPresent(size_t idx) const {
     return *m_readyToPresent[idx];
   }
 
-  vk::Format format() const { return m_format; }
-  vk::ColorSpaceKHR colorSpace() const { return m_colorSpace; }
-  vk::PresentModeKHR presentMode() const { return m_presentMode; }
-  vk::Extent2D extent() const { return m_extent; }
+  [[nodiscard]] vk::Format format() const { return m_format; }
+  [[nodiscard]] vk::ColorSpaceKHR colorSpace() const { return m_colorSpace; }
+  [[nodiscard]] vk::PresentModeKHR presentMode() const { return m_presentMode; }
+  [[nodiscard]] vk::Extent2D extent() const { return m_extent; }
 
-  vk::SurfaceTransformFlagBitsKHR preTransform() const {
+  [[nodiscard]] vk::SurfaceTransformFlagBitsKHR preTransform() const {
     return m_preTransform;
   }
-  vk::CompositeAlphaFlagBitsKHR compositeAlpha() const {
+  [[nodiscard]] vk::CompositeAlphaFlagBitsKHR compositeAlpha() const {
     return m_compositeAlpha;
   }
 
-  vk::ImageUsageFlags getImageUsage() const { return m_imageUsage; }
+  [[nodiscard]] vk::ImageUsageFlags getImageUsage() const {
+    return m_imageUsage;
+  }
 
   DestructionItem move_out();
 
-  SwapchainBuilder recreate_builder() const;
+  [[nodiscard]] SwapchainBuilder recreate_builder() const;
 
 private:
   friend SwapchainBuilder;

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace v4dg::constants {
-const glm::vec4 vGrey(192 / 255.f, 192 / 255.f, 192 / 255.f, 1),
+const glm::vec4 vGrey(192 / 255.F, 192 / 255.F, 192 / 255.F, 1),
     vDarkGrey(0.5, 0.5, 0.5, 1), vVeryDarkGrey(0.25, 0.25, 0.25, 1),
     vRed(1, 0, 0, 1), vDarkRed(0.5, 0, 0, 1), vVeryDarkRed(0.25, 0, 0, 1),
     vYellow(1, 1, 0, 1), vDarkYellow(0.5, 0.5, 0, 1),

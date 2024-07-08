@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Device.hpp"
-#include "v4dgCore.hpp"
 
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
@@ -9,9 +8,11 @@
 
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <utility>
 
 namespace v4dg {
@@ -24,7 +25,9 @@ namespace detail {
 class GpuAllocation {
 private:
   struct map_deleter_type {
-    void operator()(void *) const { allocator.unmapMemory(allocation); }
+    void operator()(void * /*unused*/) const {
+      allocator.unmapMemory(allocation);
+    }
     vma::Allocator allocator;
     vma::Allocation allocation;
   };
@@ -46,8 +49,12 @@ public:
     }
   }
 
-  vma::Allocator allocator() const noexcept { return m_allocator; }
-  vma::Allocation allocation() const noexcept { return m_allocation; }
+  [[nodiscard]] vma::Allocator allocator() const noexcept {
+    return m_allocator;
+  }
+  [[nodiscard]] vma::Allocation allocation() const noexcept {
+    return m_allocation;
+  }
 
   template <typename T> using map_type = std::unique_ptr<T[], map_deleter_type>;
 
@@ -87,8 +94,6 @@ public:
 
   [[nodiscard]] vk::Buffer buffer() const { return *m_buffer; }
   [[nodiscard]] vk::Buffer vk() const { return buffer(); }
-  operator vk::Buffer() const { return buffer(); }
-  vk::Buffer operator*() const { return buffer(); }
 
   [[nodiscard]] vk::DeviceSize size() const { return m_size; }
   [[nodiscard]] vk::DeviceAddress deviceAddress() const {
@@ -135,13 +140,13 @@ public:
   struct ImageCreateInfo {
     vk::ImageCreateFlags flags = {};
     vk::ImageType imageType = vk::ImageType::e2D;
-    vk::Format format = vk::Format::eUndefined;
-    vk::Extent3D extent = {};
+    vk::Format format;
+    vk::Extent3D extent;
     std::uint32_t mipLevels = 1;
     std::uint32_t arrayLayers = 1;
     vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
     vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
-    vk::ImageUsageFlags usage = {};
+    vk::ImageUsageFlags usage;
     vk::SharingMode sharingMode = vk::SharingMode::eExclusive;
     std::span<const std::uint32_t> queueFamilyIndices = {};
     vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
@@ -158,15 +163,15 @@ public:
   ImageObject &operator=(const ImageObject &) = delete;
   ImageObject &operator=(ImageObject &&) = delete;
 
-  vk::Image image() const { return *m_image; }
-  vk::Image vk() const { return image(); }
+  [[nodiscard]] vk::Image image() const { return *m_image; }
+  [[nodiscard]] vk::Image vk() const { return image(); }
 
-  vk::ImageType imageType() const { return m_imageType; }
-  vk::Format format() const { return m_format; }
-  vk::Extent3D extent() const { return m_extent; }
-  std::uint32_t mipLevels() const { return m_mipLevels; }
-  std::uint32_t arrayLayers() const { return m_arrayLayers; }
-  vk::SampleCountFlagBits samples() const { return m_samples; }
+  [[nodiscard]] vk::ImageType imageType() const { return m_imageType; }
+  [[nodiscard]] vk::Format format() const { return m_format; }
+  [[nodiscard]] vk::Extent3D extent() const { return m_extent; }
+  [[nodiscard]] std::uint32_t mipLevels() const { return m_mipLevels; }
+  [[nodiscard]] std::uint32_t arrayLayers() const { return m_arrayLayers; }
+  [[nodiscard]] vk::SampleCountFlagBits samples() const { return m_samples; }
 
   template <typename... Args>
   void setName(const Device &dev, std::format_string<Args...> fmt,

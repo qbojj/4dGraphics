@@ -4,14 +4,12 @@
 #include "cppHelpers.hpp"
 
 #include <array>
-#include <cstdint>
+#include <concepts>
+#include <cstddef>
 #include <format>
-#include <functional>
 #include <memory>
-#include <new>
-#include <source_location>
 #include <stdexcept>
-#include <string>
+#include <string_view>
 #include <utility>
 
 namespace v4dg {
@@ -74,8 +72,7 @@ namespace std {
 template <typename T>
   requires requires(const T &t) { v4dg::to_string(t); }
 struct formatter<T> : formatter<std::string_view> {
-  template <typename FormatContext>
-  auto format(const T &t, FormatContext &ctx) const {
+  auto format(const T &t, auto &ctx) const {
     return formatter<std::string_view>::format(v4dg::to_string(t), ctx);
   }
 };

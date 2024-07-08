@@ -1,10 +1,12 @@
 #pragma once
 
-#include "cppHelpers.hpp"
-
 #include <ankerl/unordered_dense.h>
+
 #include <cassert>
 #include <concepts>
+#include <cstdint>
+#include <iterator>
+#include <memory>
 #include <mutex>
 #include <shared_mutex>
 
@@ -44,8 +46,9 @@ private:
 
 public:
   const handle_type &get(const handle_desc &desc) {
-    if (auto phandle = get_old(desc); phandle)
+    if (auto phandle = get_old(desc); phandle) {
       return *phandle;
+    }
 
     return get_locked(desc);
   }
@@ -53,15 +56,17 @@ public:
   const handle_type &get_locked(const handle_desc &desc) {
     {
       std::shared_lock lock(m_mut);
-      if (auto phandle = get_lockless(desc); phandle)
+      if (auto phandle = get_lockless(desc); phandle) {
         return *phandle;
+      }
     }
 
     {
       // lock for write
       std::unique_lock lock(m_mut);
-      if (auto phandle = get_lockless(desc); phandle)
+      if (auto phandle = get_lockless(desc); phandle) {
         return *phandle;
+      }
 
       return m_new.insert(desc, desc.create(m_data)).first->second;
     }
@@ -77,22 +82,25 @@ public:
 
 private:
   const handle_type *get_old(const handle_desc &desc) const {
-    if (auto it = m_old.find(desc); it != m_old.end())
+    if (auto it = m_old.find(desc); it != m_old.end()) {
       return &it->second;
+    }
 
     return nullptr;
   }
 
   const handle_type *get_new(const handle_desc &desc) const {
-    if (auto it = m_new.find(desc); it != m_new.end())
+    if (auto it = m_new.find(desc); it != m_new.end()) {
       return &it->second;
+    }
 
     return nullptr;
   }
 
   const handle_type *get_lockless(const handle_desc &desc) const {
-    if (auto phandle = get_old(desc); phandle)
+    if (auto phandle = get_old(desc); phandle) {
       return phandle;
+    }
     return get_new(desc);
   }
 
@@ -130,8 +138,9 @@ private:
 
 public:
   std::shared_ptr<const handle_type> get(const handle_desc &desc) {
-    if (auto phandle = get_old(desc); phandle)
+    if (auto phandle = get_old(desc); phandle) {
       return phandle;
+    }
 
     return get_locked(desc);
   }
@@ -139,15 +148,17 @@ public:
   std::shared_ptr<const handle_type> get_locked(const handle_desc &desc) {
     {
       std::shared_lock lock(m_mut);
-      if (auto phandle = get_lockless(desc); phandle)
+      if (auto phandle = get_lockless(desc); phandle) {
         return phandle;
+      }
     }
 
     {
       // lock for write
       std::unique_lock lock(m_mut);
-      if (auto phandle = get_lockless(desc); phandle)
+      if (auto phandle = get_lockless(desc); phandle) {
         return phandle;
+      }
 
       auto handle = desc.create(m_data);
       m_new.insert(desc, handle);
@@ -159,33 +170,38 @@ public:
     std::unique_lock lock(m_mut);
 
     auto storage = m_new.extract();
-    for (auto &&[desc, handle] : storage)
+    for (auto &&[desc, handle] : storage) {
       m_old.insert_or_assign(std::move(desc), std::move(handle));
+    }
 
-    if (cleanup)
+    if (cleanup) {
       std::erase_if(m_old,
                     [](const auto &pair) { return pair.second.expired(); });
+    }
   }
 
 private:
   std::shared_ptr<const handle_type> get_old(const handle_desc &desc) const {
-    if (auto it = m_old.find(desc); it != m_old.end())
+    if (auto it = m_old.find(desc); it != m_old.end()) {
       return it->second.lock();
+    }
 
     return nullptr;
   }
 
   std::shared_ptr<const handle_type> get_new(const handle_desc &desc) const {
-    if (auto it = m_new.find(desc); it != m_new.end())
+    if (auto it = m_new.find(desc); it != m_new.end()) {
       return it->second.lock();
+    }
 
     return nullptr;
   }
 
   std::shared_ptr<const handle_type>
   get_lockless(const handle_desc &desc) const {
-    if (auto phandle = get_old(desc); phandle)
+    if (auto phandle = get_old(desc); phandle) {
       return phandle;
+    }
     return get_new(desc);
   }
 

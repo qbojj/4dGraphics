@@ -1,22 +1,25 @@
 #pragma once
 
+#include "CommandBuffer.hpp"
 #include "Context.hpp"
 #include "VulkanConstructs.hpp"
 #include "VulkanResources.hpp"
-#include "CommandBuffer.hpp"
 
-#include <functional>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <filesystem>
+#include <functional>
+#include <list>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <variant>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_structs.hpp>
+#include <vector>
 
 /*
 TransferManager is a class that is responsible for loading resources
@@ -74,7 +77,7 @@ public:
         : target_family(target_family), name(name), priority(priority) {}
 
     std::uint32_t target_family;
-    std::string_view name{};
+    std::string_view name;
     PriorityClass priority = PriorityClass::Normal;
   };
 
@@ -106,7 +109,7 @@ public:
                            TransferManager *manager)
         : m_queue_item(queue_item), m_manager(manager) {}
 
-    std::optional<std::list<QueueItem>::iterator> m_queue_item{};
+    std::optional<std::list<QueueItem>::iterator> m_queue_item;
     TransferManager *m_manager{nullptr};
     friend class TransferManager;
   };
@@ -129,7 +132,7 @@ public:
   TransferManager(Context &ctx);
 
   Buffer allocateBuffer(std::size_t size, const BufferTransferInfo &ti);
-  BufferFuture uploadBuffer(Buffer buffer, buffer_upload_fn upload_fn,
+  BufferFuture uploadBuffer(const Buffer &buffer, buffer_upload_fn upload_fn,
                             const BufferTransferInfo &ti);
 
   // creates a gpu local buffer and copies the data from the staging buffer
@@ -140,9 +143,9 @@ public:
     return uploadBuffer(std::as_bytes(data), ti);
   }
 
-  template<>
+  template <>
   BufferFuture uploadBuffer<std::byte>(std::span<const std::byte> data,
-                            const BufferTransferInfo &ti);
+                                       const BufferTransferInfo &ti);
 
   // load a texture for that will be used only as a sampled image
   TextureFuture uploadTexture(const std::filesystem::path &path,
@@ -182,7 +185,7 @@ private:
       std::move_only_function<uploadTextureHelper_data()>;
 
   TextureFuture
-  uploadTextureHelper(ImageView tex, PriorityClass priority,
+  uploadTextureHelper(const ImageView &tex, PriorityClass priority,
                       vk::ImageLayout target_layout,
                       std::uint32_t target_family,
                       uploadTextureHelper_fn prepare_transfer_data);
@@ -257,31 +260,26 @@ private:
 
     PriorityClass priority;
     bool done = false;
-    std::exception_ptr exception = {};
+    std::exception_ptr exception;
 
     // wait semaphore value for the transfer (to make the memory available)
     std::uint64_t semaphore_value = {};
 
-    any_memory_barrier barrier = {};
+    any_memory_barrier barrier;
   };
 
   // a queue for every priority & done
   // Those are lists to allow for removal from the middle (changing priority)
   // and the done is a list to keep handles valid until acquisition
-  std::mutex queue_mut{};
+  std::mutex queue_mut;
 
   vk::raii::Semaphore async_transfer_semaphore;
   std::uint64_t async_transfer_semaphore_value{0};
 
   std::list<QueueItem> &getQueueItemList(bool done, PriorityClass priority);
 
-  std::list<QueueItem> queue_high{}, queue_normal{}, queue_low{};
-  std::list<QueueItem> list_done{};
+  std::list<QueueItem> queue_high, queue_normal, queue_low;
+  std::list<QueueItem> list_done;
 };
-
-template <>
-auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
-                                              const BufferTransferInfo &ti)
-    -> BufferFuture;
 
 }; // namespace v4dg

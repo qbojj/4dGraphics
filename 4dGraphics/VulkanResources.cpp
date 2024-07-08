@@ -1,8 +1,16 @@
 #include "VulkanResources.hpp"
 
+#include "BindlessManager.hpp"
+#include "Context.hpp"
 #include "VulkanConstructs.hpp"
 
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
+
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <span>
 
 using namespace v4dg;
 using namespace v4dg::detail;
@@ -11,8 +19,9 @@ static bool hasAllFlags(auto flags, auto mask) {
   return (flags & mask) == mask;
 }
 
-ImageViewObject::ImageViewObject(internal_construct_t, Context &ctx,
-                                 Image image, vk::ImageViewCreateFlags flags,
+ImageViewObject::ImageViewObject(internal_construct_t /*unused*/, Context &ctx,
+                                 const Image &image,
+                                 vk::ImageViewCreateFlags flags,
                                  vk::ImageViewType viewType, vk::Format format,
                                  vk::ImageUsageFlags usage,
                                  vk::ComponentMapping components,
@@ -23,8 +32,9 @@ ImageViewObject::ImageViewObject(internal_construct_t, Context &ctx,
              subresourceRange},
             {usage}};
 
-  if (!usage)
+  if (!usage) {
     chain.unlink<vk::ImageViewUsageCreateInfo>();
+  }
 
   m_imageView = {ctx.vkDevice(), chain.get<>()};
 
@@ -59,13 +69,15 @@ ImageViewObject::ImageViewObject(internal_construct_t, Context &ctx,
         ctx.bindlessManager().write_for(*m_storageHandle, image_general_info);
   }
 
-  if (cnt > 0)
+  if (cnt > 0) {
     ctx.vkDevice().updateDescriptorSets(std::span{writes.data(), cnt}, {});
+  }
 }
 
-ImageView::ImageView(Context &ctx, Image image, vk::ImageViewCreateFlags flags,
-                     vk::ImageViewType viewType, vk::Format format,
-                     vk::ImageUsageFlags usage, vk::ComponentMapping components,
+ImageView::ImageView(Context &ctx, const Image &image,
+                     vk::ImageViewCreateFlags flags, vk::ImageViewType viewType,
+                     vk::Format format, vk::ImageUsageFlags usage,
+                     vk::ComponentMapping components,
                      vk::ImageSubresourceRange subresourceRange)
     : std::shared_ptr<const ImageViewObject>(std::make_shared<ImageViewObject>(
           ImageViewObject::internal_construct_t{}, ctx, image, flags, viewType,

@@ -3,15 +3,23 @@
 #include "GameHandler.hpp"
 #include "ILogReciever.hpp"
 
-#include <SDL2/SDL_main.h>
 #include <argparse/argparse.hpp>
 #include <tracy/Tracy.hpp>
 
 #include <cstdlib>
+#include <ctime>
 #include <exception>
+#include <filesystem>
 #include <format>
+#include <iostream>
+#include <iterator>
 #include <memory>
-#include <new>
+#include <source_location>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -43,19 +51,23 @@ void operator delete(void *ptr, std::size_t) noexcept {
 class TracyLogReciever : public v4dg::ILogReciever {
 public:
   void do_log(std::string_view fmt, std::format_args args,
-              std::source_location lc, LogLevel lv) override {
-    std::string msg = std::format("[{}] {}:{}:{}: ", lv, lc.file_name(),
-                                  lc.line(), lc.function_name());
+              std::source_location loc, LogLevel lev) override {
+    std::string msg = std::format("[{}] {}:{}:{}: ", lev, loc.file_name(),
+                                  loc.line(), loc.function_name());
     std::vformat_to(std::back_inserter(msg), fmt, args);
 
     TracyMessage(msg.c_str(), msg.size());
   }
 };
 
+static TracyLogReciever tracyLogReciever_obj;
+const std::shared_ptr<v4dg::ILogReciever> tracyLogReciever{
+    std::shared_ptr<void>{}, &tracyLogReciever_obj};
+
 v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways,
                           v4dg::cerrLogReciever);
 
-void parse_args(int argc, const char *argv[]) {
+static void parse_args(int argc, const char *argv[]) {
   argparse::ArgumentParser parser;
 
   parser.add_argument("-d", "--debug-level")
@@ -87,31 +99,32 @@ void parse_args(int argc, const char *argv[]) {
     throw;
   }
 
-  v4dg::Logger::LogLevel ll{};
+  v4dg::Logger::LogLevel log_level{};
 
   auto debug_level = parser.get<std::string>("-d");
-  if (debug_level.size() != 1)
+  if (debug_level.size() != 1) {
     throw std::runtime_error(
         std::format("unsupported debug level {}", parser.get<char>("-d")));
+  }
   switch (debug_level[0]) {
     using enum v4dg::Logger::LogLevel;
   case 'd':
-    ll = Debug;
+    log_level = Debug;
     break;
   case 'l':
-    ll = Log;
+    log_level = Log;
     break;
   case 'w':
-    ll = Warning;
+    log_level = Warning;
     break;
   case 'e':
-    ll = Error;
+    log_level = Error;
     break;
   case 'f':
-    ll = FatalError;
+    log_level = FatalError;
     break;
   case 'q':
-    ll = PrintAlways;
+    log_level = PrintAlways;
     break;
   default:
     throw std::runtime_error(
@@ -121,10 +134,11 @@ void parse_args(int argc, const char *argv[]) {
   using sp_lr = std::shared_ptr<v4dg::ILogReciever>;
   std::vector<sp_lr> recievers;
 
-  recievers.push_back(std::make_shared<TracyLogReciever>());
+  recievers.push_back(tracyLogReciever);
 
-  if (!parser.get<bool>("-q"))
+  if (!parser.get<bool>("-q")) {
     recievers.push_back(v4dg::cerrLogReciever);
+  }
 
   if (parser.is_used("--log-path")) {
     recievers.push_back(std::make_shared<v4dg::FileLogReciever>(
@@ -139,24 +153,20 @@ void parse_args(int argc, const char *argv[]) {
     recievers.push_back(v4dg::messageBoxLogReciever);
 #endif
 
-  v4dg::logger.setLogLevel(ll);
-  v4dg::logger.setLogReciever(
-      recievers.size() == 0 ? nullptr
-      : recievers.size() == 1
-          ? std::move(recievers.front())
-          : std::make_shared<v4dg::MultiLogReciever>(recievers));
+  v4dg::logger.setLogLevel(log_level);
+  v4dg::logger.setLogReciever(v4dg::MultiLogReciever::from_span(recievers));
 }
 
 extern "C" int main([[maybe_unused]] int argc,
                     [[maybe_unused]] const char *argv[]) try {
-  std::srand((unsigned int)std::time(NULL));
+  std::srand((unsigned int)std::time(nullptr));
   parse_args(argc, argv);
 
   v4dg::logger.Log("starting");
   v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
   v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
 
-  v4dg::SDL_GlobalContext gc;
+  v4dg::SDL_GlobalContext _{};
 
   return v4dg::MyGameHandler{}.Run();
 } catch (const std::exception &e) {

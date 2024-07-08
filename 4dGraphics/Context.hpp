@@ -5,21 +5,24 @@
 #include "CommandBufferManager.hpp"
 #include "DSAllocator.hpp"
 #include "Device.hpp"
+#include "Queue.hpp"
 #include "Swapchain.hpp"
 #include "VulkanCaches.hpp"
-#include "VulkanConstructs.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
-#include <ankerl/unordered_dense.h>
-#include <taskflow/taskflow.hpp>
-#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <array>
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace v4dg {
@@ -41,22 +44,25 @@ public:
       {
           // vulkan requires at least one graphics+compute queue if graphics is
           // available
-          Type::Graphics,
-          vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute,
-          {},
+          .type = Type::Graphics,
+          .required_flags =
+              vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute,
+          .banned_flags = {},
       },
       {
           // async compute is usually denoted by not having graphics flag
-          Type::AsyncCompute,
-          vk::QueueFlagBits::eCompute,
-          ~(vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer |
-            vk::QueueFlagBits::eSparseBinding),
+          .type = Type::AsyncCompute,
+          .required_flags = vk::QueueFlagBits::eCompute,
+          .banned_flags =
+              ~(vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer |
+                vk::QueueFlagBits::eSparseBinding),
       },
       {
           // some devices expose DMA engine as transfer-only queue
-          Type::AsyncTransfer,
-          vk::QueueFlagBits::eTransfer,
-          ~(vk::QueueFlagBits::eTransfer | vk::QueueFlagBits::eSparseBinding),
+          .type = Type::AsyncTransfer,
+          .required_flags = vk::QueueFlagBits::eTransfer,
+          .banned_flags = ~(vk::QueueFlagBits::eTransfer |
+                            vk::QueueFlagBits::eSparseBinding),
       },
       // maybe add sparse binding or video decode/encode queues in the future
   });
@@ -71,7 +77,7 @@ public:
   [[nodiscard]] auto semaphore_value() const { return m_semaphore_value; }
 
   void submit(std::span<SubmitionInfo> infos, vk::Fence fence = nullptr);
-  void submit(SubmitionInfo &&info, vk::Fence fence = nullptr) {
+  void submit(SubmitionInfo info, vk::Fence fence = nullptr) {
     submit({&info, 1}, fence);
   }
 
@@ -146,7 +152,7 @@ public:
   using QueueType = PerQueueFamily::Type;
 
   explicit Context(const Device &device,
-                   std::optional<DSAllocatorWeights> weights = {});
+                   const std::optional<DSAllocatorWeights> &weights = {});
   ~Context();
 
   // we will be refering this class as a reference type -> no copying/moving
@@ -166,7 +172,7 @@ public:
   PerFrame &get_frame_ctx() { return m_per_frame.at(frame_ref()); }
 
   PerThread &get_thread_ctx() {
-    int id = m_executor.this_worker_id();
+    int const id = m_executor.this_worker_id();
     assert(id != -1); // only call from worker thread
     return m_per_thread.at(id);
   }
@@ -176,8 +182,9 @@ public:
   }
 
   DestructionStack &get_destruction_stack() {
-    if (std::this_thread::get_id() == m_main_thread_id)
+    if (std::this_thread::get_id() == m_main_thread_id) {
       return get_frame_ctx().m_destruction_stack;
+    }
     return get_thread_frame_ctx().m_destruction_stack;
   }
 

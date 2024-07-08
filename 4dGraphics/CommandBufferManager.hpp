@@ -1,12 +1,12 @@
 #pragma once
 
-#include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
 
-#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace v4dg {

@@ -3,17 +3,16 @@
 #include "BindlessManager.hpp"
 #include "Device.hpp"
 #include "HandleCache.hpp"
-#include "v4dgCore.hpp"
-#include "v4dgVulkan.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_hash.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <concepts>
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <filesystem>
+#include <iterator>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <type_traits>
@@ -55,8 +54,9 @@ public:
           ::std::ranges::data(r), ::std::ranges::size(r) * sizeof(T));
     } else {
       ::std::size_t seed = ::std::ranges::distance(r);
-      for (const auto &e : r)
+      for (const auto &e : r) {
         hash_combine(seed, omni_hash<T>{}(e));
+      }
       return seed;
     }
   }
@@ -108,13 +108,14 @@ public:
     return *this;
   }
 
-  SamplerInfo &setMipLodBias(float bias = 0.f) noexcept {
+  SamplerInfo &setMipLodBias(float bias = 0.F) noexcept {
     sci.setMipLodBias(bias);
     return *this;
   }
 
-  SamplerInfo &setAnisotropy(float ani = 0.f) noexcept {
-    sci.setAnisotropyEnable(ani != 0.f).setMaxAnisotropy(ani);
+  SamplerInfo &setAnisotropy(float ani = 0.F) noexcept {
+    sci.setAnisotropyEnable(static_cast<vk::Bool32>(ani != 0.F))
+        .setMaxAnisotropy(ani);
     return *this;
   }
 
@@ -125,7 +126,7 @@ public:
     return *this;
   }
 
-  SamplerInfo &setLodBounds(float minLod = 0.f,
+  SamplerInfo &setLodBounds(float minLod = 0.F,
                             float maxLod = vk::LodClampNone) noexcept {
     sci.setMinLod(minLod).setMaxLod(maxLod);
     return *this;
@@ -174,7 +175,7 @@ public:
 
   auto operator<=>(const DescriptorSetLayoutInfo &) const = default;
 
-  vk::raii::DescriptorSetLayout create(const Device &) const;
+  [[nodiscard]] vk::raii::DescriptorSetLayout create(const Device &) const;
 
 private:
   vk::DescriptorSetLayoutCreateFlags flags;
@@ -211,8 +212,9 @@ public:
   }
   PipelineLayoutInfo &
   add_sets(std::span<const vk::raii::DescriptorSetLayout> sets) {
-    for (const auto &set : sets)
+    for (const auto &set : sets) {
       setLayouts.push_back(*set);
+    }
     return *this;
   }
 
@@ -228,7 +230,7 @@ public:
 
   auto operator<=>(const PipelineLayoutInfo &) const = default;
 
-  vk::raii::PipelineLayout create(const Device &) const;
+  [[nodiscard]] vk::raii::PipelineLayout create(const Device &) const;
 
 private:
   vk::PipelineLayoutCreateFlags flags;
@@ -282,7 +284,7 @@ public:
 */
 // typedef permament_handle_cache<SamplerYcbcrConversionInfo>
 // sampler_ycbcr_conversion_cache;
-typedef handle_cache<SamplerInfo> sampler_cache;
+using sampler_cache = handle_cache<SamplerInfo>;
 
 // typedef permament_handle_cache<DescriptorSetLayoutInfo>
 // descriptor_set_layout_cache; typedef

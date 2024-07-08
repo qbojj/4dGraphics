@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Device.hpp"
 #include "v4dgCore.hpp"
-#include "v4dgVulkan.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -11,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace v4dg {
@@ -41,8 +40,9 @@ public:
                              std::optional<uint32_t> descriptorCount = {}) {
     vk::DescriptorSet out{};
     std::span<const uint32_t> descriptorCounts{};
-    if (descriptorCount)
+    if (descriptorCount) {
       descriptorCounts = {{*descriptorCount}};
+    }
     allocate_internal({{setLayout}}, descriptorCounts, {&out, 1});
     return out;
   }
@@ -61,14 +61,14 @@ struct DSAllocatorWeights {
     float weight;
   };
 
-  std::vector<DescriptorWieght> m_weights{};
+  std::vector<DescriptorWieght> m_weights;
 
   // data weight is in m_weights
-  float m_inlineUniformBindingWeight{0.0f};
+  float m_inlineUniformBindingWeight{0.0F};
 
-  std::vector<std::vector<vk::DescriptorType>> m_mutableTypeLists{};
+  std::vector<std::vector<vk::DescriptorType>> m_mutableTypeLists = {};
 
-  vk::raii::DescriptorPool
+  [[nodiscard]] vk::raii::DescriptorPool
   create(const vk::raii::Device &device, std::uint32_t maxSets,
          vk::DescriptorPoolCreateFlags flags = {}) const;
 };

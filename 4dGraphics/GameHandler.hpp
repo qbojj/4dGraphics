@@ -1,14 +1,16 @@
 #pragma once
 
 #include "BindlessManager.hpp"
+#include "CommandBuffer.hpp"
 #include "Context.hpp"
+#include "Device.hpp"
 #include "GameCore.hpp"
-#include "PipelineBuilder.hpp"
-#include "VulkanConstructs.hpp"
-#include "VulkanResources.hpp"
-#include "cppHelpers.hpp"
+#include "Swapchain.hpp"
 #include "TransferManager.hpp"
+#include "VulkanResources.hpp"
 
+#include <SDL.h>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -37,7 +39,7 @@ public:
   MyGameHandler &operator=(const MyGameHandler &) = delete;
   MyGameHandler(MyGameHandler &&) = delete;
   MyGameHandler &operator=(MyGameHandler &&) = delete;
-  ~MyGameHandler();
+  ~MyGameHandler() override;
 
   int Run();
 
@@ -65,7 +67,7 @@ private:
   int current_pipeline{2};
 
   struct MandelbrotPushConstants {
-    glm::dvec2 center{};
+    glm::dvec2 center;
     glm::dvec2 scale{1. / 128};
     BindlessResource image_idx;
   } mandelbrot_push_constants;
