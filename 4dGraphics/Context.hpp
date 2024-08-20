@@ -169,16 +169,16 @@ public:
   auto &vkDevice() const { return device().device(); }
 
   uint32_t frame_ref() const { return m_frame_idx % max_frames_in_flight; }
-  PerFrame &get_frame_ctx() { return m_per_frame.at(frame_ref()); }
+  PerFrame &get_frame_ctx() { return m_per_frame[frame_ref()]; }
 
   PerThread &get_thread_ctx() {
     int const id = m_executor.this_worker_id();
     assert(id != -1); // only call from worker thread
-    return m_per_thread.at(id);
+    return m_per_thread[id];
   }
 
   auto &get_thread_frame_ctx() {
-    return get_thread_ctx().m_per_frame.at(frame_ref());
+    return get_thread_ctx().m_per_frame[frame_ref()];
   }
 
   DestructionStack &get_destruction_stack() {

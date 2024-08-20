@@ -36,7 +36,7 @@ std::expected<std::vector<std::uint32_t>,
               std::variant<detail::get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path);
 
-class GraphicsPipelineBuilder;
+struct GraphicsPipelineBuilder;
 
 class ShaderStageData {
 public:
@@ -46,7 +46,8 @@ public:
                   std::string entry = "main");
   ShaderStageData(const ShaderStageData &);
   ShaderStageData(ShaderStageData &&) noexcept;
-  ShaderStageData &operator=(ShaderStageData);
+  ShaderStageData &operator=(const ShaderStageData &);
+  ShaderStageData &operator=(ShaderStageData &&) noexcept;
 
   template <typename T>
   ShaderStageData &add_specialization(std::uint32_t id, const T &data) {
@@ -117,8 +118,7 @@ private:
   friend GraphicsPipelineBuilder;
 };
 
-class GraphicsPipelineBuilder {
-public:
+struct GraphicsPipelineBuilder {
   GraphicsPipelineBuilder() = delete;
   GraphicsPipelineBuilder(vk::PipelineLayout layout,
                           vk::PipelineCreateFlags flags = {})
@@ -180,8 +180,8 @@ public:
     return *this;
   }
 
-  vk::raii::Pipeline build(Context &dev,
-                           std::span<const ShaderStageData> shaders);
+  vk::raii::Pipeline build(Context &ctx,
+                           std::span<const ShaderStageData> shader_stages);
 
   vk::PipelineLayout layout;
   vk::PipelineCreateFlags flags;

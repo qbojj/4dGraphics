@@ -3,12 +3,14 @@
 #include "v4dgVulkan.hpp"
 
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <vector>
+#include <vulkan/vulkan_structs.hpp>
 
 namespace v4dg {
 
@@ -18,7 +20,7 @@ class Swapchain;
 struct SwapchainBuilder {
   vk::SurfaceKHR surface;
 
-  vk::Format preferred_format = vk::Format::eB8G8R8A8Unorm;
+  std::optional<vk::Format> preferred_format = {};
   std::optional<vk::Format> required_format = {};
 
   vk::PresentModeKHR preferred_present_mode = vk::PresentModeKHR::eFifoRelaxed;
@@ -41,6 +43,9 @@ struct SwapchainBuilder {
   uint32_t image_count = 3;
 
   Swapchain build(Context &ctx) const;
+  vk::Format getFormat(Context &ctx) const;
+  vk::PresentModeKHR getPresentMode(Context &ctx) const;
+  vk::Extent2D getExtent(const vk::SurfaceCapabilitiesKHR &surfaceCapabilities) const;
 };
 
 class Swapchain {

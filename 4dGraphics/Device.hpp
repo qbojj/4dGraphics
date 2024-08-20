@@ -214,6 +214,8 @@ public:
 
   [[nodiscard]] const auto &queues() const noexcept { return m_queues; }
 
+  void make_device_lost_dump(const vk::DeviceLostError &error) const;
+
 private:
   const Instance &m_instance;
   vk::raii::PhysicalDevice m_physicalDevice;

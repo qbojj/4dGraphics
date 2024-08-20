@@ -1,12 +1,12 @@
 name: build-and-test
 on:
-  push: 
+  push:
     pull_request:
     - main
-    branches: 
+    branches:
     - main
   workflow_dispatch:
-    
+
 env:
   CMAKE_BUILD_TYPE: ${{ inputs.buildType }} # Release, Debug, RelWithDebInfo, MinSizeRel
   CMAKE_BUILD_PARALLEL_LEVEL: "" # Enable build parallelism
@@ -21,12 +21,12 @@ jobs:
         os: [ubuntu-latest, windows-latest] # macos-latest
     #env:
     #
-    # [OPTIONAL] Define the vcpkg's triplet 
-    # you want to enforce, otherwise the default one 
+    # [OPTIONAL] Define the vcpkg's triplet
+    # you want to enforce, otherwise the default one
     # for the hosting system will be automatically
-    # choosen (x64 is the default on all platforms, 
+    # choosen (x64 is the default on all platforms,
     # e.g. x64-osx).
-    # VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }} 
+    # VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
 
     steps:
       - uses: actions/checkout@v3
@@ -43,7 +43,7 @@ jobs:
       - name: Prepare for build (Ubuntu)
         if: contains( inputs.system, 'ubuntu' )
         run: sudo apt-get install -y libx11-dev libxft-dev libxext-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev
-      
+
       # Note: if the preset misses the "configuration", it is possible to explicitly select the
       # configuration with the additional `--config` flag, e.g.:
       #   buildPreset: 'ninja-vcpkg'
@@ -56,7 +56,7 @@ jobs:
           configurePreset: 'ninja-multi-vcpkg'
           buildPreset: 'ninja-vcpkg-release'
           testPreset: 'test-release'
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:

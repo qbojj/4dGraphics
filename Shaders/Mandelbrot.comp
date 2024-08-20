@@ -48,7 +48,7 @@ uvec4 getLastToInfParalel( dvec4 c )
     {
         im = 2*re*im + c.zwzw;
         re = resq - imsq + c.xxyy;
-        
+
         resq = re*re;
         imsq = im*im;
 
@@ -65,7 +65,7 @@ uint getLastToInf( dvec2 c )
 {
     const dvec2 oneNegOne= { 1, -1 };
     const double minInf = 4.;
-    
+
     dvec2 z = { 0, 0 };
 
     uint n = 0;
@@ -83,7 +83,7 @@ uint getLastToInf( dvec2 c )
 uint getLastToInfV3( dvec2 c )
 {
     const double minInf = 4.;
-    
+
     dvec2 z = { 0, 0 };
     dvec2 zsq = z*z;
 
@@ -91,7 +91,7 @@ uint getLastToInfV3( dvec2 c )
 
     do
     {
-        z = dvec2( zsq.x - zsq.y, 2*z.x*z.y ) + c;        
+        z = dvec2( zsq.x - zsq.y, 2*z.x*z.y ) + c;
         zsq = z*z;
 
         n++;
@@ -133,6 +133,6 @@ void main()
                 imageStore(images2D[imageIdx(image_idx)], pos, makeColor( n[i] ) );
         }
     }
-    else imageStore(images2D[imageIdx(image_idx)], screenPos, 
+    else imageStore(images2D[imageIdx(image_idx)], screenPos,
         makeColor( variant == 1 ? getLastToInf( basePos ) : getLastToInfV3( basePos ) ) );
 }

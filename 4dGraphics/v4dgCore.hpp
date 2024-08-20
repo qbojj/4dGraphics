@@ -27,10 +27,12 @@ template <typename T> using per_frame = std::array<T, max_frames_in_flight>;
 template <typename T, std::size_t N>
 [[nodiscard]] constexpr std::array<T, N>
 make_array_it(std::invocable<std::size_t> auto &&fn) {
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks): false positive
   return
       [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::array<T, N> {
         return {std::forward<decltype(fn)>(fn)(Is)...};
       }(std::make_index_sequence<N>{});
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 template <std::size_t N>

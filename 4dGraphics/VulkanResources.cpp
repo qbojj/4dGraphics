@@ -15,9 +15,11 @@
 using namespace v4dg;
 using namespace v4dg::detail;
 
-static bool hasAllFlags(auto flags, auto mask) {
+namespace {
+bool hasAllFlags(auto flags, auto mask) {
   return (flags & mask) == mask;
 }
+} // namespace
 
 ImageViewObject::ImageViewObject(internal_construct_t /*unused*/, Context &ctx,
                                  const Image &image,

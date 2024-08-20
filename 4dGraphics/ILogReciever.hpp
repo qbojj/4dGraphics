@@ -16,6 +16,12 @@
 namespace v4dg {
 class ILogReciever {
 public:
+  ILogReciever() = default;
+  ILogReciever(ILogReciever&) = delete;
+  ILogReciever(ILogReciever&&) = delete;
+  ILogReciever& operator=(ILogReciever&) = delete;
+  ILogReciever& operator=(ILogReciever&&) = delete;
+
   virtual ~ILogReciever() = default;
 
   enum class LogLevel : std::uint8_t {
@@ -84,13 +90,6 @@ private:
 
   std::vector<std::shared_ptr<ILogReciever>> m_recievers;
 };
-
-extern const std::shared_ptr<CerrLogReciever> cerrLogReciever;
-#ifdef _WIN32
-extern const std::shared_ptr<OutputDebugStringLogReciever>
-    outputDebugStringLogReciever;
-extern const std::shared_ptr<MessageBoxLogReciever> messageBoxLogReciever;
-#endif
 } // namespace v4dg
 
 namespace std {

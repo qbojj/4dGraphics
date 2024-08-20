@@ -56,7 +56,7 @@ void BindlessManager::BindlessHeap::setup(BindlessType type,
 }
 
 BindlessResource BindlessManager::BindlessHeap::allocate() {
-  std::scoped_lock _{m_mutex};
+  std::scoped_lock const _{m_mutex};
   if (m_free.empty()) {
     if (m_count >= m_max_count) {
       throw exception("out of bindless resources of type {} (max {})",
@@ -78,7 +78,7 @@ void BindlessManager::BindlessHeap::free(BindlessResource res) {
     return;
   }
 
-  std::scoped_lock _{m_mutex};
+  std::scoped_lock const _{m_mutex};
   assert(res.type() == m_type);
   assert(res.index() != 0); // do not free the null resource
   assert(res.index() <= m_count);
@@ -149,9 +149,11 @@ BindlessManager::BindlessManager(const Device &device)
     return;
   }
 
+  static constexpr auto size_alignment = 16;
+
   std::size_t whole_size = sizeof(VersionBufferInfo);
   for (std::uint32_t const size : sizes) {
-    whole_size = detail::AlignUp(whole_size, 16);
+    whole_size = detail::AlignUp(whole_size, size_alignment);
     whole_size += size * sizeof(std::uint8_t);
   }
 
@@ -191,30 +193,34 @@ BindlessManager::BindlessManager(const Device &device)
       version_buf->allocator().getAllocationInfo(version_buf->allocation());
   auto *data = static_cast<std::byte *>(ai.pMappedData);
 
-  std::size_t offset = 0;
-  info.buffers_header = new (data + offset) VersionBufferHeader;
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+  info.buffers_header = new (data) VersionBufferHeader;
   std::ranges::copy(sizes, info.buffers_header->maxHandles.begin());
 
-  offset += sizeof(VersionBufferHeader);
-  for (auto [i, size] : std::views::enumerate(sizes)) {
-    offset = detail::AlignUp(offset, 16);
+  auto offset = sizeof(VersionBufferHeader);
+  for (auto [size, version_buf_device_addr, version_buf_data] :
+       std::views::zip(sizes, std::span{info.buffers_header->versionBuffers},
+                       std::span{info.versionBuffers})) {
+    offset = detail::AlignUp(offset, size_alignment);
 
     if (size == 0) { // leave the pointers null
+      version_buf_device_addr = vk::DeviceAddress{};
       continue;
     }
 
-    info.buffers_header->versionBuffers[i] =
-        version_buf->deviceAddress() + offset;
+    version_buf_device_addr = version_buf->deviceAddress() + offset;
 
-    info.versionBuffers[i] = new (data + offset) std::uint8_t[size];
-    std::fill_n(info.versionBuffers[i], size, 0xffU);
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    version_buf_data = new (data + offset) std::uint8_t[size];
+    std::fill_n(version_buf_data, size,
+                std::numeric_limits<std::uint8_t>::max());
 
     offset += size * sizeof(uint8_t);
   }
 
   m_versionBuffer = {.buffer = std::move(version_buf), .info = info};
 
-  vk::DescriptorBufferInfo buf_info{
+  vk::DescriptorBufferInfo const buf_info{
       m_versionBuffer->buffer->vk(),
       0,
       sizeof(VersionBufferHeader),
@@ -281,7 +287,11 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
   }
 
   auto total = std::ranges::fold_left(out, 0U, std::plus<>{});
-  auto max_bindless = props.limits.maxPerStageResources * 4 / 5;
+
+  static constexpr float max_bindless_factor = 0.8F;
+  auto max_bindless = static_cast<std::uint32_t>(
+      static_cast<float>(props.limits.maxPerStageResources) *
+      max_bindless_factor);
 
   // use only 4/5 of the total available resources
   if (total > max_bindless) {
@@ -303,10 +313,11 @@ std::array<uint32_t, 4> BindlessManager::calculate_sizes(const Device &device) {
       // remove to_distribute equally from all the resources idx<=i
       auto dec = to_distribute / (i + 1);
 
-      for (int j = 0; j <= i; j++) {
-        out[indices[j]] -= dec;
-        total -= dec;
+      for (auto idx : indices | std::views::take(i + 1)) {
+        out[idx] -= dec;
       }
+
+      total -= (i + 1) * dec;
     }
   }
 
@@ -323,35 +334,41 @@ UniqueBindlessResource BindlessManager::allocate(BindlessType type) {
 
   assert(type_idx < resource_count && "invalid BindlessType");
 
-  auto &heap = m_heaps.at(type_idx);
+  auto &heap = m_heaps[type_idx];
   UniqueBindlessResource resource{heap.allocate(), *this};
 
   if (m_versionBuffer) {
-    uint8_t *values = m_versionBuffer->info.versionBuffers.at(type_idx);
+    uint8_t *values = m_versionBuffer->info.versionBuffers[type_idx];
     values[resource.get().index()] = resource.get().version();
-    assert(m_versionBuffer->info.buffers_header->maxHandles.at(type_idx) >=
+    assert(m_versionBuffer->info.buffers_header->maxHandles[type_idx] >=
            resource.get().index());
   }
 
   return resource;
 }
 
-void BindlessManager::free(BindlessResource res) {
+void BindlessManager::free(BindlessResource res) noexcept {
   if (!res) {
     return;
   }
 
-  auto type_idx = static_cast<uint32_t>(res.type());
+  auto type_idx = static_cast<std::uint32_t>(res.type());
 
-  if (m_versionBuffer) {
-    uint8_t *values = m_versionBuffer->info.versionBuffers.at(type_idx);
-    assert(res.index() <
-               m_versionBuffer->info.buffers_header->maxHandles.at(type_idx) &&
-           "invalid BindlessResource index");
-    values[res.index()] = 0xffU;
+  if (type_idx >= resource_count) {
+    assert(false && "invalid BindlessResource type");
+    return;
   }
 
-  m_heaps.at(type_idx).free(res);
+  if (m_versionBuffer) {
+    uint8_t *values = m_versionBuffer->info.versionBuffers[type_idx];
+    assert(res.index() <
+               m_versionBuffer->info.buffers_header->maxHandles[type_idx] &&
+           "invalid BindlessResource index");
+
+    values[res.index()] = std::numeric_limits<uint8_t>::max();
+  }
+
+  m_heaps[type_idx].free(res);
 }
 
 vk::WriteDescriptorSet BindlessManager::write_for(BindlessResource res) const {

@@ -92,7 +92,7 @@ CommandBuffer
 PerQueueFamily::getCommandBuffer(vk::CommandBufferLevel level,
                                  command_buffer_manager::category cat) {
   return {
-      m_command_buffer_managers.at(m_ctx->frame_ref()).get(level, cat),
+      m_command_buffer_managers[m_ctx->frame_ref()].get(level, cat),
       *m_ctx,
       queue().family(),
       std::unique_lock(m_cbm_mutex),
@@ -100,7 +100,7 @@ PerQueueFamily::getCommandBuffer(vk::CommandBufferLevel level,
 }
 
 void PerQueueFamily::flush_frame(std::uint32_t frame) {
-  m_command_buffer_managers.at(frame).reset();
+  m_command_buffer_managers[frame].reset();
 }
 
 Context::Context(const Device &dev,
@@ -172,7 +172,7 @@ auto Context::getFamilies() -> PerQueueFamilyArray {
   };
 
   auto get_queue_idx = [&](QueueType type) -> std::pair<int, int> & {
-    return families_queues.at(to_idx(type));
+    return families_queues[to_idx(type)];
   };
 
   auto has_queue = [&](QueueType type) -> bool {
@@ -217,8 +217,8 @@ auto Context::getFamilies() -> PerQueueFamilyArray {
     throw exception("no graphics queue found");
   }
 
-  return make_array_it<N>([&](auto i) -> std::unique_ptr<PerQueueFamily> {
-    auto type = PerQueueFamily::QueueTypes.at(i).type;
+  return make_array_it<N>([&](std::size_t i) -> std::unique_ptr<PerQueueFamily> {
+    auto type = PerQueueFamily::QueueTypes[i].type;
     if (!has_queue(type)) {
       return nullptr;
     }
@@ -284,7 +284,7 @@ void Context::next_frame() {
 
     next_frame.flush();
     for (auto &per_thread : m_per_thread) {
-      per_thread.m_per_frame.at(frame_ref()).flush();
+      per_thread.m_per_frame[frame_ref()].flush();
     }
     for (auto &q : m_families) {
       if (q) {
@@ -294,7 +294,8 @@ void Context::next_frame() {
   }
 }
 
-DSAllocatorWeights Context::default_weights(const Device & /*unused*/) {
+DSAllocatorWeights Context::default_weights(const Device & /*dev*/) {
+  // NOLINTBEGIN(*-magic-numbers)
   DSAllocatorWeights weights{
       .m_weights =
           {
@@ -309,6 +310,7 @@ DSAllocatorWeights Context::default_weights(const Device & /*unused*/) {
               {.type = vk::DescriptorType::eInputAttachment, .weight = 0.5F},
           },
   };
+  // NOLINTEND(*-magic-numbers)
 
   return weights;
 };

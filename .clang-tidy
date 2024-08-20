@@ -1,4 +1,6 @@
 ---
 Checks: 'cppcoreguidelines-*,bugprone-*,modernize-*,
          readability-*,portability-*,performance-*,misc-*,
-         -modernize-use-trailing-return-type,-misc-include-cleaner'
+         -modernize-use-trailing-return-type,-misc-include-cleaner,
+         -readability-identifier-length,-cppcoreguidelines-pro-*'
+

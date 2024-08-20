@@ -28,4 +28,3 @@ struct VertexOutput {
     vec2 texcoord;
     vec4 color;
 };
-

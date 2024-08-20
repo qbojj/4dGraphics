@@ -64,7 +64,7 @@ CommandBuffer &SubmitGroup::bind_command_buffer(std::size_t index,
     throw std::out_of_range("CommandBuffer index out of range");
   }
 
-  auto &opt_cb = m_command_buffer_wrappers.at(index);
+  auto &opt_cb = m_command_buffer_wrappers[index];
   if (opt_cb.has_value()) {
     throw exception("CommandBuffer already bound");
   }

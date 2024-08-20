@@ -118,11 +118,11 @@ void DSAllocatorPool::advance_frame(vk::Bool32 trim,
 
   m_frameIdx = (m_frameIdx + 1) % max_frames_in_flight;
 
-  if (trim != 0u) {
+  if (trim != 0U) {
     m_cleanPools.clear();
   }
 
-  frame_storage &storage = m_perFramePools.at(m_frameIdx);
+  frame_storage &storage = m_perFramePools[m_frameIdx];
 
   for (auto &pool : storage.full) {
     pool.reset(ResetFlags);
@@ -138,7 +138,7 @@ void DSAllocatorPool::advance_frame(vk::Bool32 trim,
   storage.full.clear();
   storage.usable.clear();
 
-  if (trim != 0u) {
+  if (trim != 0U) {
     m_cleanPools.shrink_to_fit();
     storage.full.shrink_to_fit();
     storage.usable.shrink_to_fit();
@@ -147,13 +147,13 @@ void DSAllocatorPool::advance_frame(vk::Bool32 trim,
 
 void DSAllocatorPool::ret_allocator(vk::raii::DescriptorPool pool) {
   std::scoped_lock const lock(m_mut);
-  m_perFramePools.at(m_frameIdx).usable.emplace_back(std::move(pool));
+  m_perFramePools[m_frameIdx].usable.emplace_back(std::move(pool));
 }
 
 void DSAllocatorPool::replace_full_allocator(vk::raii::DescriptorPool &pool) {
   std::scoped_lock const lock(m_mut);
 
-  frame_storage &storage = m_perFramePools.at(m_frameIdx);
+  frame_storage &storage = m_perFramePools[m_frameIdx];
   storage.full.emplace_back(std::move(pool));
   pool = get_new_pool_internal();
 }
@@ -164,7 +164,7 @@ vk::raii::DescriptorPool DSAllocatorPool::get_new_pool() {
 }
 
 vk::raii::DescriptorPool DSAllocatorPool::get_new_pool_internal() {
-  frame_storage &storage = m_perFramePools.at(m_frameIdx);
+  frame_storage &storage = m_perFramePools[m_frameIdx];
 
   vk::raii::DescriptorPool pool(nullptr);
 

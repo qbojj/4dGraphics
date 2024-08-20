@@ -18,7 +18,6 @@
 
 namespace v4dg {
 
-// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 template <typename T, typename U>
   requires vulkan_struct_extends<T, U>
 [[nodiscard]] T *getVkStructureFromChain(U *pNextChain) {
@@ -44,7 +43,6 @@ template <typename T, typename U>
   }
   return nullptr;
 }
-// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 [[nodiscard]] vk::BufferUsageFlags2KHR
 getBufferUsage(const vk::BufferCreateInfo &bci);
@@ -90,7 +88,8 @@ private:
       const std::pmr::memory_resource & /*__other*/) const noexcept override;
 };
 
-struct DestructionItem {
+class DestructionItem {
+public:
   DestructionItem(std::invocable<> auto &&func)
       : item(std::in_place_type_t<fun_t>{},
              std::forward<decltype(func)>(func)) {}
@@ -107,6 +106,7 @@ struct DestructionItem {
   DestructionItem &operator=(DestructionItem &&) noexcept;
   ~DestructionItem();
 
+private:
   using fun_t = std::move_only_function<void() noexcept>;
   using ptr_t = std::shared_ptr<const void>;
   std::variant<std::monostate, fun_t, ptr_t> item;

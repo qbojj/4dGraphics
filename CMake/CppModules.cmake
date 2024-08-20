@@ -34,4 +34,3 @@ target_compile_definitions(glm-module INTERFACE
   GLM_FORCE_CTOR_INIT
   GLM_ENABLE_EXPERIMENTAL
 )
-

@@ -44,6 +44,9 @@ public:
   int Run();
 
 private:
+  static constexpr vk::Extent3D tex_extent{1024, 720, 1};
+  static constexpr auto default_scale = 1. / 128;
+  
   SDL_Context sdlContext{SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER};
   Instance instance;
   vk::raii::SurfaceKHR surface;
@@ -68,7 +71,7 @@ private:
 
   struct MandelbrotPushConstants {
     glm::dvec2 center;
-    glm::dvec2 scale{1. / 128};
+    glm::dvec2 scale{default_scale};
     BindlessResource image_idx;
   } mandelbrot_push_constants;
 

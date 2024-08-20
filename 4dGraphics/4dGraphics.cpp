@@ -2,6 +2,7 @@
 #include "GameCore.hpp"
 #include "GameHandler.hpp"
 #include "ILogReciever.hpp"
+#include "cppHelpers.hpp"
 
 #include <argparse/argparse.hpp>
 #include <tracy/Tracy.hpp>
@@ -60,14 +61,11 @@ public:
   }
 };
 
-static TracyLogReciever tracyLogReciever_obj;
-const std::shared_ptr<v4dg::ILogReciever> tracyLogReciever{
-    std::shared_ptr<void>{}, &tracyLogReciever_obj};
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+v4dg::Logger v4dg::logger{};
 
-v4dg::Logger v4dg::logger(v4dg::Logger::LogLevel::PrintAlways,
-                          v4dg::cerrLogReciever);
-
-static void parse_args(int argc, const char *argv[]) {
+namespace {
+void parse_args(std::span<const char *> args) {
   argparse::ArgumentParser parser;
 
   parser.add_argument("-d", "--debug-level")
@@ -93,7 +91,7 @@ static void parse_args(int argc, const char *argv[]) {
 #endif
 
   try {
-    parser.parse_args(argc, argv);
+    parser.parse_args(static_cast<int>(args.size()), args.data());
   } catch (const std::exception &e) {
     std::cout << e.what() << ' ' << parser;
     throw;
@@ -134,10 +132,10 @@ static void parse_args(int argc, const char *argv[]) {
   using sp_lr = std::shared_ptr<v4dg::ILogReciever>;
   std::vector<sp_lr> recievers;
 
-  recievers.push_back(tracyLogReciever);
+  recievers.push_back(v4dg::detail::make_shared_singleton<TracyLogReciever>());
 
   if (!parser.get<bool>("-q")) {
-    recievers.push_back(v4dg::cerrLogReciever);
+    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::CerrLogReciever>());
   }
 
   if (parser.is_used("--log-path")) {
@@ -147,26 +145,28 @@ static void parse_args(int argc, const char *argv[]) {
 
 #ifdef _WIN32
   if (parser.get<bool>("--output-debug-string"))
-    recievers.push_back(v4dg::outputDebugStringLogReciever);
+    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::DebugOutputLogReciever>());
 
   if (parser.get<bool>("--message-box"))
-    recievers.push_back(v4dg::messageBoxLogReciever);
+    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::MessageBoxLogReciever>());
 #endif
 
   v4dg::logger.setLogLevel(log_level);
   v4dg::logger.setLogReciever(v4dg::MultiLogReciever::from_span(recievers));
 }
+}
 
-extern "C" int main([[maybe_unused]] int argc,
-                    [[maybe_unused]] const char *argv[]) try {
-  std::srand((unsigned int)std::time(nullptr));
-  parse_args(argc, argv);
+extern "C" int main(int argc, const char *argv[]) try {
+  std::span const args{argv, static_cast<std::size_t>(argc)};
+  std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+  parse_args(args);
 
   v4dg::logger.Log("starting");
   v4dg::logger.Log("debug level: {}", v4dg::logger.getLogLevel());
   v4dg::logger.Log("path: {}", std::filesystem::current_path().string());
 
-  v4dg::SDL_GlobalContext _{};
+  const v4dg::SDL_GlobalContext _{};
 
   return v4dg::MyGameHandler{}.Run();
 } catch (const std::exception &e) {

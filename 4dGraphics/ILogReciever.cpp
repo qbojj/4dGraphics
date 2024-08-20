@@ -1,4 +1,5 @@
 #include "ILogReciever.hpp"
+#include "cppHelpers.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -22,9 +23,12 @@
 #endif
 
 namespace {
+constexpr auto max_format_len = 40;
+constexpr auto max_file_header_formatter_len = 1024;
+
 void standard_format_header(auto &it, std::source_location loc,
                             v4dg::ILogReciever::LogLevel lev,
-                            bool remove_type = true, std::size_t max_len = 40) {
+                            bool remove_type = true, std::size_t max_len = max_format_len) {
   std::string_view file_name = loc.file_name();
 
   auto pos = file_name.find_last_of("/\\");
@@ -103,7 +107,7 @@ void FileLogReciever::do_log(std::string_view fmt, std::format_args args,
   auto ss = std::osyncstream(m_file);
   auto it = std::ostreambuf_iterator<char>(ss);
   std::format_to(it, "[{:%Q%q}] ", time);
-  standard_format_header(it, loc, lev, false, 1024);
+  standard_format_header(it, loc, lev, false, max_file_header_formatter_len);
   std::vformat_to(it, fmt, args);
   it = '\n';
   ss.flush();
@@ -180,23 +184,4 @@ void MultiLogReciever::do_log(std::string_view fmt, std::format_args args,
     reciever->log(fmt, args, loc, lev);
   }
 }
-
-namespace {
-CerrLogReciever cerrLogReciever_obj;
-#ifdef _WIN32
-OutputDebugStringLogReciever outputDebugStringLogReciever_obj;
-MessageBoxLogReciever messageBoxLogReciever_obj;
-#endif
-} // namespace
-
-const std::shared_ptr<CerrLogReciever> cerrLogReciever{std::shared_ptr<void>{},
-                                                       &cerrLogReciever_obj};
-#ifdef _WIN32
-const std::shared_ptr<OutputDebugStringLogReciever>
-    outputDebugStringLogReciever{std::shared_ptr<void>{},
-                                 &outputDebugStringLogReciever_obj};
-const std::shared_ptr<MessageBoxLogReciever> messageBoxLogReciever{
-    std::shared_ptr<void>{}, &messageBoxLogReciever_obj};
-#endif
-
 } // namespace v4dg

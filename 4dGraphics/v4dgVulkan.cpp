@@ -45,14 +45,21 @@ vk::BufferUsageFlags2KHR v4dg::getBufferUsage(const vk::BufferCreateInfo &bci) {
   return static_cast<vk::BufferUsageFlags2KHR>(uint32_t{bci.usage});
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): false positive
 DestructionItem::~DestructionItem() {
-  std::visit(detail::overload_set{[](std::monostate) {},
-                                  [](fun_t &f) {
-                                    if (f) {
-                                      f();
-                                    }
-                                  },
-                                  [](ptr_t &p) { p.reset(); }},
+  if (item.valueless_by_exception()) {
+    return;
+  }
+
+  std::visit(detail::overload_set{
+                 [](std::monostate) noexcept {},
+                 [](fun_t &f) noexcept {
+                   if (f) {
+                     f();
+                   }
+                 },
+                 [](ptr_t &p) noexcept { p.reset(); },
+             },
              item);
 }
 
@@ -63,7 +70,7 @@ DestructionItem &DestructionItem::operator=(DestructionItem &&o) noexcept {
 }
 
 void DestructionStack::append(DestructionStack &&o) {
-  auto &src = o.m_stack;
+  auto &&src = std::move(o).m_stack;
   m_stack.insert(m_stack.end(), std::make_move_iterator(src.begin()),
                  std::make_move_iterator(src.end()));
   src.clear();

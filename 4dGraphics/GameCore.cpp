@@ -61,7 +61,11 @@ SDL_Context &SDL_Context::operator=(SDL_Context &&o) noexcept {
   if (this == &o) {
     return *this;
   }
-  SDL_QuitSubSystem(subsystems);
+
+  if (subsystems != 0) {
+    SDL_QuitSubSystem(subsystems);
+  }
+
   subsystems = std::exchange(o.subsystems, 0);
   return *this;
 }
@@ -78,7 +82,9 @@ Window::Window(int width, int height, const char *title)
 }
 
 Window::Window(Window &&o) noexcept
-    : window(std::exchange(o.window, nullptr)) {}
+    : sdlCtx(std::move(o.sdlCtx))
+    , window(std::exchange(o.window, nullptr)) {}
+
 Window &Window::operator=(Window &&o) noexcept {
   if (this == &o) {
     return *this;

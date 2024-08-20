@@ -75,12 +75,12 @@ void ShaderStageData::fixup() {
 
 ShaderStageData::ShaderStageData(
     vk::ShaderStageFlagBits stage,
-    vk::ArrayProxyNoTemporaries<const uint32_t> shader_module,
+    vk::ArrayProxyNoTemporaries<const uint32_t> shader_data,
     std::string entry)
     : entry(std::move(entry)) {
   info_chain.get<vk::PipelineShaderStageCreateInfo>().setStage(stage);
 
-  info_chain.get<vk::ShaderModuleCreateInfo>().setCode(shader_module);
+  info_chain.get<vk::ShaderModuleCreateInfo>().setCode(shader_data);
 
   info_chain.unlink<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT>();
   info_chain.unlink<vk::PipelineRobustnessCreateInfoEXT>();
@@ -105,16 +105,32 @@ ShaderStageData::ShaderStageData(ShaderStageData &&o) noexcept
   fixup();
 }
 
-ShaderStageData &ShaderStageData::operator=(ShaderStageData o) {
-  std::swap(entry, o.entry);
-  std::swap(specialization_entries, o.specialization_entries);
-  std::swap(specialization_data, o.specialization_data);
-  std::swap(debug_name, o.debug_name);
-  std::swap(info_chain, o.info_chain);
-  std::swap(specialization_info, o.specialization_info);
+ShaderStageData &ShaderStageData::operator=(const ShaderStageData &o) {
+  entry = o.entry;
+  specialization_entries = o.specialization_entries;
+  specialization_data = o.specialization_data;
+  debug_name = o.debug_name;
+  info_chain = o.info_chain;
+  specialization_info = o.specialization_info;
 
   fixup();
-  o.fixup();
+
+  return *this;
+}
+
+ShaderStageData &ShaderStageData::operator=(ShaderStageData &&o) noexcept {
+  if (this == &o) {
+    return *this;
+  }
+
+  entry = std::move(o.entry);
+  specialization_entries = std::move(o.specialization_entries);
+  specialization_data = std::move(o.specialization_data);
+  debug_name = std::move(o.debug_name);
+  info_chain = o.info_chain;
+  specialization_info = o.specialization_info;
+
+  fixup();
 
   return *this;
 }

@@ -169,7 +169,7 @@ constexpr std::array wanted_instance_exts{
     vk::KHRPortabilityEnumerationExtensionName,
 };
 
-using DeviceStats_ext_adder = void (DeviceStats:: *)(std::string_view);
+using DeviceStats_ext_adder = void (DeviceStats::*)(std::string_view);
 using DeviceStats_adder_map = std::map<std::string_view, DeviceStats_ext_adder>;
 using DeviceStats_ext_mapping = DeviceStats_adder_map::value_type;
 
@@ -556,6 +556,8 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
   }
 
   // we have a suitable device, now grade it
+
+  // NOLINTBEGIN(*-magic-numbers): rank is a magic number by itself
   float rank = 0;
 
   static constexpr std::array prefered{
@@ -568,10 +570,10 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
   const auto *type_it = std::ranges::find(prefered, type);
 
   if (type_it != prefered.end()) {
-    rank += 1000.F / (1 + std::distance(prefered.begin(), type_it));
+    rank += 1000.F / static_cast<float>(1 + std::distance(prefered.begin(), type_it));
   }
 
-  rank += props.limits.maxImageDimension2D / 4096.F;
+  rank += static_cast<float>(props.limits.maxImageDimension2D) / 4096.F;
 
 #ifdef VK_KHR_portability_subset
   // prefere non-portability subset devices
@@ -582,6 +584,7 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
 
   logger.Debug("Physical device {} has rank {}", props.deviceName, rank);
   return rank;
+  // NOLINTEND(*-magic-numbers)
 }
 
 std::pair<DeviceStats, vk::raii::PhysicalDevice>
@@ -654,7 +657,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
     if (!avaiable.has_extension(e)) {
       continue;
     }
-
+    
     std::invoke(device_ext_spec.at(e), enabled, e);
   }
 
@@ -881,7 +884,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
 }
 
 vk::raii::Device Device::initDevice() const {
-  float prio = 0.5F;
+  float prio = 0.5F; // NOLINT(*-magic-numbers)
   auto rg = m_physicalDevice.getQueueFamilyProperties() |
             std::views::transform([&, family = 0U](auto) mutable {
               return vk::DeviceQueueCreateInfo{{}, family++, 1, &prio};
@@ -908,7 +911,7 @@ vma::UniqueAllocator Device::initAllocator() const {
 
   if (const auto *phdcmf =
           stats().features.get<vk::PhysicalDeviceCoherentMemoryFeaturesAMD>()) {
-    if (phdcmf->deviceCoherentMemory != 0u) {
+    if (phdcmf->deviceCoherentMemory != 0U) {
       flags |= vma::AllocatorCreateFlagBits::eAmdDeviceCoherentMemory;
     }
   }
@@ -916,28 +919,28 @@ vma::UniqueAllocator Device::initAllocator() const {
   if (const auto *pdbdaf =
           stats()
               .features.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>()) {
-    if (pdbdaf->bufferDeviceAddress != 0u) {
+    if (pdbdaf->bufferDeviceAddress != 0U) {
       flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
     }
   }
 
   if (const auto *pdv12f =
           stats().features.get<vk::PhysicalDeviceVulkan12Features>()) {
-    if (pdv12f->bufferDeviceAddress != 0u) {
+    if (pdv12f->bufferDeviceAddress != 0U) {
       flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
     }
   }
 
   if (const auto *pdmpf =
           stats().features.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>()) {
-    if (pdmpf->memoryPriority != 0u) {
+    if (pdmpf->memoryPriority != 0U) {
       flags |= vma::AllocatorCreateFlagBits::eExtMemoryPriority;
     }
   }
 
   if (const auto *m5pf =
           stats().features.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>()) {
-    if (m5pf->maintenance5 != 0u) {
+    if (m5pf->maintenance5 != 0U) {
       flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance5;
     }
   }
@@ -987,5 +990,113 @@ std::vector<std::vector<Queue>> Device::initQueues() const {
   }
 
   return queues;
+}
+
+void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
+  logger.FatalError("Device lost: {}", error.what());
+
+  if (!stats().has_extension(vk::EXTDeviceFaultExtensionName)) {
+    logger.Warning("Device fault extension not available");
+    return;
+  }
+
+  auto [counts, info] = device().getFaultInfoEXT();
+
+  std::span addressInfos{info.pAddressInfos, counts.addressInfoCount};
+  std::span vendorInfos{info.pVendorInfos, counts.vendorInfoCount};
+  std::span<const std::byte> const vendorData{
+      static_cast<std::byte *>(info.pVendorBinaryData),
+      counts.vendorBinarySize};
+
+  auto make_append_to = [](auto &&it) {
+    return [it]<typename... Args>(std::format_string<Args...> fmt,
+                                  Args &&...args) {
+      std::format_to(it, fmt, std::forward<Args>(args)...);
+    };
+  };
+
+  auto cwd = std::filesystem::current_path();
+  auto date = std::chrono::system_clock::now();
+
+  auto [props2, id_props, driver_props] =
+      physicalDevice()
+          .getProperties2<vk::PhysicalDeviceProperties2,
+                          vk::PhysicalDeviceIDProperties,
+                          vk::PhysicalDeviceDriverProperties>();
+
+  auto &props = props2.properties;
+
+  std::string message;
+
+  {
+    auto append = make_append_to(std::back_inserter(message));
+
+    append("Device fault: {}\n", info.description);
+    append("  addressInfos:\n");
+    for (auto &ai : addressInfos) {
+      append("    address type: {}\n", ai.addressType);
+      append("    reported address: 0x{:016x}\n", ai.reportedAddress);
+      append("    address mask: 0x{:016x}\n", ~(ai.addressPrecision - 1));
+      append("\n");
+    }
+
+    append("  vendorInfos:\n");
+    for (auto &vi : vendorInfos) {
+      append("    description: {}\n", vi.description);
+      append("    vendor fault code: 0x{:016x}\n", vi.vendorFaultCode);
+      append("    vendor fault data: 0x{:016x}\n", vi.vendorFaultData);
+      append("\n");
+    }
+
+    if (!vendorData.empty()) {
+      auto dump_path =
+          cwd / std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin",
+                            date, props.deviceName.data(), props.deviceID);
+
+      append("  binary dump saved to {}\n", dump_path.string());
+      std::ofstream(dump_path, std::ios::binary)
+          .write(reinterpret_cast<const char *>(vendorData.data()),
+                  static_cast<std::streamsize>(vendorData.size()));
+    }
+
+    logger.FatalError("{}", message);
+  }
+
+  {
+    std::ofstream const crash_dump(
+        cwd / std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
+
+    auto append =
+        make_append_to(std::ostreambuf_iterator<char>(crash_dump.rdbuf()));
+
+    auto format_uuid =
+        [&](const vk::ArrayWrapper1D<uint8_t, vk::UuidSize> &uuid) {
+          // format uuid like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+          constexpr static auto dash_locations = {3, 5, 7, 9};
+
+          for (auto [i, v] : std::views::enumerate(uuid)) {
+            append("{:02x}", v);
+            if (std::ranges::contains(dash_locations, i)) {
+              append("-");
+            }
+          }
+          append("\n");
+        };
+
+    append("Device name: {}\n", props.deviceName.data());
+    append("Device type: {}\n", props.deviceType);
+    append("Vendor ID: 0x{:08x}\n", props.vendorID);
+    append("Device ID: 0x{:08x}\n", props.deviceID);
+    append("Driver ID: {}\n", driver_props.driverID);
+    append("Driver name: {}\n", driver_props.driverName.data());
+    append("Driver version: {}\n", props.driverVersion);
+    append("Driver info: {}\n", driver_props.driverInfo.data());
+    append("Device UUID: ");
+    format_uuid(id_props.deviceUUID);
+    append("Driver UUID: ");
+    format_uuid(id_props.driverUUID);
+
+    append("{}\n", message);
+  }
 }
 } // namespace v4dg

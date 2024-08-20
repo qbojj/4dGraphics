@@ -41,7 +41,7 @@ public:
 
 class SDL_Context {
 public:
-  SDL_Context() = delete;
+  SDL_Context() noexcept : subsystems(0) {};
   explicit SDL_Context(Uint32 subsystems);
 
   SDL_Context(const SDL_Context &) = delete;
@@ -93,7 +93,10 @@ public:
 
 class GameEngine {
 public:
-  explicit GameEngine(Window window = {1024, 768, "4dGraphics"});
+  static constexpr auto default_width = 1024;
+  static constexpr auto default_height = 768;
+
+  explicit GameEngine(Window window = {default_width, default_height, "4dGraphics"});
   virtual ~GameEngine();
 
   GameEngine(const GameEngine &) = delete;
@@ -101,6 +104,10 @@ public:
   GameEngine(GameEngine &&) = delete;
   GameEngine &operator=(GameEngine &&) = delete;
 
+  Window &window() { return m_window; }
+  ::ImGuiContext *imgui_context() { return m_ImGuiCtx; }
+
+private:
   Window m_window;
   ImGuiRAIIContext m_ImGuiCtx;
   ImGui_SDLImpl m_ImGuiSdlImpl;

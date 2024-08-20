@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -10,9 +12,12 @@
 #include <functional>
 #include <ios>
 #include <istream>
+#include <memory>
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <sys/ucontext.h>
+#include <type_traits>
 #include <vector>
 
 namespace v4dg::detail {
@@ -199,8 +204,11 @@ public:
   using parent::operator[];
   using parent::at;
   using parent::back;
-  using parent::data;
   using parent::front;
+
+  [[nodiscard]] constexpr parent::const_pointer data() const noexcept {
+    return parent::data(); // NOLINT(bugprone-suspicious-stringview-data-usage)
+  }
 
   using parent::empty;
   using parent::length;
@@ -274,6 +282,110 @@ inline constexpr auto dynamic_casted = std::views::transform([](auto &&x) -> T {
   return dynamic_cast<T>(std::forward<decltype(x)>(x));
 });
 } // namespace views
+
+template <typename ObjectType, auto... Args>
+[[nodiscard]] auto make_shared_singleton() -> std::shared_ptr<ObjectType> {
+  static ObjectType obj{Args...};
+  return std::shared_ptr<ObjectType>{std::shared_ptr<void>{}, &obj};
+}
+
+template <typename T>
+concept has_x = requires(T t) { t.x; };
+
+template <typename T>
+concept has_y = requires(T t) { t.y; };
+
+template <typename T>
+concept has_z = requires(T t) { t.z; };
+
+template <typename T>
+concept has_width = requires(T t) { t.width; };
+
+template <typename T>
+concept has_height = requires(T t) { t.height; };
+
+template <typename T>
+concept has_depth = requires(T t) { t.depth; };
+
+template <typename T>
+concept vec1_pos_like = has_x<T> && !has_y<T> && !has_z<T>;
+
+template <typename T>
+concept vec2_pos_like = has_x<T> && has_y<T> && !has_z<T> &&
+                        std::same_as<decltype(T::x), decltype(T::y)>;
+
+template <typename T>
+concept vec3_pos_like = has_x<T> && has_y<T> && has_z<T> &&
+                        std::same_as<decltype(T::x), decltype(T::y)> &&
+                        std::same_as<decltype(T::x), decltype(T::z)>;
+
+template <typename T>
+concept vec1_size_like = has_width<T> && !has_height<T> && !has_depth<T>;
+
+template <typename T>
+concept vec2_size_like = has_width<T> && has_height<T> && !has_depth<T> &&
+                         std::same_as<decltype(T::width), decltype(T::height)>;
+
+template <typename T>
+concept vec3_size_like =
+    has_width<T> && has_height<T> && has_depth<T> &&
+    std::same_as<decltype(T::width), decltype(T::height)> &&
+    std::same_as<decltype(T::width), decltype(T::depth)>;
+
+template <typename T>
+concept vec1_like = vec1_pos_like<T> || vec1_size_like<T>;
+
+template <typename T>
+concept vec2_like = vec2_pos_like<T> || vec2_size_like<T>;
+
+template <typename T>
+concept vec3_like = vec3_pos_like<T> || vec3_size_like<T>;
+
+template <typename T>
+concept vec_pos_like = vec1_pos_like<T> || vec2_pos_like<T> || vec3_pos_like<T>;
+
+template <typename T>
+concept vec_size_like =
+    vec1_size_like<T> || vec2_size_like<T> || vec3_size_like<T>;
+
+template <typename T>
+concept vec_like = vec1_like<T> || vec2_like<T> || vec3_like<T>;
+
+template <vec_like T> struct vec_like_element;
+
+template <vec_pos_like T> struct vec_like_element<T> {
+  using type = decltype(T::x);
+};
+
+template <vec_size_like T> struct vec_like_element<T> {
+  using type = decltype(T::width);
+};
+
+template <vec_like T>
+using vec_like_element_t = typename vec_like_element<T>::type;
+
+template <typename ElementT = void> auto to_glm(vec_like auto t) {
+  using T = std::remove_cvref_t<decltype(t)>;
+  using RealT = typename std::conditional_t<std::is_void_v<ElementT>,
+                                            vec_like_element_t<T>, ElementT>;
+
+  if constexpr (vec1_pos_like<T>) {
+    return glm::vec<1, RealT>{t.x};
+  } else if constexpr (vec2_pos_like<T>) {
+    return glm::vec<2, RealT>{t.x, t.y};
+  } else if constexpr (vec3_pos_like<T>) {
+    return glm::vec<3, RealT>{t.x, t.y, t.z};
+  } else if constexpr (vec1_size_like<T>) {
+    return glm::vec<1, RealT>{t.width};
+  } else if constexpr (vec2_size_like<T>) {
+    return glm::vec<2, RealT>{t.width, t.height};
+  } else if constexpr (vec3_size_like<T>) {
+    return glm::vec<3, RealT>{t.width, t.height, t.depth};
+  } else {
+    static_assert(false);
+  }
+}
+
 } // namespace v4dg::detail
 
 namespace v4dg {

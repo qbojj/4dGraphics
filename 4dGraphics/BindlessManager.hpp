@@ -130,7 +130,7 @@ public:
   }
 
   UniqueBindlessResource allocate(BindlessType type);
-  void free(BindlessResource res);
+  void free(BindlessResource res) noexcept;
 
   [[nodiscard]] vk::WriteDescriptorSet write_for(BindlessResource res) const;
   vk::WriteDescriptorSet write_for(BindlessResource res,

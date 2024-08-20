@@ -4,7 +4,6 @@
 #include "Context.hpp"
 #include "Debug.hpp"
 #include "Device.hpp"
-#include "GameCore.hpp"
 #include "PipelineBuilder.hpp"
 #include "Swapchain.hpp"
 #include "TransferManager.hpp"
@@ -26,22 +25,15 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <format>
-#include <fstream>
 #include <imgui.h>
-#include <ios>
-#include <iterator>
 #include <limits>
 #include <mutex>
 #include <optional>
-#include <ranges>
-#include <span>
 #include <thread>
 #include <utility>
 #include <variant>
@@ -49,7 +41,8 @@
 
 using namespace v4dg;
 
-static vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
+namespace {
+vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
                                             SDL_Window *window) {
   VkSurfaceKHR raw_surface{};
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE) {
@@ -58,18 +51,23 @@ static vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
 
   return {instance, raw_surface};
 }
+} // namespace
 
 ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
     : pool(nullptr), color_format(swapchain.format()) {
   auto &queue = *ctx.get_queue(Context::QueueType::Graphics);
 
+  static constexpr auto max_samplers = 4096;
+  static constexpr auto max_sets = 4;
+
   std::vector<vk::DescriptorPoolSize> pool_sizes{
-      {vk::DescriptorType::eCombinedImageSampler, 4096},
+      {vk::DescriptorType::eCombinedImageSampler, max_samplers},
   };
 
   pool = {
       ctx.vkDevice(),
-      {vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1024, pool_sizes},
+      {vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, max_sets,
+       pool_sizes},
   };
 
   ctx.device().setDebugName(pool, "imgui descriptor pool");
@@ -120,7 +118,7 @@ ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 MyGameHandler::MyGameHandler()
     : instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
           SDL_Vulkan_GetVkGetInstanceProcAddr()))),
-      surface(sdl_get_surface(instance.instance(), m_window)),
+      surface(sdl_get_surface(instance.instance(), window())),
       device(instance, *surface), context(device), transfer_manager(context),
       swapchain(SwapchainBuilder{
           .surface = *surface,
@@ -136,7 +134,7 @@ MyGameHandler::MyGameHandler()
           context,
           Image::ImageCreateInfo{
               .format = vk::Format::eR16G16B16A16Sfloat,
-              .extent = {1024, 720, 1},
+              .extent = tex_extent,
               .usage = vk::ImageUsageFlagBits::eStorage |
                        vk::ImageUsageFlagBits::eTransferSrc,
           },
@@ -204,7 +202,7 @@ uint32_t MyGameHandler::wait_for_image() {
   while (true) {
     int w = 0;
     int h = 0;
-    SDL_Vulkan_GetDrawableSize(m_window, &w, &h);
+    SDL_Vulkan_GetDrawableSize(window(), &w, &h);
     wanted_extent = vk::Extent2D{uint32_t(w), uint32_t(h)};
 
     if (wanted_extent != swapchain.extent()) {
@@ -241,7 +239,11 @@ bool MyGameHandler::handle_events() {
       case SDL_WINDOWEVENT_FOCUS_LOST:
         has_focus = false;
         break;
+      default:
+        break;
       }
+      break;
+    default:
       break;
     }
 
@@ -280,22 +282,23 @@ void MyGameHandler::gui() {
     }
 
     // zoom mandelbrot
+    static constexpr auto zoom_speed = 1.1;
     if (ImGui::GetIO().MouseWheel != 0) {
-      auto delta = ImGui::GetIO().MouseWheel;
+      auto delta = double{ImGui::GetIO().MouseWheel};
 
       // zoom into mouse position (position under the mouse stays the same)
-      auto mouse_pos = ImGui::GetMousePos();
-
+      auto mouse_pos = detail::to_glm<double>(ImGui::GetMousePos());
+      auto swapchain_size = detail::to_glm<double>(swapchain.extent());
+    
       auto mouse_center_rel =
-          glm::dvec2(mouse_pos.x, mouse_pos.y) -
-          glm::dvec2(swapchain.extent().width, swapchain.extent().height) / 2.0;
+          mouse_pos - swapchain_size / 2.0; // NOLINT(*-magic-numbers)
 
       auto world_pos = mandelbrot_push_constants.center +
                        mouse_center_rel * mandelbrot_push_constants.scale;
 
       // fractal so exponential zoom
       auto scale = mandelbrot_push_constants.scale;
-      auto new_scale = scale * std::pow(1.1, (double)delta);
+      auto new_scale = scale * std::pow(zoom_speed, delta);
 
       auto new_center = world_pos - mouse_center_rel * new_scale;
 
@@ -357,9 +360,11 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
         *pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0,
         mandelbrot_push_constants);
 
-    auto div = 8 * (current_pipeline == 0 ? 2 : 1);
-    cb->dispatch(detail::DivCeil(texture->image()->extent().width, div),
-                 detail::DivCeil(texture->image()->extent().height, div), 1);
+    static constexpr auto workgroup_size_base = 8;
+    auto workgroup_size = workgroup_size_base * (current_pipeline == 0 ? 2 : 1);
+    cb->dispatch(
+        detail::DivCeil(texture->image()->extent().width, workgroup_size),
+        detail::DivCeil(texture->image()->extent().height, workgroup_size), 1);
   }
 
   cb.barrier({}, {}, {},
@@ -474,7 +479,7 @@ void MyGameHandler::present(uint32_t image_idx) {
 }
 
 int MyGameHandler::Run() try {
-  SDL_ShowWindow(m_window);
+  SDL_ShowWindow(window());
 
   auto last_frame = std::chrono::high_resolution_clock::now();
 
@@ -492,7 +497,8 @@ int MyGameHandler::Run() try {
     }
 
     FrameMarkStart(nullptr);
-    detail::destroy_helper frame_mark_scope{[] { FrameMarkEnd(nullptr); }};
+    detail::destroy_helper const frame_mark_scope{
+        [] { FrameMarkEnd(nullptr); }};
 
     {
       ZoneScopedN("advance frame");
@@ -547,109 +553,7 @@ int MyGameHandler::Run() try {
   }
 
   return 0;
-} catch (const vk::DeviceLostError &e) {
-  logger.FatalError("Device lost: {}", e.what());
-
-  if (device.stats().has_extension(vk::EXTDeviceFaultExtensionName)) {
-    auto [counts, info] = device.device().getFaultInfoEXT();
-
-    std::span addressInfos{info.pAddressInfos, counts.addressInfoCount};
-    std::span vendorInfos{info.pVendorInfos, counts.vendorInfoCount};
-    std::span<const std::byte> vendorData{
-        static_cast<std::byte *>(info.pVendorBinaryData),
-        counts.vendorBinarySize};
-
-    auto make_append_to = [](auto &&it) {
-      return [it]<typename... Args>(std::format_string<Args...> fmt,
-                                    Args &&...args) {
-        std::format_to(it, fmt, std::forward<Args>(args)...);
-      };
-    };
-
-    auto cwd = std::filesystem::current_path();
-    auto date = std::chrono::system_clock::now();
-
-    auto [props2, id_props, driver_props] =
-        device.physicalDevice()
-            .getProperties2<vk::PhysicalDeviceProperties2,
-                            vk::PhysicalDeviceIDProperties,
-                            vk::PhysicalDeviceDriverProperties>();
-
-    auto &props = props2.properties;
-
-    std::string message;
-
-    {
-      auto append = make_append_to(std::back_inserter(message));
-
-      append("Device fault: {}\n", info.description);
-      append("  addressInfos:\n");
-      for (auto &ai : addressInfos) {
-        append("    address type: {}\n", ai.addressType);
-        append("    reported address: 0x{:016x}\n", ai.reportedAddress);
-        append("    address mask: 0x{:016x}\n", ~(ai.addressPrecision - 1));
-        append("\n");
-      }
-
-      append("  vendorInfos:\n");
-      for (auto &vi : vendorInfos) {
-        append("    description: {}\n", vi.description);
-        append("    vendor fault code: 0x{:016x}\n", vi.vendorFaultCode);
-        append("    vendor fault data: 0x{:016x}\n", vi.vendorFaultData);
-        append("\n");
-      }
-
-      if (!vendorData.empty()) {
-        auto dump_path =
-            cwd / std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin",
-                              date, props.deviceName.data(), props.deviceID);
-
-        append("  binary dump saved to {}\n", dump_path.string());
-        std::ofstream(dump_path, std::ios::binary)
-            .write(reinterpret_cast<const char *>(vendorData.data()),
-                   vendorData.size());
-      }
-
-      logger.FatalError("{}", message);
-    }
-
-    {
-      std::ofstream crash_dump(
-          cwd / std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
-
-      auto append =
-          make_append_to(std::ostreambuf_iterator<char>(crash_dump.rdbuf()));
-
-      auto format_uuid =
-          [&](const vk::ArrayWrapper1D<uint8_t, vk::UuidSize> &uuid) {
-            // format uuid like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-            constexpr static auto dash_locations = {3, 5, 7, 9};
-
-            for (auto [i, v] : std::views::enumerate(uuid)) {
-              append("{:02x}", v);
-              if (std::ranges::contains(dash_locations, i)) {
-                append("-");
-              }
-            }
-            append("\n");
-          };
-
-      append("Device name: {}\n", props.deviceName.data());
-      append("Device type: {}\n", props.deviceType);
-      append("Vendor ID: 0x{:08x}\n", props.vendorID);
-      append("Device ID: 0x{:08x}\n", props.deviceID);
-      append("Driver ID: {}\n", driver_props.driverID);
-      append("Driver name: {}\n", driver_props.driverName.data());
-      append("Driver version: {}\n", props.driverVersion);
-      append("Driver info: {}\n", driver_props.driverInfo.data());
-      append("Device UUID: ");
-      format_uuid(id_props.deviceUUID);
-      append("Driver UUID: ");
-      format_uuid(id_props.driverUUID);
-
-      append("{}\n", message);
-    }
-  }
-
+} catch (const vk::DeviceLostError &err) {
+  context.device().make_device_lost_dump(err);
   return 1;
 }

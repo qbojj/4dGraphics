@@ -16,12 +16,12 @@ using namespace v4dg::detail;
 
 BufferObject::BufferObject(internal_construct_t /*unused*/,
                            const Device &device,
-                           std::pair<vma::Allocation, vk::raii::Buffer> p,
+                           std::pair<vma::Allocation, vk::raii::Buffer> buffer,
                            vk::DeviceSize size, bool hasDeviceAddress)
-    : GpuAllocation(device.allocator(), p.first), m_buffer(std::move(p.second)),
+    : GpuAllocation(device.allocator(), buffer.first), m_buffer(std::move(buffer.second)),
       m_size(size) {
   if (hasDeviceAddress) {
-    m_deviceAddress = device.device().getBufferAddress({buffer()});
+    m_deviceAddress = device.device().getBufferAddress({m_buffer});
   }
 }
 
@@ -66,6 +66,7 @@ BufferObject::BufferObject(
               .get<>(),
           allocationCreateInfo) {}
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the order of the parameters is same as in Vulkan API
 ImageObject::ImageObject(internal_construct_t /*unused*/, const Device &device,
                          std::pair<vma::Allocation, vk::raii::Image> image,
                          vk::ImageType imageType, vk::Format format,
@@ -76,6 +77,7 @@ ImageObject::ImageObject(internal_construct_t /*unused*/, const Device &device,
       m_image(std::move(image.second)), m_imageType(imageType),
       m_format(format), m_extent(extent), m_mipLevels(mipLevels),
       m_arrayLayers(arrayLayers), m_samples(samples) {}
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 ImageObject::ImageObject(internal_construct_t /*unused*/, const Device &device,
                          const ImageCreateInfo &imageCreateInfo,

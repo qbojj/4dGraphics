@@ -9,16 +9,19 @@
 
 #include <ktx.h>
 #include <ktxvulkan.h>
+#include <stdexcept>
 #include <tracy/Tracy.hpp>
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <list>
@@ -32,9 +35,14 @@
 using namespace v4dg;
 
 namespace {
+struct KtxException : std::runtime_error {
+  KtxException(ktx_error_code_e error_code)
+      : std::runtime_error(ktxErrorString(error_code)) {}
+};
+
 class UniqueKtxTexture {
 public:
-  UniqueKtxTexture() = default;
+  UniqueKtxTexture() = delete;
   UniqueKtxTexture(const UniqueKtxTexture &) = delete;
   UniqueKtxTexture(UniqueKtxTexture &&other) noexcept : tex(other.tex) {
     other.tex = nullptr;
@@ -49,6 +57,7 @@ public:
     return *this;
   }
 
+  UniqueKtxTexture(std::nullptr_t) : tex{nullptr} {}
   explicit UniqueKtxTexture(ktxTexture *tex) : tex(tex) {}
 
   ~UniqueKtxTexture() {
@@ -61,8 +70,137 @@ public:
   operator ktxTexture *() const { return tex; }
   ktxTexture *operator->() const { return tex; }
 
+  [[nodiscard]] ktxTexture2 *asKtx2() const {
+    if (tex->classId != ktxTexture2_c) {
+      throw exception("ktxTexture is not ktxTexture2");
+    }
+    return reinterpret_cast<ktxTexture2 *>(tex);
+  }
+
+  [[nodiscard]] ktxTexture1 *asKtx1() const {
+    if (tex->classId != ktxTexture1_c) {
+      throw exception("ktxTexture is not ktxTexture1");
+    }
+    return reinterpret_cast<ktxTexture1 *>(tex);
+  }
+
+  [[nodiscard]] explicit operator bool() const { return tex != nullptr; }
+
+  [[nodiscard]] ktx_transcode_fmt_e
+  get_transcode_format(const Device &device) const {
+    if (!ktxTexture_NeedsTranscoding(tex)) {
+      return KTX_TTF_NOSELECTION;
+    }
+
+    ktx_transcode_fmt_e tf = KTX_TTF_NOSELECTION;
+
+    const auto *features2 =
+        device.stats().features.get<vk::PhysicalDeviceFeatures2>();
+    const auto *features =
+        (features2 != nullptr) ? &features2->features : nullptr;
+
+    bool const astc_ldr_avaiable =
+        (features != nullptr) && (features->textureCompressionASTC_LDR != 0U);
+    bool const etc2_avaiable =
+        (features != nullptr) && (features->textureCompressionETC2 != 0U);
+    bool const bc_avaiable =
+        (features != nullptr) && (features->textureCompressionBC != 0U);
+
+    // TODO: different preferred formats for UASTC and ETC1S
+    // TODO: add quality modifier to enable BC1-3 / lower quality uncompressed
+    // formats
+
+    if (astc_ldr_avaiable) {
+      tf = KTX_TTF_ASTC_4x4_RGBA;
+    } else if (bc_avaiable) {
+      tf = KTX_TTF_BC7_RGBA;
+    } else if (etc2_avaiable) {
+      tf = KTX_TTF_ETC;
+    } else {
+      tf = KTX_TTF_RGBA32;
+    }
+
+    return tf;
+  }
+
+  [[nodiscard]] std::expected<void, ktx_error_code_e>
+  transcode(const Device &device) {
+    if ((tex == nullptr) || !ktxTexture_NeedsTranscoding(tex)) {
+      return {};
+    }
+
+    assert(tex->classId == ktxTexture2_c);
+
+    auto format = get_transcode_format(device);
+    return to_expected(ktxTexture2_TranscodeBasis(asKtx2(), format, 0));
+  }
+
+  [[nodiscard]] std::expected<vk::ImageType, std::string>
+  get_image_type() const {
+    switch (tex->numDimensions) {
+    case 1:
+      return vk::ImageType::e1D;
+    case 2:
+      return vk::ImageType::e2D;
+    case 3:
+      return vk::ImageType::e3D;
+    default:
+      return std::unexpected(std::format("unknown texture dimmentionality {}",
+                                         tex->numDimensions));
+    }
+  }
+
+  [[nodiscard]] std::expected<vk::ImageViewType, std::string>
+  get_image_view_type() const {
+    const auto is_array = tex->isArray;
+    const auto is_cube = tex->isCubemap;
+
+    switch (tex->numDimensions) {
+    case 1:
+      return is_array ? vk::ImageViewType::e1DArray : vk::ImageViewType::e1D;
+    case 2:
+      if (is_cube) {
+        return is_array ? vk::ImageViewType::eCubeArray
+                        : vk::ImageViewType::eCube;
+      } else {
+        return is_array ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
+      }
+    case 3:
+      if (is_array) {
+        return std::unexpected("unsupported configuration - 3D array texture");
+      }
+
+      return vk::ImageViewType::e3D;
+    default:
+      return std::unexpected(std::format("unknown texture dimmentionality {}",
+                                         tex->numDimensions));
+    }
+  }
+
+  [[nodiscard]] static auto to_expected(ktx_error_code_e err_code)
+      -> std::expected<void, ktx_error_code_e> {
+    return err_code == KTX_SUCCESS ? std::expected<void, ktx_error_code_e>{}
+                                   : std::unexpected(err_code);
+  }
+
+  [[nodiscard]] static auto to_expected(ktx_error_code_e err_code, auto &&val) {
+    using T = typename std::remove_cvref_t<decltype(val)>;
+    return err_code == KTX_SUCCESS
+               ? std::expected<T, ktx_error_code_e>{std::forward<decltype(val)>(
+                     val)}
+               : std::unexpected(err_code);
+  }
+
+  [[nodiscard]] static std::expected<UniqueKtxTexture, ktx_error_code_e>
+  try_create_from_file(detail::zstring_view path, ktxTextureCreateFlags flags) {
+    ktxTexture *tex{};
+    auto error_code = ktxTexture_CreateFromNamedFile(path.data(), flags, &tex);
+
+    return to_expected(error_code, UniqueKtxTexture{tex});
+  }
+
 private:
-  ktxTexture *tex = nullptr;
+  ktxTexture *tex;
 };
 } // namespace
 
@@ -101,7 +239,7 @@ TransferManager::TransferManager(Context &ctx)
 
 Buffer TransferManager::allocateBuffer(std::size_t size,
                                        const BufferTransferInfo &ti) {
-  auto &&dev = m_ctx->device();
+  const auto &dev = m_ctx->device();
 
   Buffer buffer{
       dev,
@@ -124,7 +262,7 @@ Buffer TransferManager::allocateBuffer(std::size_t size,
 auto TransferManager::uploadBuffer(const Buffer &buffer, buffer_upload_fn fn,
                                    const BufferTransferInfo &ti)
     -> BufferFuture {
-  auto &&dev = m_ctx->device();
+  const auto &dev = m_ctx->device();
 
   auto flags =
       dev.allocator().getAllocationMemoryProperties(buffer->allocation());
@@ -205,22 +343,36 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
                     std::format(fmt, std::forward<Args>(args)...));
   };
 
-  auto check_error = [error](ktx_error_code_e code, std::string_view op_msg) {
-    if (code != KTX_SUCCESS) {
-      error("while {}: {}", op_msg, std::string_view{ktxErrorString(code)});
+  auto resolve_expected = [error]<typename T, typename E> [[nodiscard]] (
+                              std::expected<T, E> &&expected,
+                              std::string_view msg) {
+    if (!expected) {
+      if constexpr (std::is_same_v<E, ktx_error_code_e>) {
+        error("while {}: {}", msg,
+              std::string_view{ktxErrorString(std::move(expected).error())});
+      } else if constexpr (std::formattable<E, char>) {
+        error("while {}: {}", msg, std::move(expected).error());
+      } else {
+        static_assert(false);
+      }
+    }
+
+    if constexpr (std::is_void_v<T>) {
+      return;
+    } else {
+      return std::move(expected).value();
     }
   };
 
-  UniqueKtxTexture texture;
+  auto check_error = [resolve_expected](ktx_error_code_e code,
+                                        std::string_view msg) {
+    resolve_expected(UniqueKtxTexture::to_expected(code), msg);
+  };
 
-  {
-    ktxTexture *tex = nullptr;
-    check_error(ktxTexture_CreateFromNamedFile(
-                    path.string().c_str(), KTX_TEXTURE_CREATE_NO_FLAGS, &tex),
-                "creating");
-
-    texture = UniqueKtxTexture{tex};
-  }
+  auto texture =
+      resolve_expected(UniqueKtxTexture::try_create_from_file(
+                           path.string(), KTX_TEXTURE_CREATE_NO_FLAGS),
+                       "creation");
 
   if (texture->classId != ktxTexture2_c) {
     error("only ktx2 is supported");
@@ -230,42 +382,9 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
     error("mipmaps generation is not supported");
   }
 
-  if (ktxTexture_NeedsTranscoding(texture)) {
-    ktx_transcode_fmt_e tf = KTX_TTF_NOSELECTION;
-
-    const auto *features2 =
-        m_ctx->device().stats().features.get<vk::PhysicalDeviceFeatures2>();
-    const auto *features =
-        (features2 != nullptr) ? &features2->features : nullptr;
-
-    bool const astc_ldr_avaiable =
-        (features != nullptr) && (features->textureCompressionASTC_LDR != 0u);
-    bool const etc2_avaiable =
-        (features != nullptr) && (features->textureCompressionETC2 != 0u);
-    bool const bc_avaiable =
-        (features != nullptr) && (features->textureCompressionBC != 0u);
-
-    // TODO: different preferred formats for UASTC and ETC1S
-    // TODO: add quality modifier to enable BC1-3 / lower quality uncompressed
-    // formats
-
-    if (astc_ldr_avaiable) {
-      tf = KTX_TTF_ASTC_4x4_RGBA;
-    } else if (bc_avaiable) {
-      tf = KTX_TTF_BC7_RGBA;
-    } else if (etc2_avaiable) {
-      tf = KTX_TTF_ETC;
-    } else {
-      tf = KTX_TTF_RGBA32;
-    }
-
-    check_error(ktxTexture2_TranscodeBasis(
-                    reinterpret_cast<ktxTexture2 *>(texture.get()), tf, 0),
-                "transcoding");
-  }
+  resolve_expected(texture.transcode(m_ctx->device()), "transcoding");
 
   bool const is_cube = texture->isCubemap;
-  bool const is_array = texture->isArray;
 
   assert(is_cube ? texture->numFaces == 6 : texture->numFaces == 1);
 
@@ -276,34 +395,10 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
       is_cube ? vk::ImageCreateFlagBits::eCubeCompatible
               : vk::ImageCreateFlags{};
 
-  vk::ImageType imageType{};
-  vk::ImageViewType viewType{};
-  switch (texture->numDimensions) {
-  case 1:
-    imageType = vk::ImageType::e1D;
-    viewType = is_array ? vk::ImageViewType::e1DArray : vk::ImageViewType::e1D;
-    break;
-  case 2:
-    imageType = vk::ImageType::e2D;
-    if (is_cube) {
-      viewType =
-          is_array ? vk::ImageViewType::eCubeArray : vk::ImageViewType::eCube;
-    } else {
-      viewType =
-          is_array ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
-    }
-    break;
-  case 3:
-    if (is_array) {
-      error("requested 3D array texture: not supported");
-    }
-
-    imageType = vk::ImageType::e3D;
-    viewType = vk::ImageViewType::e3D;
-    break;
-  default:
-    error("unsupported texture dimension: {}", texture->numDimensions);
-  }
+  vk::ImageType const imageType =
+      resolve_expected(texture.get_image_type(), "getting image type");
+  vk::ImageViewType const viewType = resolve_expected(texture.get_image_view_type(),
+                                                "getting image view type");
 
   vk::Extent3D const extent{texture->baseWidth, texture->baseHeight,
                             texture->baseDepth};
@@ -383,6 +478,8 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
             .region_idx = 0,
         };
 
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters): lambdas type is
+        // used externally
         auto callback = [](int miplevel, int face, int width, int height,
                            int depth, ktx_uint64_t faceLodSize, void *,
                            void *userdata) -> ktxResult {
@@ -410,13 +507,16 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
 
           return KTX_SUCCESS;
         };
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         check_error(ktxTexture_IterateLevels(texture, callback, &ii),
                     "iterating");
 
-        return {.dataSize = textureSize,
-                .staging = std::move(staging),
-                .copyRegions = std::move(regions)};
+        return {
+            .dataSize = textureSize,
+            .staging = std::move(staging),
+            .copyRegions = std::move(regions),
+        };
       });
 }
 
@@ -533,21 +633,20 @@ auto TransferManager::enqueueTransfer(
   return {queue.begin(), this};
 }
 
-void TransferManager::cancelTransfer(
-    std::list<QueueItem>::iterator queue_item) {
+void TransferManager::cancelTransfer(std::list<QueueItem>::iterator handle) {
   std::scoped_lock const _(queue_mut);
 
   // the erasure destroys the function object so all resources are released
-  getQueueItemList(queue_item->done, queue_item->priority).erase(queue_item);
+  getQueueItemList(handle->done, handle->priority).erase(handle);
 }
 
-void TransferManager::updatePriority(ResourceTransferHandle &rth,
+void TransferManager::updatePriority(ResourceTransferHandle &handle,
                                      PriorityClass priority) {
-  if (!rth.m_queue_item) {
+  if (!handle.m_queue_item) {
     return;
   }
 
-  auto it = *rth.m_queue_item;
+  auto it = *handle.m_queue_item;
 
   std::scoped_lock const _(queue_mut);
 
