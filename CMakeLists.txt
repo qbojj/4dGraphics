@@ -41,6 +41,7 @@ if(4DG_ALL_WARINGS)
   endif()
 endif()
 
+include(CMake/CppModules.cmake)
 add_subdirectory(Shaders)
 add_subdirectory(4dGraphics)
 

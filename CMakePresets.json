@@ -9,145 +9,55 @@
         {
             "name": "ninja-multi-vcpkg",
             "displayName": "Ninja Multi-Config + vcpkg",
-            "description": "Configure with vcpkg toolchain and generate Ninja project files for all configurations",
+            "description": "Configure with vcpkg toolchain and generate Ninja Multi-Config project",
             "binaryDir": "${sourceDir}/builds/${presetName}",
             "generator": "Ninja Multi-Config",
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        },
+        {
+            "name": "ninja-multi-system",
+            "displayName": "Ninja Multi-Config + system packages",
+            "description": "Configure with system packages and generate Ninja Multi-Config project",
+            "binaryDir": "${sourceDir}/builds/${presetName}",
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "ninja-vcpkg",
+            "displayName": "Ninja + vcpkg",
+            "description": "Configure with vcpkg toolchain and generate Ninja project",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/builds/${presetName}",
+            "generator": "Ninja",
             "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
             "environment": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },
         {
-            "name": "ninja-multi-system",
-            "displayName": "Ninja Multi-Config + system packages",
-            "description": "Configure with system packages and generate Ninja project files for all configurations",
-            "binaryDir": "${sourceDir}/builds/${presetName}",
-            "generator": "Ninja Multi-Config",
+            "name": "ninja-debug-vcpkg",
+            "displayName": "Ninja + vcpkg (Debug)",
+            "inherits": "ninja-vcpkg",
             "environment": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "ninja-release-vcpkg",
+            "displayName": "Ninja + vcpkg (Release)",
+            "inherits": "ninja-vcpkg",
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "ninja-vcpkg",
-            "configurePreset": "ninja-multi-vcpkg",
-            "displayName": "Build",
-            "description": "Build with Ninja/vcpkg"
-        },
-        {
-            "name": "ninja-vcpkg-debug",
-            "inherits": "ninja-vcpkg",
-            "displayName": "Build (Debug)",
-            "description": "Build with Ninja/vcpkg (Debug)",
-            "configuration": "Debug"
-        },
-        {
-            "name": "ninja-vcpkg-release",
-            "inherits": "ninja-vcpkg",
-            "displayName": "Build (Release)",
-            "description": "Build with Ninja/vcpkg (Release)",
-            "configuration": "Release"
-        },
-        {
-            "name": "ninja-vcpkg-relwithdebinfo",
-            "inherits": "ninja-vcpkg",
-            "displayName": "Build (RelWithDebInfo)",
-            "description": "Build with Ninja/vcpkg (RelWithDebInfo)",
-            "configuration": "RelWithDebInfo"
-        },
-        {
-            "name": "ninja-system",
-            "configurePreset": "ninja-multi-system",
-            "displayName": "Build",
-            "description": "Build with Ninja/system packages"
-        },
-        {
-            "name": "ninja-system-debug",
-            "inherits": "ninja-system",
-            "displayName": "Build (Debug)",
-            "description": "Build with Ninja/system packages (Debug)",
-            "configuration": "Debug"
-        },
-        {
-            "name": "ninja-system-release",
-            "inherits": "ninja-system",
-            "displayName": "Build (Release)",
-            "description": "Build with Ninja/system packages (Release)",
-            "configuration": "Release"
-        },
-        {
-            "name": "ninja-system-relwithdebinfo",
-            "inherits": "ninja-system",
-            "displayName": "Build (RelWithDebInfo)",
-            "description": "Build with Ninja/system packages (RelWithDebInfo)",
-            "configuration": "RelWithDebInfo"
+            "name": "ninja-debug-vcpkg",
+            "displayName": "Ninja + vcpkg (Debug)",
+            "description": "Build Debug configuration with Ninja",
+            "configurePreset": "ninja-debug-vcpkg"
         }
     ],
     "testPresets": [
-        {
-            "name": "ninja-vcpkg",
-            "configurePreset": "ninja-multi-vcpkg",
-            "hidden": true
-        },
-        {
-            "name": "ninja-debug",
-            "description": "Test (Debug)",
-            "displayName": "Test (Debug)",
-            "configuration": "Debug",
-            "inherits": [
-                "ninja-vcpkg"
-            ]
-        },
-        {
-            "name": "ninja-relwithdebinfo",
-            "description": "Test (RelWithDebInfo)",
-            "displayName": "Test (RelWithDebInfo)",
-            "configuration": "RelWithDebInfo",
-            "inherits": [
-                "ninja-vcpkg"
-            ]
-        },
-        {
-            "name": "ninja-release",
-            "description": "Test (Release)",
-            "displayName": "Test (Release)",
-            "configuration": "Release",
-            "inherits": [
-                "ninja-vcpkg"
-            ]
-        },
-        {
-            "name": "ninja-system",
-            "configurePreset": "ninja-multi-system",
-            "hidden": true
-        },
-        {
-            "name": "system-debug",
-            "description": "Test (Debug)",
-            "displayName": "Test (Debug)",
-            "configuration": "Debug",
-            "inherits": [
-                "ninja-system"
-            ]
-        },
-        {
-            "name": "system-relwithdebinfo",
-            "description": "Test (RelWithDebInfo)",
-            "displayName": "Test (RelWithDebInfo)",
-            "configuration": "RelWithDebInfo",
-            "inherits": [
-                "ninja-system"
-            ]
-        },
-        {
-            "name": "system-release",
-            "description": "Test (Release)",
-            "displayName": "Test (Release)",
-            "configuration": "Release",
-            "inherits": [
-                "ninja-system"
-            ]
-        }
     ]
 }

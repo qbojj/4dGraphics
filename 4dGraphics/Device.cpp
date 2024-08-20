@@ -170,8 +170,8 @@ constexpr std::array wanted_instance_exts{
 };
 
 using DeviceStats_ext_adder = void (DeviceStats:: *)(std::string_view);
-using DeviceStats_ext_mapping =
-    std::pair<const std::string_view, DeviceStats_ext_adder>;
+using DeviceStats_adder_map = std::map<std::string_view, DeviceStats_ext_adder>;
+using DeviceStats_ext_mapping = DeviceStats_adder_map::value_type;
 
 constexpr DeviceStats_ext_mapping make_ext_adder(std::string_view name) {
   return {name, &DeviceStats::add_extension};

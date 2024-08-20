@@ -14,22 +14,6 @@ find_package(Tracy CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
-# create a vulkan-hpp cpp20 module target
-add_library(vulkan-hpp-module INTERFACE)#)
-# target_sources(vulkan-hpp-module PUBLIC
-#  FILE_SET CXX_MODULES
-#  BASE_DIRS ${Vulkan_INCLUDE_DIR}/vulkan
-#  FILES ${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm
-#)
-target_compile_features(vulkan-hpp-module INTERFACE cxx_std_23)
-target_link_libraries(vulkan-hpp-module INTERFACE Vulkan::Headers)
-target_compile_definitions(vulkan-hpp-module
-INTERFACE
-  VK_ENABLE_BETA_EXTENSIONS=1
-  VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-  VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
-)
-
 file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 file(GLOB HEADERS CONFIGURE_DEPENDS *.hpp *.h)
 
@@ -44,8 +28,6 @@ target_compile_features(4dGraphics PRIVATE cxx_std_23)
 target_precompile_headers(
   4dGraphics
   PRIVATE
-  <glm/ext.hpp>
-  <glm/glm.hpp>
   <taskflow/algorithm/critical.hpp>
   <taskflow/algorithm/for_each.hpp>
   <taskflow/taskflow.hpp>
@@ -56,6 +38,8 @@ target_precompile_headers(
   <vulkan/vulkan_raii.hpp>
   <vulkan/vulkan_to_string.hpp>
   <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+  <glm/glm.hpp>
+  <glm/ext.hpp>
   <SDL2/SDL.h>
   <tracy/Tracy.hpp>
   <imgui.h>
@@ -88,7 +72,7 @@ target_precompile_headers(
   <fstream>
   <functional>
   <future>
-  # <generator>
+  <generator>
   <initializer_list>
   <iomanip>
   <ios>
@@ -110,7 +94,7 @@ target_precompile_headers(
   <numeric>
   <optional>
   <ostream>
-  # <print>
+  <print>
   <queue>
   <random>
   <ranges>
@@ -152,8 +136,8 @@ target_link_libraries(
   PUBLIC imgui::imgui
          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
          Taskflow::Taskflow
-         glm::glm
-         Vulkan::Headers
+         glm-module
+         vulkan-hpp-module
          unordered_dense::unordered_dense
          unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp
          Tracy::TracyClient
@@ -165,15 +149,6 @@ target_include_directories(4dGraphics PUBLIC ${PROJECT_SOURCE_DIR}
 
 target_compile_definitions(
   4dGraphics
-  PUBLIC GLM_FORCE_SILENT_WARNINGS
-         GLM_FORCE_DEPTH_ZERO_TO_ONE
-         GLM_FORCE_SWIZZLE
-         GLM_FORCE_RADIANS
-         GLM_FORCE_CTOR_INIT
-         GLM_ENABLE_EXPERIMENTAL
-         VK_ENABLE_BETA_EXTENSIONS=1
-         VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-         VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
   PRIVATE WIN32_LEAN_AND_MEAN TRACY_VK_USE_SYMBOL_TABLE=1)
 
 setup_common(4dGraphics "4dGraphics")

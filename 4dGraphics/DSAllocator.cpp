@@ -42,7 +42,7 @@ void DSAllocator::allocate_internal(
   auto device = m_pool.getDevice();
   const auto *disp = m_pool.getDispatcher();
 
-  static constexpr int max_tries = 64;
+  static constexpr auto max_tries = 64;
 
   vk::Result res{};
   for (int i = 0; i < max_tries; i++) {
@@ -57,7 +57,7 @@ void DSAllocator::allocate_internal(
     }
 
     // is it out of pool memory error?
-    vk::resultCheck(
+    vk::detail::resultCheck(
         res, "v4dg::DSAllocator::allocate",
         {vk::Result::eErrorFragmentedPool, vk::Result::eErrorOutOfPoolMemory});
 
@@ -66,7 +66,7 @@ void DSAllocator::allocate_internal(
   }
 
   // we failed multiple times. something is very wrong.
-  vk::resultCheck(res, "v4dg::DSAllocator::allocate");
+  vk::detail::resultCheck(res, "v4dg::DSAllocator::allocate");
   assert(false);
 }
 
