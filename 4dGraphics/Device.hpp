@@ -29,7 +29,10 @@ public:
 
   // we will be refering to this class as a reference type -> no copying/moving
   Instance(const Instance &) = delete;
+  Instance(Instance &&) = delete;
   Instance &operator=(const Instance &) = delete;
+  Instance &operator=(Instance &&) = delete;
+  ~Instance() = default;
 
   [[nodiscard]] const vk::raii::Context &context() const noexcept {
     return m_context;
@@ -123,7 +126,10 @@ public:
 
   // we will be refering to this class as a reference type -> no copying/moving
   Device(const Device &) = delete;
+  Device(Device &&) = delete;
   Device &operator=(const Device &) = delete;
+  Device &operator=(Device &&) = delete;
+  ~Device() = default;
 
   [[nodiscard]] const auto &instance() const noexcept { return m_instance; }
   [[nodiscard]] const auto &vkInstance() const noexcept {

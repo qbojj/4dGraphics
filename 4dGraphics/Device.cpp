@@ -29,7 +29,8 @@
 #include <utility>
 #include <vector>
 
-namespace v4dg {
+using namespace v4dg;
+
 namespace {
 vk::Bool32
 debugMessageFuncCpp(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -160,15 +161,6 @@ std::vector<const char *> to_c_vector(auto &strings) {
 constexpr auto transform_to_ext_storage = std::views::transform(
     [](const auto &ext) { return make_ext_storage(ext); });
 
-constexpr std::array required_instance_exts{
-    vk::KHRSurfaceExtensionName,
-};
-
-constexpr std::array wanted_instance_exts{
-    vk::EXTDebugUtilsExtensionName,
-    vk::KHRPortabilityEnumerationExtensionName,
-};
-
 using DeviceStats_ext_adder = void (DeviceStats::*)(std::string_view);
 using DeviceStats_adder_map = std::map<std::string_view, DeviceStats_ext_adder>;
 using DeviceStats_ext_mapping = DeviceStats_adder_map::value_type;
@@ -255,26 +247,37 @@ const std::map<std::string_view, DeviceStats_ext_adder> device_ext_spec{
         vk::KHRRayTracingMaintenance1ExtensionName),
 };
 
-const std::array required_device_exts{
-    vk::KHRSwapchainExtensionName,
+constexpr std::array required_instance_exts{
+    vk::KHRSurfaceExtensionName,
+};
 
+constexpr std::array wanted_instance_exts{
+    vk::EXTDebugUtilsExtensionName,
+    vk::KHRPortabilityEnumerationExtensionName,
+};
+
+const std::array required_device_exts{
     // VP_KHR_roadmap_2022
-    vk::KHRGlobalPriorityExtensionName,
+    // vk::KHRGlobalPriorityExtensionName,
 
     // VP_KHR_roadmap_2024
-    // vk::KHRLoadStoreOpNoneExtensionName,
-    // vk::KHRShaderQuadControlExtensionName,
-    // vk::KHRShaderMaximalReconvergenceExtensionName,
+    vk::KHRLoadStoreOpNoneExtensionName,
+    vk::KHRShaderQuadControlExtensionName,
+    vk::KHRShaderMaximalReconvergenceExtensionName,
     vk::KHRShaderSubgroupUniformControlFlowExtensionName,
     // vk::KHRShaderSubgroupRotateExtensionName,
     // vk::KHRShaderFloatControls2ExtensionName,
-    // vk::KHRShaderExpectAssumeExtensionName,
+    vk::KHRShaderExpectAssumeExtensionName,
     // vk::KHRLineRasterizationExtensionName,
-    // vk::KHRVertexAttributeDivisorExtensionName,
-    // vk::KHRIndexTypeUint8ExtensionName,
-    // vk::KHRMapMemory2ExtensionName,
+    vk::KHRVertexAttributeDivisorExtensionName,
+    vk::KHRIndexTypeUint8ExtensionName,
+    vk::KHRMapMemory2ExtensionName,
     vk::KHRMaintenance5ExtensionName,
     vk::KHRPushDescriptorExtensionName,
+
+    // other
+    vk::KHRSwapchainExtensionName,
+    vk::KHRDynamicRenderingLocalReadExtensionName,
 };
 
 const std::array wanted_device_exts{
@@ -570,7 +573,8 @@ Device::rankPhysicalDevice(const DeviceStats &stats,
   const auto *type_it = std::ranges::find(prefered, type);
 
   if (type_it != prefered.end()) {
-    rank += 1000.F / static_cast<float>(1 + std::distance(prefered.begin(), type_it));
+    rank += 1000.F /
+            static_cast<float>(1 + std::distance(prefered.begin(), type_it));
   }
 
   rank += static_cast<float>(props.limits.maxImageDimension2D) / 4096.F;
@@ -657,7 +661,7 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
     if (!avaiable.has_extension(e)) {
       continue;
     }
-    
+
     std::invoke(device_ext_spec.at(e), enabled, e);
   }
 
@@ -818,66 +822,54 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
       .setShaderIntegerDotProduct(vk::True)
       .setMaintenance4(vk::True);
 
-  [[maybe_unused]] const auto *a_maintenance5 =
-      avaiable_f.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>();
-  [[maybe_unused]] auto &e_maintenance5 =
-      enabled_f.get_or_add<vk::PhysicalDeviceMaintenance5FeaturesKHR>();
+  // VP_KHR_roadmap_2022
+  // enabled_f.assign(vk::PhysicalDeviceGlobalPriorityQueryFeaturesKHR{vk::True});
 
-  e_maintenance5.setMaintenance5(vk::True);
+  // VP_KHR_roadmap_2024
+  enabled_f.assign(vk::PhysicalDeviceShaderQuadControlFeaturesKHR{vk::True});
+  enabled_f.assign(
+      vk::PhysicalDeviceShaderMaximalReconvergenceFeaturesKHR{vk::True});
+  enabled_f.assign(
+      vk::PhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR{vk::True});
+  // enabled_f.assign(vk::PhysicalDeviceShaderSubgroupRotateFeaturesKHR{vk::True});
+  // enabled_f.assign(vk::PhysicalDeviceShaderFloatControls2FeaturesKHR{vk::True});
+  enabled_f.assign(vk::PhysicalDeviceShaderExpectAssumeFeaturesKHR{vk::True});
+  // enabled_f.assign(vk::PhysicalDeviceLineRasterizationFeaturesKHR{vk::True});
+  // enabled_f.assign(vk::PhysicalDeviceVertexAttributeDivisorFeaturesKHR{vk::True});
+  enabled_f.assign(vk::PhysicalDeviceIndexTypeUint8FeaturesKHR{vk::True});
+  enabled_f.assign(vk::PhysicalDeviceMaintenance5FeaturesKHR{vk::True});
+
+  // other
+  enabled_f.assign(
+      vk::PhysicalDeviceDynamicRenderingLocalReadFeaturesKHR{vk::True});
 
   // optional extensions
-  [[maybe_unused]] const auto *a_memory_priority =
-      avaiable_f.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
+  auto copy_if_present =
+      [&]<vulkan_struct_chainable<vk::PhysicalDeviceFeatures2> T>(
+          const T & /*unused*/) {
+        if (const auto *available = avaiable_f.get<T>()) {
+          enabled_f.assign(*available);
+        }
+      };
 
-  if (a_memory_priority != nullptr) {
-    enabled_f.assign(*a_memory_priority);
-  }
-
-  [[maybe_unused]] const auto *a_fault =
-      avaiable_f.get<vk::PhysicalDeviceFaultFeaturesEXT>();
-
-  if (a_fault != nullptr) {
-    enabled_f.assign(*a_fault);
-  }
+  copy_if_present(vk::PhysicalDeviceMemoryPriorityFeaturesEXT{});
+  copy_if_present(vk::PhysicalDeviceFaultFeaturesEXT{});
 
 #ifdef VK_KHR_portability_subset
-  [[maybe_unused]] const auto *a_portability_subset =
-      avaiable_f.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>();
-
+  [[maybe_unused]]
   // should enable all features that are needed by the app
   //  so will fix this when someone needs to run on a portability subset device
-  if (a_portability_subset != nullptr) {
+  if (const auto *a_portability_subset =
+          avaiable_f.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>()) {
     throw exception("Portability subset not implemented");
   }
 #endif
 
-  [[maybe_unused]] const auto *a_acceleration_structure =
-      avaiable_f.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
-
-  if (a_acceleration_structure != nullptr) {
-    enabled_f.assign(*a_acceleration_structure);
-  }
-
-  [[maybe_unused]] const auto *a_ray_query =
-      avaiable_f.get<vk::PhysicalDeviceRayQueryFeaturesKHR>();
-
-  if (a_ray_query != nullptr) {
-    enabled_f.assign(*a_ray_query);
-  }
-
-  [[maybe_unused]] const auto *a_ray_tracing_pipeline =
-      avaiable_f.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
-
-  if (a_ray_tracing_pipeline != nullptr) {
-    enabled_f.assign(*a_ray_tracing_pipeline);
-  }
-
-  [[maybe_unused]] const auto *a_ray_tracing_maintenance1 =
-      avaiable_f.get<vk::PhysicalDeviceRayTracingMaintenance1FeaturesKHR>();
-
-  if (a_ray_tracing_maintenance1 != nullptr) {
-    enabled_f.assign(*a_ray_tracing_maintenance1);
-  }
+  // ray tracing
+  copy_if_present(vk::PhysicalDeviceAccelerationStructureFeaturesKHR{});
+  copy_if_present(vk::PhysicalDeviceRayQueryFeaturesKHR{});
+  copy_if_present(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR{});
+  copy_if_present(vk::PhysicalDeviceRayTracingMaintenance1FeaturesKHR{});
 
   enabled.features.shrink_to_fit();
   return enabled;
@@ -1056,7 +1048,7 @@ void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
       append("  binary dump saved to {}\n", dump_path.string());
       std::ofstream(dump_path, std::ios::binary)
           .write(reinterpret_cast<const char *>(vendorData.data()),
-                  static_cast<std::streamsize>(vendorData.size()));
+                 static_cast<std::streamsize>(vendorData.size()));
     }
 
     logger.FatalError("{}", message);
@@ -1099,4 +1091,3 @@ void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
     append("{}\n", message);
   }
 }
-} // namespace v4dg
