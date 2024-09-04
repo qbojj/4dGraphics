@@ -16,13 +16,15 @@ find_package(Ktx CONFIG REQUIRED)
 
 file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 file(GLOB HEADERS CONFIGURE_DEPENDS *.hpp *.h)
+file(GLOB MODULE_FILES CONFIGURE_DEPENDS *.cppm)
 
 add_executable(4dGraphics WIN32)
 target_sources(
   4dGraphics
   PRIVATE  ${SOURCES}
   PUBLIC FILE_SET HEADERS BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
-         ${HEADERS})
+         ${HEADERS}
+         )
 target_compile_features(4dGraphics PRIVATE cxx_std_23)
 
 target_precompile_headers(
@@ -63,7 +65,7 @@ target_precompile_headers(
   <coroutine>
   <deque>
   <exception>
-  <execution>
+  # <execution>
   <expected>
   <filesystem>
   # <flat_map> <flat_set>
