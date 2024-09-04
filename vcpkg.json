@@ -30,7 +30,10 @@
     "vulkan-headers",
     "vulkan-memory-allocator-hpp",
     "unordered-dense",
-    "shaderc",
+    {
+      "name": "shaderc",
+      "host": true
+    },
     {
       "name": "ktx",
       "features": [
