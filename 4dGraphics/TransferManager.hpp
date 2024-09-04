@@ -138,14 +138,16 @@ public:
   // creates a gpu local buffer and copies the data from the staging buffer
   template <typename T = std::byte>
     requires std::is_trivially_copyable_v<T>
-  BufferFuture uploadBuffer(std::span<const T> data,
-                            const BufferTransferInfo &ti) {
-    return uploadBuffer(std::as_bytes(data), ti);
+  BufferFuture uploadBuffer(std::vector<T> data, const BufferTransferInfo &ti) {
+    return uploadBuffer(
+        allocateBuffer(data.size() * sizeof(T), ti),
+        [d = std::move(data)](const Buffer &b) mutable {
+          auto data = std::as_bytes(d);
+          std::ranges::copy(data.data(), b->map<std::byte>().get());
+          d.clear();
+        },
+        ti);
   }
-
-  template <>
-  BufferFuture uploadBuffer<std::byte>(std::span<const std::byte> data,
-                                       const BufferTransferInfo &ti);
 
   // load a texture for that will be used only as a sampled image
   TextureFuture uploadTexture(const std::filesystem::path &path,

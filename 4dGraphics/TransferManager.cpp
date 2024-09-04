@@ -310,18 +310,6 @@ auto TransferManager::uploadBuffer(const Buffer &buffer, buffer_upload_fn fn,
   };
 }
 
-template <>
-auto TransferManager::uploadBuffer<std::byte>(std::span<const std::byte> data,
-                                              const BufferTransferInfo &ti)
-    -> BufferFuture {
-  return uploadBuffer(
-      allocateBuffer(data.size(), ti),
-      [d = data | std::ranges::to<std::vector>()](const Buffer &b) {
-        std::ranges::copy(d, b->map<std::byte>().get());
-      },
-      ti);
-}
-
 auto TransferManager::uploadTexture(const std::filesystem::path &path,
                                     const TextureTransferInfo &ti)
     -> TextureFuture {
@@ -397,8 +385,8 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
 
   vk::ImageType const imageType =
       resolve_expected(texture.get_image_type(), "getting image type");
-  vk::ImageViewType const viewType = resolve_expected(texture.get_image_view_type(),
-                                                "getting image view type");
+  vk::ImageViewType const viewType = resolve_expected(
+      texture.get_image_view_type(), "getting image view type");
 
   vk::Extent3D const extent{texture->baseWidth, texture->baseHeight,
                             texture->baseDepth};
