@@ -75,8 +75,7 @@ void ShaderStageData::fixup() {
 
 ShaderStageData::ShaderStageData(
     vk::ShaderStageFlagBits stage,
-    vk::ArrayProxyNoTemporaries<const uint32_t> shader_data,
-    std::string entry)
+    vk::ArrayProxyNoTemporaries<const uint32_t> shader_data, std::string entry)
     : entry(std::move(entry)) {
   info_chain.get<vk::PipelineShaderStageCreateInfo>().setStage(stage);
 

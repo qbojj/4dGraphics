@@ -217,14 +217,15 @@ auto Context::getFamilies() -> PerQueueFamilyArray {
     throw exception("no graphics queue found");
   }
 
-  return make_array_it<N>([&](std::size_t i) -> std::unique_ptr<PerQueueFamily> {
-    auto type = PerQueueFamily::QueueTypes[i].type;
-    if (!has_queue(type)) {
-      return nullptr;
-    }
+  return make_array_it<N>(
+      [&](std::size_t i) -> std::unique_ptr<PerQueueFamily> {
+        auto type = PerQueueFamily::QueueTypes[i].type;
+        if (!has_queue(type)) {
+          return nullptr;
+        }
 
-    return std::make_unique<PerQueueFamily>(*this, get_queue(type));
-  });
+        return std::make_unique<PerQueueFamily>(*this, get_queue(type));
+      });
 }
 
 void Context::next_frame() {

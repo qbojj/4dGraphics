@@ -45,7 +45,8 @@ struct SwapchainBuilder {
   Swapchain build(Context &ctx) const;
   vk::Format getFormat(Context &ctx) const;
   vk::PresentModeKHR getPresentMode(Context &ctx) const;
-  vk::Extent2D getExtent(const vk::SurfaceCapabilitiesKHR &surfaceCapabilities) const;
+  vk::Extent2D
+  getExtent(const vk::SurfaceCapabilitiesKHR &surfaceCapabilities) const;
 };
 
 class Swapchain {

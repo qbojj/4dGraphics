@@ -135,7 +135,8 @@ void parse_args(std::span<const char *> args) {
   recievers.push_back(v4dg::detail::make_shared_singleton<TracyLogReciever>());
 
   if (!parser.get<bool>("-q")) {
-    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::CerrLogReciever>());
+    recievers.push_back(
+        v4dg::detail::make_shared_singleton<v4dg::CerrLogReciever>());
   }
 
   if (parser.is_used("--log-path")) {
@@ -145,16 +146,18 @@ void parse_args(std::span<const char *> args) {
 
 #ifdef _WIN32
   if (parser.get<bool>("--output-debug-string"))
-    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::DebugOutputLogReciever>());
+    recievers.push_back(
+        v4dg::detail::make_shared_singleton<v4dg::DebugOutputLogReciever>());
 
   if (parser.get<bool>("--message-box"))
-    recievers.push_back(v4dg::detail::make_shared_singleton<v4dg::MessageBoxLogReciever>());
+    recievers.push_back(
+        v4dg::detail::make_shared_singleton<v4dg::MessageBoxLogReciever>());
 #endif
 
   v4dg::logger.setLogLevel(log_level);
   v4dg::logger.setLogReciever(v4dg::MultiLogReciever::from_span(recievers));
 }
-}
+} // namespace
 
 extern "C" int main(int argc, const char *argv[]) try {
   std::span const args{argv, static_cast<std::size_t>(argc)};

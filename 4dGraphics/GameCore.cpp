@@ -82,8 +82,7 @@ Window::Window(int width, int height, const char *title)
 }
 
 Window::Window(Window &&o) noexcept
-    : sdlCtx(std::move(o.sdlCtx))
-    , window(std::exchange(o.window, nullptr)) {}
+    : sdlCtx(std::move(o.sdlCtx)), window(std::exchange(o.window, nullptr)) {}
 
 Window &Window::operator=(Window &&o) noexcept {
   if (this == &o) {

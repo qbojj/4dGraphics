@@ -16,9 +16,7 @@ using namespace v4dg;
 using namespace v4dg::detail;
 
 namespace {
-bool hasAllFlags(auto flags, auto mask) {
-  return (flags & mask) == mask;
-}
+bool hasAllFlags(auto flags, auto mask) { return (flags & mask) == mask; }
 } // namespace
 
 ImageViewObject::ImageViewObject(internal_construct_t /*unused*/, Context &ctx,

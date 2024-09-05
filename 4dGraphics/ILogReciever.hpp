@@ -17,10 +17,10 @@ namespace v4dg {
 class ILogReciever {
 public:
   ILogReciever() = default;
-  ILogReciever(ILogReciever&) = delete;
-  ILogReciever(ILogReciever&&) = delete;
-  ILogReciever& operator=(ILogReciever&) = delete;
-  ILogReciever& operator=(ILogReciever&&) = delete;
+  ILogReciever(ILogReciever &) = delete;
+  ILogReciever(ILogReciever &&) = delete;
+  ILogReciever &operator=(ILogReciever &) = delete;
+  ILogReciever &operator=(ILogReciever &&) = delete;
 
   virtual ~ILogReciever() = default;
 

@@ -46,7 +46,7 @@ public:
 private:
   static constexpr vk::Extent3D tex_extent{1024, 720, 1};
   static constexpr auto default_scale = 1. / 128;
-  
+
   SDL_Context sdlContext{SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER};
   Instance instance;
   vk::raii::SurfaceKHR surface;

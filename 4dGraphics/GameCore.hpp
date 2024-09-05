@@ -96,7 +96,8 @@ public:
   static constexpr auto default_width = 1024;
   static constexpr auto default_height = 768;
 
-  explicit GameEngine(Window window = {default_width, default_height, "4dGraphics"});
+  explicit GameEngine(Window window = {default_width, default_height,
+                                       "4dGraphics"});
   virtual ~GameEngine();
 
   GameEngine(const GameEngine &) = delete;

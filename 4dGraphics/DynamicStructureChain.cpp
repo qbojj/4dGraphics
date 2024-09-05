@@ -28,7 +28,7 @@ void *detail::DynamicStructureChainBase::expand_storage(std::size_t size) {
     auto *last = reinterpret_cast<vk::BaseOutStructure *>(data());
     while (last->pNext != nullptr) {
       last = last->pNext;
-}
+    }
     last->pNext = reinterpret_cast<vk::BaseOutStructure *>(new_data);
   }
 
@@ -39,10 +39,10 @@ void detail::DynamicStructureChainBase::fixup(const void *old_ptr) noexcept {
   void *cur_ptr = data();
   if (cur_ptr == old_ptr) {
     return;
-}
+  }
 
   std::ptrdiff_t const offset = static_cast<std::byte *>(cur_ptr) -
-                          static_cast<const std::byte *>(old_ptr);
+                                static_cast<const std::byte *>(old_ptr);
   auto *el = reinterpret_cast<vk::BaseOutStructure *>(cur_ptr);
   while (el != nullptr) {
     if (el->pNext != nullptr) {

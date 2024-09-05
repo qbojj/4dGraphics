@@ -28,7 +28,8 @@ constexpr auto max_file_header_formatter_len = 1024;
 
 void standard_format_header(auto &it, std::source_location loc,
                             v4dg::ILogReciever::LogLevel lev,
-                            bool remove_type = true, std::size_t max_len = max_format_len) {
+                            bool remove_type = true,
+                            std::size_t max_len = max_format_len) {
   std::string_view file_name = loc.file_name();
 
   auto pos = file_name.find_last_of("/\\");
