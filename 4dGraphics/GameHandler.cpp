@@ -43,7 +43,7 @@ using namespace v4dg;
 
 namespace {
 vk::raii::SurfaceKHR sdl_get_surface(const vk::raii::Instance &instance,
-                                            SDL_Window *window) {
+                                     SDL_Window *window) {
   VkSurfaceKHR raw_surface{};
   if (SDL_Vulkan_CreateSurface(window, *instance, &raw_surface) == SDL_FALSE) {
     throw exception("Could not create vulkan surface: {}", SDL_GetError());
@@ -202,7 +202,7 @@ uint32_t MyGameHandler::wait_for_image() {
   while (true) {
     int w = 0;
     int h = 0;
-    SDL_Vulkan_GetDrawableSize(window(), &w, &h);
+    SDL_GetWindowSizeInPixels(window(), &w, &h);
     wanted_extent = vk::Extent2D{uint32_t(w), uint32_t(h)};
 
     if (wanted_extent != swapchain.extent()) {
@@ -289,7 +289,7 @@ void MyGameHandler::gui() {
       // zoom into mouse position (position under the mouse stays the same)
       auto mouse_pos = detail::to_glm<double>(ImGui::GetMousePos());
       auto swapchain_size = detail::to_glm<double>(swapchain.extent());
-    
+
       auto mouse_center_rel =
           mouse_pos - swapchain_size / 2.0; // NOLINT(*-magic-numbers)
 
@@ -426,8 +426,10 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
     rai.setImageView(view)
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
         .setResolveMode(vk::ResolveModeFlagBits::eNone)
-        .setLoadOp(vk::AttachmentLoadOp::eLoad)
-        .setStoreOp(vk::AttachmentStoreOp::eStore);
+        //.setLoadOp(vk::AttachmentLoadOp::eLoad)
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eStore)
+        .setClearValue(vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}});
 
     cb->beginRendering(
         vk::RenderingInfo{{}, {{}, swapchain.extent()}, 1, 0, rai});
@@ -511,13 +513,12 @@ int MyGameHandler::Run() try {
     }
 
     tf::Taskflow tf;
+    std::optional<CommandBuffer> recorded;
 
     {
       ZoneScopedN("build taskflow");
 
       auto gui_task = tf.emplace([&] { gui(); }).name("gui");
-
-      std::optional<CommandBuffer> recorded;
 
       auto record =
           tf.emplace([&] {
