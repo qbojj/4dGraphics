@@ -8,6 +8,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_extension_inspection.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <algorithm>
@@ -245,6 +246,7 @@ const std::map<std::string_view, DeviceStats_ext_adder> device_ext_spec{
         vk::KHRRayTracingPipelineExtensionName),
     make_ext_adder<vk::PhysicalDeviceRayTracingMaintenance1FeaturesKHR>(
         vk::KHRRayTracingMaintenance1ExtensionName),
+    make_ext_adder(vk::KHRDeferredHostOperationsExtensionName),
 };
 
 constexpr std::array required_instance_exts{
@@ -288,6 +290,7 @@ const std::array wanted_device_exts{
 #ifdef VK_KHR_portability_subset
     vk::KHRPortabilitySubsetExtensionName,
 #endif
+    vk::KHRDeferredHostOperationsExtensionName,
     vk::KHRAccelerationStructureExtensionName,
     vk::KHRRayQueryExtensionName,
     vk::KHRRayTracingPipelineExtensionName,
