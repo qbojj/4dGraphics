@@ -1,0 +1,1 @@
+export RADV_PERFTEST=video_decode,transfer_queue,emulate_rt
