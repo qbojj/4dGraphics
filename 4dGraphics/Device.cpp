@@ -984,7 +984,8 @@ std::vector<std::vector<Queue>> Device::initQueues() const {
   return queues;
 }
 
-void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
+void Device::make_device_lost_dump(const Config &cfg,
+                                   const vk::DeviceLostError &error) const {
   logger.FatalError("Device lost: {}", error.what());
 
   if (!stats().has_extension(vk::EXTDeviceFaultExtensionName)) {
@@ -1007,7 +1008,6 @@ void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
     };
   };
 
-  auto cwd = std::filesystem::current_path();
   auto date = std::chrono::system_clock::now();
 
   auto [props2, id_props, driver_props] =
@@ -1041,9 +1041,9 @@ void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
     }
 
     if (!vendorData.empty()) {
-      auto dump_path =
-          cwd / std::format("device_dump_{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin",
-                            date, props.deviceName.data(), props.deviceID);
+      auto dump_path = cfg.user_data_dir() / "crash_dumps" /
+                       std::format("{:%Y-%m-%d_%H-%M-%S}_{}_{:8x}.bin", date,
+                                   props.deviceName.data(), props.deviceID);
 
       append("  binary dump saved to {}\n", dump_path.string());
       std::ofstream(dump_path, std::ios::binary)
@@ -1056,7 +1056,8 @@ void Device::make_device_lost_dump(const vk::DeviceLostError &error) const {
 
   {
     std::ofstream const crash_dump(
-        cwd / std::format("crash_dump_{:%Y-%m-%d_%H-%M-%S}.txt", date));
+        cfg.user_data_dir() / "crash_dumps" /
+        std::format("{:%Y-%m-%d_%H-%M-%S}.txt", date));
 
     auto append =
         make_append_to(std::ostreambuf_iterator<char>(crash_dump.rdbuf()));

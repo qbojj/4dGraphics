@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Config.hpp"
 #include "DynamicStructureChain.hpp"
 #include "Queue.hpp"
 #include "cppHelpers.hpp"
@@ -220,7 +221,8 @@ public:
 
   [[nodiscard]] const auto &queues() const noexcept { return m_queues; }
 
-  void make_device_lost_dump(const vk::DeviceLostError &error) const;
+  void make_device_lost_dump(const Config &cfg,
+                             const vk::DeviceLostError &error) const;
 
 private:
   const Instance &m_instance;

@@ -558,6 +558,6 @@ int MyGameHandler::Run() try {
 
   return 0;
 } catch (const vk::DeviceLostError &err) {
-  context.device().make_device_lost_dump(err);
+  context.device().make_device_lost_dump(cfg, err);
   return 1;
 }
