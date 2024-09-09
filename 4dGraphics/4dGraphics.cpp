@@ -1,9 +1,11 @@
+#include "Config.hpp"
 #include "Debug.hpp"
 #include "GameCore.hpp"
 #include "GameHandler.hpp"
 #include "ILogReciever.hpp"
 #include "cppHelpers.hpp"
 
+#include <SDL_config.h>
 #include <argparse/argparse.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -171,7 +173,13 @@ extern "C" int main(int argc, const char *argv[]) try {
 
   const v4dg::SDL_GlobalContext _{};
 
-  return v4dg::MyGameHandler{}.Run();
+  v4dg::Config cfg{"4dGraphics"};
+
+  v4dg::logger.Log("data dir: {}\ncache dir: {}\nuser data dir: {}",
+                   cfg.data_dir().string(), cfg.cache_dir().string(),
+                   cfg.user_data_dir().string());
+
+  return v4dg::MyGameHandler{cfg}.Run();
 } catch (const std::exception &e) {
   v4dg::logger.FatalError("Exception: {}", e.what());
   return EXIT_FAILURE;

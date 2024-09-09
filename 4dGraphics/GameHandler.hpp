@@ -2,6 +2,7 @@
 
 #include "BindlessManager.hpp"
 #include "CommandBuffer.hpp"
+#include "Config.hpp"
 #include "Context.hpp"
 #include "Device.hpp"
 #include "GameCore.hpp"
@@ -16,6 +17,7 @@
 
 #include <array>
 #include <cstdint>
+#include <filesystem>
 
 namespace v4dg {
 class ImGui_VulkanImpl {
@@ -34,7 +36,7 @@ private:
 
 class MyGameHandler final : public GameEngine {
 public:
-  MyGameHandler();
+  MyGameHandler(const Config &cfg);
   MyGameHandler(const MyGameHandler &) = delete;
   MyGameHandler &operator=(const MyGameHandler &) = delete;
   MyGameHandler(MyGameHandler &&) = delete;
@@ -46,6 +48,8 @@ public:
 private:
   static constexpr vk::Extent3D tex_extent{1024, 720, 1};
   static constexpr auto default_scale = 1. / 128;
+
+  const Config &cfg;
 
   SDL_Context sdlContext{SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER};
   Instance instance;

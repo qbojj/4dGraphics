@@ -16,7 +16,6 @@
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <sys/ucontext.h>
 #include <type_traits>
 #include <vector>
 
@@ -64,6 +63,14 @@ private:
   int count_;
   F onExcept_;
 };
+
+template <typename... Ts> struct overload_set : Ts... {
+  using Ts::operator()...;
+};
+
+} // namespace v4dg::detail
+
+namespace v4dg {
 
 enum class get_file_error : std::uint8_t {
   file_not_found,
@@ -164,10 +171,6 @@ constexpr T AlignDown(T val, V alignment) {
   return val & ~(static_cast<T>(alignment) - 1);
 }
 
-template <typename... Ts> struct overload_set : Ts... {
-  using Ts::operator()...;
-};
-
 template <typename CharT, typename Traits = std::char_traits<CharT>>
 class basic_zstring_view : std::basic_string_view<CharT, Traits> {
   using parent = std::basic_string_view<CharT, Traits>;
@@ -190,7 +193,8 @@ public:
   constexpr basic_zstring_view(const CharT *s) : parent(s) {}
   constexpr basic_zstring_view(std::nullptr_t) = delete;
 
-  basic_zstring_view(const std::basic_string<CharT, Traits> &s) : parent(s) {}
+  constexpr basic_zstring_view(const std::basic_string<CharT, Traits> &s)
+      : parent(s) {}
 
   using parent::begin;
   using parent::cbegin;
@@ -249,7 +253,7 @@ public:
   operator<=>(const basic_zstring_view &) const noexcept = default;
 
   // can be decayed to string_view
-  constexpr operator parent() const noexcept { return *this; }
+  constexpr operator const parent &() const noexcept { return *this; }
 
 private:
   // unsafe
@@ -262,7 +266,7 @@ using zu8string_view = basic_zstring_view<char8_t>;
 using zu16string_view = basic_zstring_view<char16_t>;
 using zu32string_view = basic_zstring_view<char32_t>;
 
-namespace views {
+namespace detail::views {
 template <typename T>
 inline constexpr auto static_casted = std::views::transform(
     [](auto &&x) -> T { return static_cast<T>(std::forward<decltype(x)>(x)); });
@@ -281,8 +285,9 @@ template <typename T>
 inline constexpr auto dynamic_casted = std::views::transform([](auto &&x) -> T {
   return dynamic_cast<T>(std::forward<decltype(x)>(x));
 });
-} // namespace views
+} // namespace detail::views
 
+namespace detail {
 template <typename ObjectType, auto... Args>
 [[nodiscard]] auto make_shared_singleton() -> std::shared_ptr<ObjectType> {
   static ObjectType obj{Args...};
@@ -364,7 +369,10 @@ template <vec_size_like T> struct vec_like_element<T> {
 template <vec_like T>
 using vec_like_element_t = typename vec_like_element<T>::type;
 
-template <typename ElementT = void> auto to_glm(vec_like auto t) {
+} // namespace detail
+
+template <typename ElementT = void> auto to_glm(detail::vec_like auto t) {
+  using namespace detail;
   using T = std::remove_cvref_t<decltype(t)>;
   using RealT = typename std::conditional_t<std::is_void_v<ElementT>,
                                             vec_like_element_t<T>, ElementT>;
@@ -386,16 +394,14 @@ template <typename ElementT = void> auto to_glm(vec_like auto t) {
   }
 }
 
-} // namespace v4dg::detail
-
-namespace v4dg {
-constexpr std::string_view to_string(const detail::get_file_error &e) {
+constexpr std::string_view to_string(const get_file_error &e) {
   switch (e) {
-  case detail::get_file_error::file_not_found:
+    using enum get_file_error;
+  case file_not_found:
     return "file not found";
-  case detail::get_file_error::file_size_unaligned:
+  case file_size_unaligned:
     return "file size unaligned";
-  case detail::get_file_error::io_error:
+  case io_error:
     return "io error";
   default:
     return "unknown error";

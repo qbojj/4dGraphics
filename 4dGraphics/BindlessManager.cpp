@@ -153,7 +153,7 @@ BindlessManager::BindlessManager(const Device &device)
 
   std::size_t whole_size = sizeof(VersionBufferInfo);
   for (std::uint32_t const size : sizes) {
-    whole_size = detail::AlignUp(whole_size, size_alignment);
+    whole_size = AlignUp(whole_size, size_alignment);
     whole_size += size * sizeof(std::uint8_t);
   }
 
@@ -201,7 +201,7 @@ BindlessManager::BindlessManager(const Device &device)
   for (auto [size, version_buf_device_addr, version_buf_data] :
        std::views::zip(sizes, std::span{info.buffers_header->versionBuffers},
                        std::span{info.versionBuffers})) {
-    offset = detail::AlignUp(offset, size_alignment);
+    offset = AlignUp(offset, size_alignment);
 
     if (size == 0) { // leave the pointers null
       version_buf_device_addr = vk::DeviceAddress{};

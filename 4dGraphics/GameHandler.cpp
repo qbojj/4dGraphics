@@ -115,11 +115,13 @@ ImGui_VulkanImpl::ImGui_VulkanImpl(const Swapchain &swapchain, Context &ctx)
 
 ImGui_VulkanImpl::~ImGui_VulkanImpl() { ImGui_ImplVulkan_Shutdown(); }
 
-MyGameHandler::MyGameHandler()
-    : instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+MyGameHandler::MyGameHandler(const Config &cfg)
+    : cfg(cfg),
+      instance(vk::raii::Context(reinterpret_cast<PFN_vkGetInstanceProcAddr>(
           SDL_Vulkan_GetVkGetInstanceProcAddr()))),
       surface(sdl_get_surface(instance.instance(), window())),
-      device(instance, *surface), context(device), transfer_manager(context),
+      device(instance, *surface), context(cfg, device),
+      transfer_manager(context),
       swapchain(SwapchainBuilder{
           .surface = *surface,
           .preferred_format = vk::Format::eR8G8B8A8Unorm,
@@ -149,7 +151,8 @@ MyGameHandler::MyGameHandler()
 
   texture->setName(device, "mandelbrot texture");
 
-  auto shader = load_shader_code("Shaders/Mandelbrot.comp.spv");
+  auto shader =
+      load_shader_code(cfg.data_dir() / "Shaders/Mandelbrot.comp.spv");
   if (!shader) {
     std::visit(
         [&](const auto &e) {
@@ -162,7 +165,8 @@ MyGameHandler::MyGameHandler()
     ShaderStageData shader_data(vk::ShaderStageFlagBits::eCompute, *shader);
 
     if (instance.debugUtilsEnabled()) {
-      shader_data.set_debug_name("Shaders/Mandelbrot.comp.spv");
+      shader_data.set_debug_name(
+          std::format("Shaders/Mandelbrot.comp.spv (var {})", variant));
     }
 
     shader_data.add_specialization(0, variant);
@@ -287,8 +291,8 @@ void MyGameHandler::gui() {
       auto delta = double{ImGui::GetIO().MouseWheel};
 
       // zoom into mouse position (position under the mouse stays the same)
-      auto mouse_pos = detail::to_glm<double>(ImGui::GetMousePos());
-      auto swapchain_size = detail::to_glm<double>(swapchain.extent());
+      auto mouse_pos = to_glm<double>(ImGui::GetMousePos());
+      auto swapchain_size = to_glm<double>(swapchain.extent());
 
       auto mouse_center_rel =
           mouse_pos - swapchain_size / 2.0; // NOLINT(*-magic-numbers)
@@ -362,9 +366,8 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
 
     static constexpr auto workgroup_size_base = 8;
     auto workgroup_size = workgroup_size_base * (current_pipeline == 0 ? 2 : 1);
-    cb->dispatch(
-        detail::DivCeil(texture->image()->extent().width, workgroup_size),
-        detail::DivCeil(texture->image()->extent().height, workgroup_size), 1);
+    cb->dispatch(DivCeil(texture->image()->extent().width, workgroup_size),
+                 DivCeil(texture->image()->extent().height, workgroup_size), 1);
   }
 
   cb.barrier({}, {}, {},
@@ -493,7 +496,7 @@ int MyGameHandler::Run() try {
 
     {
       using namespace std::chrono_literals;
-      if (!has_focus) { // Don't waste CPU time when not focused
+      if (!has_focus && false) { // Don't waste CPU time when not focused
         std::this_thread::sleep_for(50ms);
       }
     }

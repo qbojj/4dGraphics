@@ -4,6 +4,12 @@
     "argparse",
     "fastgltf",
     "glm",
+    "stb",
+    "taskflow",
+    "vulkan-headers",
+    "vulkan-memory-allocator-hpp",
+    "unordered-dense",
+    "ktx",
     {
       "name": "imgui",
       "features": [
@@ -14,31 +20,18 @@
     {
       "name": "sdl2",
       "features": [
-        "vulkan",
-        "wayland",
-        "x11"
+        "vulkan"
       ]
     },
-    "stb",
-    "taskflow",
     {
       "name": "tracy",
       "features": [
         "on-demand"
       ]
     },
-    "vulkan-headers",
-    "vulkan-memory-allocator-hpp",
-    "unordered-dense",
     {
       "name": "shaderc",
       "host": true
-    },
-    {
-      "name": "ktx",
-      "features": [
-        "vulkan"
-      ]
     }
   ]
 }

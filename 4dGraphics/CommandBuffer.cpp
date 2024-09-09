@@ -32,7 +32,7 @@ CommandBuffer::CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&other,
       m_ds_allocator(context.get_frame_ctx().m_ds_allocator),
       m_lock(std::move(lock)), m_queue_family_index(family_index) {}
 
-void CommandBuffer::beginDebugLabel(detail::zstring_view name,
+void CommandBuffer::beginDebugLabel(zstring_view name,
                                     glm::vec4 color) noexcept {
   if (!m_context->device().debugNamesAvaiable()) {
     return;
@@ -48,7 +48,7 @@ void CommandBuffer::endDebugLabel() noexcept {
   (*this)->endDebugUtilsLabelEXT();
 }
 
-void CommandBuffer::insertDebugLabel(detail::zstring_view name,
+void CommandBuffer::insertDebugLabel(zstring_view name,
                                      glm::vec4 color) noexcept {
   if (!m_context->device().debugNamesAvaiable()) {
     return;

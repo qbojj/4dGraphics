@@ -103,9 +103,9 @@ void PerQueueFamily::flush_frame(std::uint32_t frame) {
   m_command_buffer_managers[frame].reset();
 }
 
-Context::Context(const Device &dev,
+Context::Context(const Config &cfg, const Device &dev,
                  const std::optional<DSAllocatorWeights> &weights)
-    : m_instance(dev.instance()), m_device(dev),
+    : m_cfg(cfg), m_instance(dev.instance()), m_device(dev),
       m_main_thread_id(std::this_thread::get_id()), m_families(getFamilies()),
       m_per_frame{
           make_per_frame<PerFrame>(vkDevice(), m_families.size(),
@@ -120,7 +120,7 @@ Context::Context(const Device &dev,
   }
 
   auto pipeline_cache_data =
-      detail::GetFileString("pipeline_cache.bin").value_or(std::string{});
+      GetFileString(get_pipeline_cache_path()).value_or(std::string{});
   m_pipeline_cache = vkDevice().createPipelineCache(
       {{}, pipeline_cache_data.size(), pipeline_cache_data.data()});
 }
@@ -129,7 +129,7 @@ Context::~Context() {
   try {
     cleanup();
     auto data = m_pipeline_cache.getData();
-    std::ofstream("pipeline_cache.bin", std::ios::binary)
+    std::ofstream(get_pipeline_cache_path(), std::ios::binary)
         .write(reinterpret_cast<const char *>(data.data()),
                static_cast<std::streamsize>(data.size()));
   } catch (const std::exception &e) {
@@ -315,3 +315,7 @@ DSAllocatorWeights Context::default_weights(const Device & /*dev*/) {
 
   return weights;
 };
+
+std::filesystem::path Context::get_pipeline_cache_path() const {
+  return m_cfg.cache_dir() / "pipeline_cache.bin";
+}

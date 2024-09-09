@@ -155,7 +155,7 @@ public:
   }
 
   template <vulkan_handle T>
-  void setDebugNameString(const T &object, detail::zstring_view name) const {
+  void setDebugNameString(const T &object, zstring_view name) const {
     if constexpr (is_production) {
       return;
     }
@@ -195,7 +195,7 @@ public:
   }
 
   void beginDebugLabel(const vk::raii::CommandBuffer &commandBuffer,
-                       detail::zstring_view name,
+                       zstring_view name,
                        const std::array<float, 4> color = {
                            0.F, 0.F, 0.F, 1.F}) const noexcept {
     if constexpr (is_production) {

@@ -45,13 +45,12 @@ bool fix_spirv_endianess(std::span<uint32_t> code) {
 } // namespace
 
 std::expected<std::vector<std::uint32_t>,
-              std::variant<detail::get_file_error, load_shader_error>>
+              std::variant<get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path) {
-  using res_t =
-      std::expected<std::vector<std::uint32_t>,
-                    std::variant<detail::get_file_error, load_shader_error>>;
+  using res_t = std::expected<std::vector<std::uint32_t>,
+                              std::variant<get_file_error, load_shader_error>>;
 
-  return static_cast<res_t>(detail::GetFileBinary<uint32_t>(path))
+  return static_cast<res_t>(GetFileBinary<uint32_t>(path))
       .and_then([](auto &&code) -> res_t {
         if (!fix_spirv_endianess(code)) {
           return std::unexpected(load_shader_error::bad_magic_number);

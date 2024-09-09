@@ -3,6 +3,7 @@
 #include "BindlessManager.hpp"
 #include "CommandBuffer.hpp"
 #include "CommandBufferManager.hpp"
+#include "Config.hpp"
 #include "DSAllocator.hpp"
 #include "Device.hpp"
 #include "Queue.hpp"
@@ -17,6 +18,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -151,7 +153,7 @@ class Context {
 public:
   using QueueType = PerQueueFamily::Type;
 
-  explicit Context(const Device &device,
+  explicit Context(const Config &cfg, const Device &device,
                    const std::optional<DSAllocatorWeights> &weights = {});
   ~Context();
 
@@ -217,6 +219,8 @@ public:
   BindlessManager &bindlessManager() noexcept { return m_bindless_manager; }
 
 private:
+  const Config &m_cfg;
+
   const Instance &m_instance;
   const Device &m_device;
 
@@ -240,5 +244,7 @@ private:
   static DSAllocatorWeights default_weights(const Device &device);
 
   PerQueueFamilyArray getFamilies();
+
+  std::filesystem::path get_pipeline_cache_path() const;
 };
 } // namespace v4dg

@@ -69,11 +69,5 @@ endforeach()
 # Add a custom target to compile all shaders
 add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
 
-add_custom_command(
-  TARGET Shaders
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_OUTPUTS_DIR}
-          $<TARGET_FILE_DIR:4dGraphics>/Shaders
-  COMMENT "Copying shaders to binary directory")
-
-install(DIRECTORY ${SHADER_OUTPUTS_DIR} DESTINATION .)
+include(GNUInstallDirs)
+install(DIRECTORY ${SHADER_OUTPUTS_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR}/4dGraphics)

@@ -33,7 +33,7 @@ constexpr std::string_view to_string(load_shader_error e) {
 }
 
 std::expected<std::vector<std::uint32_t>,
-              std::variant<detail::get_file_error, load_shader_error>>
+              std::variant<get_file_error, load_shader_error>>
 load_shader_code(const std::filesystem::path &path);
 
 struct GraphicsPipelineBuilder;
@@ -53,7 +53,7 @@ public:
   ShaderStageData &add_specialization(std::uint32_t id, const T &data) {
     specialization_data.insert(
         specialization_data.end(),
-        detail::AlignUpOffset(specialization_data.size(), alignof(T)), {});
+        AlignUpOffset(specialization_data.size(), alignof(T)), {});
 
     specialization_entries.emplace_back(
         id, static_cast<std::uint32_t>(specialization_data.size()), sizeof(T));

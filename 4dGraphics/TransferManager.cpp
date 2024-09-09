@@ -8,8 +8,6 @@
 #include "cppHelpers.hpp"
 
 #include <ktx.h>
-#include <ktxvulkan.h>
-#include <stdexcept>
 #include <tracy/Tracy.hpp>
 #include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
@@ -28,6 +26,7 @@
 #include <mutex>
 #include <ranges>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -50,7 +49,7 @@ public:
   UniqueKtxTexture &operator=(const UniqueKtxTexture &) = delete;
   UniqueKtxTexture &operator=(UniqueKtxTexture &&other) noexcept {
     if (tex != nullptr) {
-      ktxTexture_Destroy(tex);
+      ktxTexture_Destroy(get());
     }
     tex = other.tex;
     other.tex = nullptr;
@@ -58,37 +57,32 @@ public:
   }
 
   UniqueKtxTexture(std::nullptr_t) : tex{nullptr} {}
-  explicit UniqueKtxTexture(ktxTexture *tex) : tex(tex) {}
+  explicit UniqueKtxTexture(ktxTexture2 *tex) : tex(tex) {
+    if (tex && tex->classId != ktxTexture2_c) {
+      throw exception("only ktx2 is supported");
+    }
+  }
 
   ~UniqueKtxTexture() {
     if (tex != nullptr) {
-      ktxTexture_Destroy(tex);
+      ktxTexture_Destroy(get());
     }
   }
 
-  [[nodiscard]] ktxTexture *get() const { return tex; }
-  operator ktxTexture *() const { return tex; }
-  ktxTexture *operator->() const { return tex; }
-
-  [[nodiscard]] ktxTexture2 *asKtx2() const {
-    if (tex->classId != ktxTexture2_c) {
-      throw exception("ktxTexture is not ktxTexture2");
-    }
-    return reinterpret_cast<ktxTexture2 *>(tex);
+  [[nodiscard]] ktxTexture *get() const {
+    return reinterpret_cast<ktxTexture *>(tex);
   }
 
-  [[nodiscard]] ktxTexture1 *asKtx1() const {
-    if (tex->classId != ktxTexture1_c) {
-      throw exception("ktxTexture is not ktxTexture1");
-    }
-    return reinterpret_cast<ktxTexture1 *>(tex);
-  }
+  [[nodiscard]] operator ktxTexture *() const { return get(); }
+  [[nodiscard]] operator ktxTexture2 *() const { return tex; }
+
+  ktxTexture2 *operator->() const { return tex; }
 
   [[nodiscard]] explicit operator bool() const { return tex != nullptr; }
 
   [[nodiscard]] ktx_transcode_fmt_e
   get_transcode_format(const Device &device) const {
-    if (!ktxTexture_NeedsTranscoding(tex)) {
+    if (!ktxTexture2_NeedsTranscoding(tex)) {
       return KTX_TTF_NOSELECTION;
     }
 
@@ -125,14 +119,14 @@ public:
 
   [[nodiscard]] std::expected<void, ktx_error_code_e>
   transcode(const Device &device) {
-    if ((tex == nullptr) || !ktxTexture_NeedsTranscoding(tex)) {
+    if ((tex == nullptr) || !ktxTexture2_NeedsTranscoding(tex)) {
       return {};
     }
 
     assert(tex->classId == ktxTexture2_c);
 
     auto format = get_transcode_format(device);
-    return to_expected(ktxTexture2_TranscodeBasis(asKtx2(), format, 0));
+    return to_expected(ktxTexture2_TranscodeBasis(tex, format, 0));
   }
 
   [[nodiscard]] std::expected<vk::ImageType, std::string>
@@ -192,15 +186,15 @@ public:
   }
 
   [[nodiscard]] static std::expected<UniqueKtxTexture, ktx_error_code_e>
-  try_create_from_file(detail::zstring_view path, ktxTextureCreateFlags flags) {
-    ktxTexture *tex{};
-    auto error_code = ktxTexture_CreateFromNamedFile(path.data(), flags, &tex);
+  try_create_from_file(zstring_view path, ktxTextureCreateFlags flags) {
+    ktxTexture2 *tex{};
+    auto error_code = ktxTexture2_CreateFromNamedFile(path.data(), flags, &tex);
 
     return to_expected(error_code, UniqueKtxTexture{tex});
   }
 
 private:
-  ktxTexture *tex;
+  ktxTexture2 *tex;
 };
 } // namespace
 
@@ -391,7 +385,7 @@ auto TransferManager::uploadTextureKtx(const std::filesystem::path &path,
   vk::Extent3D const extent{texture->baseWidth, texture->baseHeight,
                             texture->baseDepth};
 
-  auto format = static_cast<vk::Format>(ktxTexture_GetVkFormat(texture));
+  auto format = static_cast<vk::Format>(texture->vkFormat);
 
   // check if format is supproted (and has appropriate features)
   [[maybe_unused]] auto [_, format_properties] =

@@ -856,10 +856,10 @@ DeviceStats Device::chooseFeatures(const DeviceStats &avaiable) const {
   copy_if_present(vk::PhysicalDeviceFaultFeaturesEXT{});
 
 #ifdef VK_KHR_portability_subset
-  [[maybe_unused]]
+
   // should enable all features that are needed by the app
   //  so will fix this when someone needs to run on a portability subset device
-  if (const auto *a_portability_subset =
+  if ([[maybe_unused]] const auto *a_portability_subset =
           avaiable_f.get<vk::PhysicalDevicePortabilitySubsetFeaturesKHR>()) {
     throw exception("Portability subset not implemented");
   }

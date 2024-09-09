@@ -13,7 +13,7 @@ target_compile_features(vulkan-hpp-module INTERFACE cxx_std_23)
 target_link_libraries(vulkan-hpp-module INTERFACE Vulkan::Headers)
 target_compile_definitions(vulkan-hpp-module
 INTERFACE
-  VK_ENABLE_BETA_EXTENSIONS=1
+  # VK_ENABLE_BETA_EXTENSIONS=1
   VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
   VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0
 )
@@ -29,8 +29,8 @@ target_link_libraries(glm-module INTERFACE glm::glm)
 target_compile_definitions(glm-module INTERFACE
   GLM_FORCE_SILENT_WARNINGS
   GLM_FORCE_DEPTH_ZERO_TO_ONE
-  GLM_FORCE_SWIZZLE
+#  GLM_FORCE_SWIZZLE
   GLM_FORCE_RADIANS
-  GLM_FORCE_CTOR_INIT
-  GLM_ENABLE_EXPERIMENTAL
+#  GLM_FORCE_CTOR_INIT
+#  GLM_ENABLE_EXPERIMENTAL
 )

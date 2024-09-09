@@ -155,14 +155,6 @@ target_compile_definitions(
 
 setup_common(4dGraphics "4dGraphics")
 
-add_custom_command(
-  TARGET 4dGraphics
-  POST_BUILD
-  COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:4dGraphics>
-    $<TARGET_FILE:4dGraphics>
-    # $<TARGET_FILE:4dGraphics> is added to never have an empty set to copy
-    $<TARGET_FILE_DIR:4dGraphics>
-  COMMAND_EXPAND_LISTS)
+add_dependencies(4dGraphics Shaders)
 
 install(TARGETS 4dGraphics)

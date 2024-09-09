@@ -25,14 +25,14 @@ public:
   CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&, Context &,
                 std::uint32_t, std::unique_lock<std::mutex>);
 
-  void beginDebugLabel(detail::zstring_view name,
+  void beginDebugLabel(zstring_view name,
                        glm::vec4 color = constants::vBlack) noexcept;
   void endDebugLabel() noexcept;
-  void insertDebugLabel(detail::zstring_view name,
+  void insertDebugLabel(zstring_view name,
                         glm::vec4 color = constants::vBlack) noexcept;
 
   [[nodiscard]] auto
-  debugLabelScope(detail::zstring_view name,
+  debugLabelScope(zstring_view name,
                   glm::vec4 color = constants::vBlack) noexcept {
     beginDebugLabel(name, color);
     return detail::destroy_helper([this] { endDebugLabel(); });

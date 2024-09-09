@@ -7,47 +7,120 @@
   },
   "configurePresets": [
     {
-      "name": "ninja-multi-vcpkg",
-      "displayName": "Ninja Multi-Config + vcpkg",
-      "description": "Configure with vcpkg toolchain and generate Ninja Multi-Config project",
-      "binaryDir": "${sourceDir}/builds/${presetName}",
-      "generator": "Ninja Multi-Config",
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/build/install"
+    },
+    {
+      "name": "vcpkg",
+      "hidden": true,
+      "inherits": "base",
       "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     },
     {
-      "name": "ninja-multi-system",
-      "displayName": "Ninja Multi-Config + system packages",
-      "description": "Configure with system packages and generate Ninja Multi-Config project",
-      "binaryDir": "${sourceDir}/builds/${presetName}",
+      "name": "ninja",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja"
+    },
+    {
+      "name": "ninja-multi",
+      "hidden": true,
+      "inherits": "base",
       "generator": "Ninja Multi-Config"
     },
     {
-      "name": "ninja-vcpkg",
-      "displayName": "Ninja + vcpkg",
-      "description": "Configure with vcpkg toolchain and generate Ninja project",
+      "name": "clang",
       "hidden": true,
-      "binaryDir": "${sourceDir}/builds/${presetName}",
-      "generator": "Ninja",
-      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "inherits": "base",
       "environment": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CXX": "clang++",
+        "CC": "clang"
       }
     },
     {
-      "name": "ninja-debug-vcpkg",
-      "displayName": "Ninja + vcpkg (Debug)",
-      "inherits": "ninja-vcpkg",
+      "name": "debug",
+      "hidden": true,
+      "inherits": "base",
       "environment": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "ninja-release-vcpkg",
-      "displayName": "Ninja + vcpkg (Release)",
-      "inherits": "ninja-vcpkg",
+      "name": "release",
+      "hidden": true,
+      "inherits": "base",
       "environment": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "compile-commands",
+      "hidden": true,
+      "inherits": "base",
+      "environment": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "compile-commands-exportable",
+      "hidden": true,
+      "inherits": "base",
+      "environment": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "ninja-multi-vcpkg",
+      "displayName": "Ninja Multi-Config + vcpkg",
+      "inherits": [
+        "ninja-multi",
+        "vcpkg"
+      ]
+    },
+    {
+      "name": "ninja-multi-system",
+      "displayName": "Ninja Multi-Config + system packages",
+      "inherits": [
+        "ninja-multi"
+      ]
+    },
+    {
+      "name": "ninja-debug-vcpkg",
+      "displayName": "Ninja + vcpkg (Debug)",
+      "inherits": [
+        "ninja",
+        "vcpkg",
+        "debug",
+        "compile-commands-exportable"
+      ]
+    },
+    {
+      "name": "ninja-release-vcpkg",
+      "displayName": "Ninja + vcpkg (Release)",
+      "inherits": [
+        "ninja",
+        "vcpkg",
+        "release",
+        "compile-commands-exportable"
+      ]
+    },
+    {
+      "name": "ninja-debug-vcpkg-clang",
+      "displayName": "Ninja + vcpkg (Debug, Clang)",
+      "inherits": [
+        "ninja-debug-vcpkg",
+        "clang"
+      ]
+    },
+    {
+      "name": "ninja-release-vcpkg-clang",
+      "displayName": "Ninja + vcpkg (Release, Clang)",
+      "inherits": [
+        "ninja-release-vcpkg",
+        "clang"
+      ]
     }
   ],
   "buildPresets": [
