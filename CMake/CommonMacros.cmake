@@ -11,4 +11,10 @@ macro(SETUP_COMMON projectname dirname )
 		VISIBILITY_INLINES_HIDDEN true
 		CXX_VISIBILITY_PRESET hidden
 	)
+
+  if (NOT MSVC)
+    target_compile_options( ${projectname}
+      PRIVATE $<$<CONFIG:DEBUG>:-g3 -Og -ggdb>
+    )
+  endif()
 endmacro()
