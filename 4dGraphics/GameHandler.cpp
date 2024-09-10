@@ -429,8 +429,7 @@ void MyGameHandler::record_gui(CommandBuffer &cb, vk::Image image,
     rai.setImageView(view)
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
         .setResolveMode(vk::ResolveModeFlagBits::eNone)
-        //.setLoadOp(vk::AttachmentLoadOp::eLoad)
-        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setLoadOp(vk::AttachmentLoadOp::eLoad)
         .setStoreOp(vk::AttachmentStoreOp::eStore)
         .setClearValue(vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}});
 
