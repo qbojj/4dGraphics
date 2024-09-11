@@ -111,11 +111,20 @@ Swapchain SwapchainBuilder::build(Context &ctx) const {
     compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
   }
 
-  uint32_t imageCount =
+  std::uint32_t imageCount =
       std::max(image_count, surfaceCapabilities.minImageCount);
   if (surfaceCapabilities.maxImageCount != 0) {
     imageCount = std::min(imageCount, surfaceCapabilities.maxImageCount);
   }
+
+  // print info about chosen swapchain settings
+  logger.Debug("Swapchain settings:");
+  logger.Debug("\tImage count: {}", imageCount);
+  logger.Debug("\tFormat: {}", format);
+  logger.Debug("\tPresent mode: {}", presentMode);
+  logger.Debug("\tExtent: {}x{}", extent.width, extent.height);
+  logger.Debug("\tPre transform: {}", preTransform);
+  logger.Debug("\tComposite alpha: {}", compositeAlpha);
 
   return {
       ctx,
