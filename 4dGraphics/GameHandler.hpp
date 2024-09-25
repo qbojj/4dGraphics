@@ -1,23 +1,16 @@
 #pragma once
 
-#include "BindlessManager.hpp"
-#include "CommandBuffer.hpp"
-#include "Config.hpp"
-#include "Context.hpp"
-#include "Device.hpp"
 #include "GameCore.hpp"
-#include "Swapchain.hpp"
-#include "TransferManager.hpp"
-#include "VulkanResources.hpp"
 
 #include <SDL.h>
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 
 #include <array>
 #include <cstdint>
 #include <filesystem>
+
+import v4dg;
+import vulkan_hpp;
+import glm;
 
 namespace v4dg {
 class ImGui_VulkanImpl {

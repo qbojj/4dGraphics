@@ -1,8 +1,5 @@
 #include "GameCore.hpp"
 
-#include "Debug.hpp"
-#include "v4dgCore.hpp"
-
 #include <SDL2/SDL.h>
 #include <SDL_error.h>
 #include <SDL_stdinc.h>
@@ -13,6 +10,8 @@
 #include <cstring>
 #include <stdexcept>
 #include <utility>
+
+import v4dg;
 
 using namespace v4dg;
 namespace {

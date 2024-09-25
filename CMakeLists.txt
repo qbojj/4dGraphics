@@ -46,6 +46,7 @@ set(is_clang_18 $<AND:${is_clang},$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION
 
 # add "-D__cpp_concepts=202002L" when clang 18 for std::expected and
 add_compile_definitions("$<${is_clang_18}:__cpp_concepts=202002L>")
+add_compile_options("$<${is_clang_18}:-Wno-builtin-macro-redefined>")
 
 include(CMake/CppModules.cmake)
 add_subdirectory(Shaders)
