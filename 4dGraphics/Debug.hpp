@@ -159,5 +159,6 @@ private:
   std::shared_ptr<ILogReciever> m_logReciever;
 };
 
-extern Logger logger;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+inline Logger logger;
 } // namespace v4dg

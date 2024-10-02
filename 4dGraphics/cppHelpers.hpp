@@ -407,4 +407,6 @@ constexpr std::string_view to_string(const get_file_error &e) {
     return "unknown error";
   }
 }
+
+bool hasAllFlags(auto flags, auto mask) { return (flags & mask) == mask; }
 } // namespace v4dg

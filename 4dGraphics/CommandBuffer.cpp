@@ -1,6 +1,6 @@
 #include "CommandBuffer.hpp"
 
-#include "Context.hpp"
+#include "DSAllocator.hpp"
 #include "cppHelpers.hpp"
 #include "v4dgCore.hpp"
 #include "v4dgVulkan.hpp"
@@ -25,16 +25,16 @@
 using namespace v4dg;
 
 CommandBuffer::CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&other,
-                             Context &context, std::uint32_t family_index,
+                             const Device &device, DSAllocator DSallocator,
+                             std::uint32_t family_index,
                              std::unique_lock<std::mutex> lock)
     : vulkan_raii_view<vk::raii::CommandBuffer>(std::move(other)),
-      m_context(&context),
-      m_ds_allocator(context.get_frame_ctx().m_ds_allocator),
+      m_device(&device), m_ds_allocator(std::move(DSallocator)),
       m_lock(std::move(lock)), m_queue_family_index(family_index) {}
 
 void CommandBuffer::beginDebugLabel(zstring_view name,
                                     glm::vec4 color) noexcept {
-  if (!m_context->device().debugNamesAvaiable()) {
+  if (!device().debugNamesAvaiable()) {
     return;
   }
   (*this)->beginDebugUtilsLabelEXT(
@@ -42,7 +42,7 @@ void CommandBuffer::beginDebugLabel(zstring_view name,
 }
 
 void CommandBuffer::endDebugLabel() noexcept {
-  if (!m_context->device().debugNamesAvaiable()) {
+  if (!device().debugNamesAvaiable()) {
     return;
   }
   (*this)->endDebugUtilsLabelEXT();
@@ -50,7 +50,7 @@ void CommandBuffer::endDebugLabel() noexcept {
 
 void CommandBuffer::insertDebugLabel(zstring_view name,
                                      glm::vec4 color) noexcept {
-  if (!m_context->device().debugNamesAvaiable()) {
+  if (!device().debugNamesAvaiable()) {
     return;
   }
 

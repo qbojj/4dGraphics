@@ -90,6 +90,12 @@ private:
 
   std::vector<std::shared_ptr<ILogReciever>> m_recievers;
 };
+
+class TracyLogReciever : public v4dg::ILogReciever {
+public:
+  void do_log(std::string_view fmt, std::format_args args,
+              std::source_location loc, LogLevel lev) override;
+};
 } // namespace v4dg
 
 namespace std {

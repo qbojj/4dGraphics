@@ -14,7 +14,8 @@
 #include <utility>
 #include <vector>
 
-namespace v4dg {
+using namespace v4dg;
+
 DSAllocator::DSAllocator(DSAllocatorPool &owner)
     : m_owner(&owner), m_pool(nullptr) {}
 DSAllocator::~DSAllocator() {
@@ -44,6 +45,31 @@ void DSAllocator::allocate_internal(
 
   static constexpr auto max_tries = 64;
 
+  constexpr auto handle_errors = [](vk::Result res, bool weak) {
+    constexpr auto str = "v4dg::DSAllocator::allocate";
+    switch (res) {
+      using enum vk::Result;
+    case eSuccess:
+      return;
+    case eErrorFragmentedPool:
+      if (weak) {
+        return;
+      }
+      throw vk::FragmentedPoolError(str);
+    case eErrorOutOfPoolMemory:
+      if (weak) {
+        return;
+      }
+      throw vk::OutOfPoolMemoryError(str);
+    case eErrorOutOfHostMemory:
+      throw vk::OutOfHostMemoryError(str);
+    case eErrorOutOfDeviceMemory:
+      throw vk::OutOfDeviceMemoryError(str);
+    default:
+      throw vk::SystemError(vk::make_error_code(res), str);
+    }
+  };
+
   vk::Result res{};
   for (int i = 0; i < max_tries; i++) {
     vk::StructureChain<vk::DescriptorSetAllocateInfo,
@@ -57,16 +83,14 @@ void DSAllocator::allocate_internal(
     }
 
     // is it out of pool memory error?
-    vk::detail::resultCheck(
-        res, "v4dg::DSAllocator::allocate",
-        {vk::Result::eErrorFragmentedPool, vk::Result::eErrorOutOfPoolMemory});
+    handle_errors(res, true);
 
     // pool is full - try again
     m_owner->replace_full_allocator(m_pool);
   }
 
   // we failed multiple times. something is very wrong.
-  vk::detail::resultCheck(res, "v4dg::DSAllocator::allocate");
+  handle_errors(res, false);
   assert(false);
 }
 
@@ -182,4 +206,3 @@ vk::raii::DescriptorPool DSAllocatorPool::get_new_pool_internal() {
 
   return pool;
 }
-} // namespace v4dg

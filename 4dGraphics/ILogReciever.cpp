@@ -22,6 +22,8 @@
 #include <Windows.h>
 #endif
 
+using namespace v4dg;
+
 namespace {
 constexpr auto max_format_len = 40;
 constexpr auto max_file_header_formatter_len = 1024;
@@ -69,8 +71,7 @@ void standard_format_header(auto &it, std::source_location loc,
 }
 } // namespace
 
-namespace v4dg {
-std::string to_string(ILogReciever::LogLevel lev) {
+std::string v4dg::to_string(ILogReciever::LogLevel lev) {
   using enum ILogReciever::LogLevel;
 
   switch (lev) {
@@ -185,4 +186,12 @@ void MultiLogReciever::do_log(std::string_view fmt, std::format_args args,
     reciever->log(fmt, args, loc, lev);
   }
 }
-} // namespace v4dg
+
+void TracyLogReciever::do_log(std::string_view fmt, std::format_args args,
+                              std::source_location loc, LogLevel lev) {
+  std::string msg = std::format("[{}] {}:{}:{}: ", lev, loc.file_name(),
+                                loc.line(), loc.function_name());
+  std::vformat_to(std::back_inserter(msg), fmt, args);
+
+  TracyMessage(msg.c_str(), msg.size());
+}

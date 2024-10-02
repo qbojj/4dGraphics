@@ -2,6 +2,7 @@
 
 #include "Constants.hpp"
 #include "DSAllocator.hpp"
+#include "Device.hpp"
 #include "cppHelpers.hpp"
 #include "v4dgVulkan.hpp"
 
@@ -18,12 +19,12 @@
 #include <vector>
 
 namespace v4dg {
-class Context;
 class SubmitGroup;
 class CommandBuffer : public vulkan_raii_view<vk::raii::CommandBuffer> {
 public:
-  CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&, Context &,
-                std::uint32_t, std::unique_lock<std::mutex>);
+  CommandBuffer(vulkan_raii_view<vk::raii::CommandBuffer> &&, const Device &,
+                DSAllocator DSallocator, std::uint32_t,
+                std::unique_lock<std::mutex>);
 
   void beginDebugLabel(zstring_view name,
                        glm::vec4 color = constants::vBlack) noexcept;
@@ -38,8 +39,8 @@ public:
     return detail::destroy_helper([this] { endDebugLabel(); });
   }
 
-  [[nodiscard]] Context &context() const noexcept { return *m_context; }
-  [[nodiscard]] DSAllocator &ds_allocator() noexcept { return m_ds_allocator; }
+  [[nodiscard]] auto &device() const noexcept { return *m_device; }
+  [[nodiscard]] auto &ds_allocator() noexcept { return m_ds_allocator; }
 
   template <typename... Chain>
   void barrier(vk::DependencyFlags flags,
@@ -79,7 +80,7 @@ public:
   }
 
 private:
-  Context *m_context;
+  const Device *m_device;
   DSAllocator m_ds_allocator;
 
   // lock held for cmd buffer manager for non per-thread queues

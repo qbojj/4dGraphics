@@ -93,7 +93,8 @@ PerQueueFamily::getCommandBuffer(vk::CommandBufferLevel level,
                                  command_buffer_manager::category cat) {
   return {
       m_command_buffer_managers[m_ctx->frame_ref()].get(level, cat),
-      *m_ctx,
+      m_ctx->device(),
+      m_ctx->get_frame_ctx().m_ds_allocator,
       queue().family(),
       std::unique_lock(m_cbm_mutex),
   };

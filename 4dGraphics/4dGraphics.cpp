@@ -51,21 +51,6 @@ void operator delete(void *ptr, std::size_t) noexcept {
 }
 #endif
 
-class TracyLogReciever : public v4dg::ILogReciever {
-public:
-  void do_log(std::string_view fmt, std::format_args args,
-              std::source_location loc, LogLevel lev) override {
-    std::string msg = std::format("[{}] {}:{}:{}: ", lev, loc.file_name(),
-                                  loc.line(), loc.function_name());
-    std::vformat_to(std::back_inserter(msg), fmt, args);
-
-    TracyMessage(msg.c_str(), msg.size());
-  }
-};
-
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-v4dg::Logger v4dg::logger{};
-
 namespace {
 void parse_args(std::span<const char *> args) {
   argparse::ArgumentParser parser;
@@ -134,11 +119,10 @@ void parse_args(std::span<const char *> args) {
   using sp_lr = std::shared_ptr<v4dg::ILogReciever>;
   std::vector<sp_lr> recievers;
 
-  recievers.push_back(v4dg::detail::make_shared_singleton<TracyLogReciever>());
+  recievers.push_back(std::make_shared<v4dg::TracyLogReciever>());
 
   if (!parser.get<bool>("-q")) {
-    recievers.push_back(
-        v4dg::detail::make_shared_singleton<v4dg::CerrLogReciever>());
+    recievers.push_back(std::make_shared<v4dg::CerrLogReciever>());
   }
 
   if (parser.is_used("--log-path")) {
@@ -148,12 +132,10 @@ void parse_args(std::span<const char *> args) {
 
 #ifdef _WIN32
   if (parser.get<bool>("--output-debug-string"))
-    recievers.push_back(
-        v4dg::detail::make_shared_singleton<v4dg::DebugOutputLogReciever>());
+    recievers.push_back(std::make_shared<v4dg::DebugOutputLogReciever>());
 
   if (parser.get<bool>("--message-box"))
-    recievers.push_back(
-        v4dg::detail::make_shared_singleton<v4dg::MessageBoxLogReciever>());
+    recievers.push_back(std::make_shared<v4dg::MessageBoxLogReciever>());
 #endif
 
   v4dg::logger.setLogLevel(log_level);

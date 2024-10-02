@@ -208,7 +208,8 @@ public:
           command_buffer_manager::category::c0_100) {
     return {
         get_thread_frame_ctx().m_command_buffer_manager.get(level, cat),
-        *this,
+        device(),
+        get_frame_ctx().m_ds_allocator,
         m_families[static_cast<std::size_t>(QueueType::Graphics)]
             ->queue()
             .family(),
