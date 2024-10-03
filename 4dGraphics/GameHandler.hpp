@@ -1,14 +1,15 @@
 #pragma once
 
-#include "BindlessManager.hpp"
-#include "CommandBuffer.hpp"
-#include "Config.hpp"
-#include "Context.hpp"
-#include "Device.hpp"
 #include "GameCore.hpp"
-#include "Swapchain.hpp"
-#include "TransferManager.hpp"
-#include "VulkanResources.hpp"
+
+#include <BindlessManager.hpp>
+#include <CommandBuffer.hpp>
+#include <Config.hpp>
+#include <Context.hpp>
+#include <Device.hpp>
+#include <Swapchain.hpp>
+#include <TransferManager.hpp>
+#include <VulkanResources.hpp>
 
 #include <SDL.h>
 #include <glm/glm.hpp>

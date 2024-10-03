@@ -50,6 +50,7 @@ add_compile_options("$<${is_clang_18}:-Wno-builtin-macro-redefined>")
 
 include(CMake/CppModules.cmake)
 add_subdirectory(Shaders)
+add_subdirectory(v4dg)
 add_subdirectory(4dGraphics)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT

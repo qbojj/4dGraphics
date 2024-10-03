@@ -1,9 +1,10 @@
-#include "Config.hpp"
-#include "Debug.hpp"
 #include "GameCore.hpp"
 #include "GameHandler.hpp"
-#include "ILogReciever.hpp"
-#include "cppHelpers.hpp"
+
+#include <Config.hpp>
+#include <Debug.hpp>
+#include <ILogReciever.hpp>
+#include <cppHelpers.hpp>
 
 #include <SDL_config.h>
 #include <argparse/argparse.hpp>
